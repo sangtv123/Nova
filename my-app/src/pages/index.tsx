@@ -1,4 +1,5 @@
 import { CounterIsland } from '../islands/CounterIsland';
+import { ContactIsland } from '../islands/ContactIsland';
 
 export function IndexPage() {
   return (
@@ -25,6 +26,10 @@ export function IndexPage() {
 
       <section class="island-section">
         <CounterIsland initialCount={0} />
+      </section>
+
+      <section class="island-section">
+        <ContactIsland />
       </section>
     </div>
   );

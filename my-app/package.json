@@ -10,7 +10,10 @@
     "@nova/signals": "latest",
     "@nova/router": "latest",
     "@nova/islands": "latest",
-    "@nova/runtime": "latest"
+    "@nova/runtime": "latest",
+    "@nova/motion": "file:../packages/motion",
+    "@nova/forms": "file:../packages/forms"
+
   },
   "devDependencies": {
     "@nova/cli": "latest",

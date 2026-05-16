@@ -1,3 +1,5 @@
+import { ContactIsland } from '../islands/ContactIsland';
+
 export function AboutPage() {
   return (
     <div class="page about-page">
@@ -22,6 +24,10 @@ export function AboutPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section class="content-section">
+        <ContactIsland />
       </section>
     </div>
   );

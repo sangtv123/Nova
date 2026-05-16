@@ -27,10 +27,22 @@ async function main() {
   }
 }
 
+function scanIslands(projectDir: string): Array<{ name: string; importPath: string }> {
+  const islandsDir = path.join(projectDir, 'src/islands');
+  if (!fs.existsSync(islandsDir)) return [];
+  return fs.readdirSync(islandsDir)
+    .filter(f => f.endsWith('.tsx') || f.endsWith('.ts'))
+    .map(f => ({
+      name: f.replace(/\.(tsx?|ts)$/, '').toLowerCase(),
+      importPath: `./islands/${f.replace(/\.(tsx?|ts)$/, '')}`
+    }));
+}
+
 /**
  * Scan src/pages for file-based routing
  */
 function scanPages(projectDir: string): Array<{ path: string; importPath: string }> {
+
   const pagesDir = path.join(projectDir, 'src/pages');
   if (!fs.existsSync(pagesDir)) return [];
 
@@ -75,16 +87,27 @@ async function dev(args: string[]) {
         // Auto-inject routes into the main entry point
         if (args.path.toLowerCase().endsWith('main.tsx')) {
           const pages = scanPages(process.cwd());
+          const islands = scanIslands(process.cwd());
+          
           const routeCode = pages
             .map(p => `router.registerRoute('${p.path}', () => import('${p.importPath}'));`)
             .join('\n');
+
+          const islandCode = islands
+            .map(i => `registerIsland('${i.name}', () => import('${i.importPath}'));`)
+            .join('\n');
           
+          // Inject imports if missing
+          if (!source.includes('from \'@nova/router\'')) source = `import { router } from '@nova/router';\n${source}`;
+          if (!source.includes('from \'@nova/islands\'')) source = `import { registerIsland } from '@nova/islands';\n${source}`;
+
           if (source.includes('router.init()')) {
-            source = source.replace('router.init()', `\n// Auto-routing\n${routeCode}\nrouter.init()`);
+            source = source.replace('router.init()', `\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}\n\nrouter.init()`);
           } else {
-            source += `\n\n// Auto-routing\n${routeCode}`;
+            source += `\n\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}`;
           }
         }
+
 
         const compiled = await compile(source, { filename: args.path, isDev: true });
         return { contents: compiled.code, loader: 'tsx' };

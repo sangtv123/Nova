@@ -12,13 +12,18 @@ const islandRegistry = new Map();
  */
 export function registerIsland(id, componentOrFactory) {
     let factory;
-    if (typeof componentOrFactory === 'function' && componentOrFactory.length === 0) {
-        // Looks like a factory: () => import('./...')
-        factory = componentOrFactory;
+    if (typeof componentOrFactory === 'function') {
+        const code = componentOrFactory.toString();
+        const isFactory = componentOrFactory.length === 0 &&
+            (code.includes('import(') || code.includes('Promise'));
+        if (isFactory) {
+            factory = componentOrFactory;
+        }
+        else {
+            factory = () => Promise.resolve({ default: componentOrFactory });
+        }
     }
     else {
-        // Looks like a component: (props) => ...
-        // Wrap it in a resolved promise to match the factory interface
         factory = () => Promise.resolve({ default: componentOrFactory });
     }
     islandRegistry.set(id, { factory });

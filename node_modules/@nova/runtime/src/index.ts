@@ -164,7 +164,7 @@ export function mountIsland(
   return hydrate(el as Element, hydrationData, componentFn);
 }
 
-import { effect } from '@nova/signals';
+import { effect, untrack } from '@nova/signals';
 
 /**
  * Create element with attributes
@@ -266,7 +266,8 @@ export function createElement(
     if (children.length > 0) {
       props.children = children.length === 1 ? children[0] : children;
     }
-    return tag(props, children);
+    // FIX: Wrap component execution in untrack to prevent parent effects from tracking child signals
+    return untrack(() => (tag as Function)(props, children));
   }
 
   let el: HTMLElement;  // HTMLElement gives access to .style, .className
@@ -297,8 +298,49 @@ export function createElement(
           delegateEvent(event);
         }
       } else if (value != null) {
-        if (typeof value === 'function') effect(() => el.setAttribute(key, String(value())));
-        else el.setAttribute(key, String(value));
+        const isFormProperty = ['value', 'checked', 'selected', 'selectedIndex'].includes(key) && 
+                              ['input', 'textarea', 'select', 'option'].includes(tag as string);
+        const isBooleanAttr = ['disabled', 'checked', 'required', 'readonly', 'hidden', 'multiple'].includes(key);
+
+        if (isFormProperty) {
+          if (typeof value === 'function') {
+            effect(() => {
+              const val = value();
+              (el as any)[key] = val;
+              // Also sync attribute for CSS selectors like input[checked]
+              if (isBooleanAttr) {
+                if (val) el.setAttribute(key, '');
+                else el.removeAttribute(key);
+              }
+            });
+          } else {
+            (el as any)[key] = value;
+            if (isBooleanAttr) {
+              if (value) el.setAttribute(key, '');
+              else el.removeAttribute(key);
+            }
+          }
+        } else {
+          if (typeof value === 'function') {
+            effect(() => {
+              const val = value();
+              if (isBooleanAttr) {
+                if (val) el.setAttribute(key, '');
+                else el.removeAttribute(key);
+              } else {
+                if (val === null || val === undefined || val === false) el.removeAttribute(key);
+                else el.setAttribute(key, String(val));
+              }
+            });
+          } else {
+            if (isBooleanAttr) {
+              if (value) el.setAttribute(key, '');
+              else el.removeAttribute(key);
+            } else {
+              el.setAttribute(key, String(value));
+            }
+          }
+        }
       }
     }
   }
@@ -338,7 +380,7 @@ export function createElement(
             // Handle arrays (Fragments)
             const fragment = document.createDocumentFragment();
             for (const item of val) {
-              if (item instanceof Node) fragment.appendChild(item.cloneNode(true));
+              if (item instanceof Node) fragment.appendChild(item);
               else fragment.appendChild(document.createTextNode(String(item)));
             }
             
@@ -351,11 +393,11 @@ export function createElement(
               currentNode = placeholder;
             }
           } else {
-
+            const textValue = (val === null || val === undefined || val === false) ? '' : String(val);
             if (currentNode.nodeType === Node.TEXT_NODE) {
-              currentNode.textContent = String(val);
+              currentNode.textContent = textValue;
             } else {
-              const newText = document.createTextNode(String(val));
+              const newText = document.createTextNode(textValue);
               if (currentNode.parentNode) {
                 currentNode.parentNode.replaceChild(newText, currentNode);
               }
