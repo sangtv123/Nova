@@ -216,56 +216,112 @@ export function onUnmount(fn) {
     if (activeHooks)
         activeHooks.onUnmount.push(fn);
 }
+// ─── Unmount & Cleanup Observer ───────────────────────────────────────────────
+/**
+ * Trigger unmount hooks and signal disposals for a node and all its children.
+ * This is the core of Nova's memory safety.
+ */
+function cleanupNode(node) {
+    if (node.nodeType !== 1)
+        return; // Only process elements
+    const el = node;
+    // 1. Run onUnmount hooks
+    if (el.__nova_unmount) {
+        el.__nova_unmount.forEach((fn) => fn());
+        delete el.__nova_unmount;
+    }
+    // 2. Dispose reactive effects (prevent signal leaks)
+    if (el.__nova_disposals) {
+        el.__nova_disposals.forEach((fn) => fn());
+        delete el.__nova_disposals;
+    }
+    // 3. Recursive cleanup for children
+    let child = node.firstChild;
+    while (child) {
+        cleanupNode(child);
+        child = child.nextSibling;
+    }
+}
+let observerStarted = false;
+/**
+ * Starts a global MutationObserver to handle automatic component cleanup.
+ * Every time an element is removed from the DOM, Nova will:
+ * - Call its onUnmount hooks
+ * - Dispose of all reactive effects associated with it
+ */
+export function startUnmountObserver() {
+    if (observerStarted || typeof document === 'undefined')
+        return;
+    observerStarted = true;
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            mutation.removedNodes.forEach(cleanupNode);
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+// Auto-start on client load
+if (typeof window !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startUnmountObserver);
+    }
+    else {
+        startUnmountObserver();
+    }
+}
 export function createElement(tag, attrs, ...children) {
     if (typeof tag === 'function') {
-        const hooks = { onMount: [], onUnmount: [] };
+        const hooks = {
+            onMount: [],
+            onUnmount: [],
+            disposals: []
+        };
         const prevHooks = activeHooks;
         activeHooks = hooks;
         const props = attrs || {};
         if (children.length > 0) {
             props.children = children.length === 1 ? children[0] : children;
         }
-        // FIX: Wrap component execution in untrack to prevent parent effects from tracking child signals
         const el = untrack(() => tag(props, children));
         activeHooks = prevHooks;
-        // Run mount hooks in the next microtask (after the element is likely in the DOM)
         if (hooks.onMount.length > 0) {
             Promise.resolve().then(() => {
                 hooks.onMount.forEach(fn => fn());
             });
         }
-        // Register unmount hooks using a custom property on the element
-        if (hooks.onUnmount.length > 0 && el instanceof Element) {
-            el.__nova_unmount = hooks.onUnmount;
-            // We'll use a MutationObserver in the router or main entry to call these
+        if (el instanceof Element) {
+            if (hooks.onUnmount.length > 0)
+                el.__nova_unmount = hooks.onUnmount;
+            if (hooks.disposals.length > 0)
+                el.__nova_disposals = hooks.disposals;
         }
         return el;
     }
-    let el; // HTMLElement gives access to .style, .className
+    let el;
     if (isHydrating && hydrateCursor && hydrateCursor.nodeType === 1) {
         el = hydrateCursor;
-        hydrateCursor = el.firstChild; // Move cursor to children
+        hydrateCursor = el.firstChild;
     }
     else {
         el = document.createElement(tag);
     }
+    const elDisposals = [];
     if (attrs) {
         for (const [key, value] of Object.entries(attrs)) {
             if (key === 'class') {
                 if (typeof value === 'function')
-                    effect(() => el.className = value());
+                    elDisposals.push(effect(() => el.className = value()));
                 else
                     el.className = value;
             }
             else if (key === 'style') {
                 if (typeof value === 'function')
-                    effect(() => Object.assign(el.style, value()));
+                    elDisposals.push(effect(() => Object.assign(el.style, value())));
                 else if (typeof value === 'object')
                     Object.assign(el.style, value);
             }
             else if (key.startsWith('on')) {
                 const event = key.slice(2).toLowerCase();
-                // scroll is handled by passive delegation; mouseenter/leave/load/error don't bubble
                 const nonDelegated = ['mouseenter', 'mouseleave', 'load', 'error'];
                 if (nonDelegated.includes(event)) {
                     el.addEventListener(event, value);
@@ -280,17 +336,16 @@ export function createElement(tag, attrs, ...children) {
                 const isBooleanAttr = ['disabled', 'checked', 'required', 'readonly', 'hidden', 'multiple'].includes(key);
                 if (isFormProperty) {
                     if (typeof value === 'function') {
-                        domEffect(() => {
+                        elDisposals.push(domEffect(() => {
                             const val = value();
                             el[key] = val;
-                            // Also sync attribute for CSS selectors like input[checked]
                             if (isBooleanAttr) {
                                 if (val)
                                     el.setAttribute(key, '');
                                 else
                                     el.removeAttribute(key);
                             }
-                        });
+                        }));
                     }
                     else {
                         el[key] = value;
@@ -304,7 +359,7 @@ export function createElement(tag, attrs, ...children) {
                 }
                 else {
                     if (typeof value === 'function') {
-                        effect(() => {
+                        elDisposals.push(effect(() => {
                             const val = value();
                             if (isBooleanAttr) {
                                 if (val)
@@ -318,7 +373,7 @@ export function createElement(tag, attrs, ...children) {
                                 else
                                     el.setAttribute(key, String(val));
                             }
-                        });
+                        }));
                     }
                     else {
                         if (isBooleanAttr) {
@@ -335,9 +390,9 @@ export function createElement(tag, attrs, ...children) {
             }
         }
     }
-    let currentChildCursor = isHydrating ? hydrateCursor : null;
-    // FIX 3: Generator-based flatten — no intermediate array allocation
-    // children.flat(Infinity) creates a new array on every createElement call
+    if (elDisposals.length > 0) {
+        el.__nova_disposals = (el.__nova_disposals || []).concat(elDisposals);
+    }
     function* flatChildren(arr) {
         for (const item of arr) {
             if (Array.isArray(item))
@@ -352,7 +407,7 @@ export function createElement(tag, attrs, ...children) {
                 const marker = document.createTextNode('');
                 el.appendChild(marker);
                 let currentNodes = [];
-                effect(() => {
+                const dispose = effect(() => {
                     let val = child();
                     if (val === null || val === undefined || val === false)
                         val = '';
@@ -379,18 +434,19 @@ export function createElement(tag, attrs, ...children) {
                     }
                     currentNodes = newNodes;
                 });
+                elDisposals.push(dispose);
             }
             else if (typeof child === 'string' || typeof child === 'number') {
-                if (isHydrating && currentChildCursor) {
-                    currentChildCursor = currentChildCursor.nextSibling;
+                if (isHydrating && hydrateCursor) {
+                    hydrateCursor = hydrateCursor.nextSibling;
                 }
                 else {
                     el.appendChild(document.createTextNode(String(child)));
                 }
             }
             else if (child instanceof Node) {
-                if (isHydrating && currentChildCursor) {
-                    currentChildCursor = currentChildCursor.nextSibling;
+                if (isHydrating && hydrateCursor) {
+                    hydrateCursor = hydrateCursor.nextSibling;
                 }
                 else {
                     el.appendChild(child);

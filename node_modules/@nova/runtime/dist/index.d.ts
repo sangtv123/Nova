@@ -54,6 +54,13 @@ export declare function onMount(fn: Function): void;
  * Run a function when the current component is removed from the DOM
  */
 export declare function onUnmount(fn: Function): void;
+/**
+ * Starts a global MutationObserver to handle automatic component cleanup.
+ * Every time an element is removed from the DOM, Nova will:
+ * - Call its onUnmount hooks
+ * - Dispose of all reactive effects associated with it
+ */
+export declare function startUnmountObserver(): void;
 export declare function createElement(tag: string | Function, attrs?: Record<string, any> | null, ...children: any[]): Element | Element[];
 /**
  * Text node creation
