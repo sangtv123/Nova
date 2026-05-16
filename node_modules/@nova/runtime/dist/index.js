@@ -39,43 +39,43 @@ function patchAttributes(el, newEl) {
 /**
  * Patch child nodes using pointer traversal to avoid GC overhead
  */
+/**
+ * Reconcile children nodes in a reactive manner.
+ * Minimizes DOM movements by checking nextSibling.
+ */
+function reconcile(parent, oldNodes, newNodes, marker) {
+    // 1. Remove nodes that are not in the new list
+    const newNodeSet = new Set(newNodes);
+    for (const oldNode of oldNodes) {
+        if (!newNodeSet.has(oldNode) && oldNode.parentNode === parent) {
+            parent.removeChild(oldNode);
+        }
+    }
+    // 2. Insert/move new nodes from right to left
+    let cursor = marker;
+    for (let i = newNodes.length - 1; i >= 0; i--) {
+        const node = newNodes[i];
+        if (node.nextSibling !== cursor) {
+            parent.insertBefore(node, cursor);
+        }
+        cursor = node;
+    }
+}
 function patchChildren(el, newEl, signals) {
     let oldChild = el.firstChild;
     let newChild = newEl.firstChild;
-    while (oldChild || newChild) {
-        if (!oldChild && newChild) {
-            el.appendChild(newChild.cloneNode(true));
-            newChild = newChild.nextSibling;
-        }
-        else if (oldChild && !newChild) {
-            const nextOld = oldChild.nextSibling;
-            el.removeChild(oldChild);
-            oldChild = nextOld;
-        }
-        else if (oldChild && newChild) {
-            const nextOld = oldChild.nextSibling;
-            const nextNew = newChild.nextSibling;
-            if (oldChild.nodeType === 3 && newChild.nodeType === 3) {
-                // Text nodes
-                if (oldChild.textContent !== newChild.textContent) {
-                    oldChild.textContent = newChild.textContent;
-                }
-            }
-            else if (oldChild.nodeType === 1 &&
-                newChild.nodeType === 1 &&
-                oldChild.tagName === newChild.tagName) {
-                // Elements with same tag
-                patchAttributes(oldChild, newChild);
-                patchChildren(oldChild, newChild, signals);
-            }
-            else {
-                // Different node types, replace entirely
-                el.replaceChild(newChild.cloneNode(true), oldChild);
-            }
-            oldChild = nextOld;
-            newChild = nextNew;
-        }
+    const oldChildren = [];
+    const newChildren = [];
+    while (oldChild) {
+        oldChildren.push(oldChild);
+        oldChild = oldChild.nextSibling;
     }
+    while (newChild) {
+        newChildren.push(newChild);
+        newChild = newChild.nextSibling;
+    }
+    // Use reconcile for generic child patching too
+    reconcile(el, oldChildren, newChildren, null);
 }
 let isHydrating = false;
 let hydrateCursor = null;
@@ -339,17 +339,7 @@ export function createElement(tag, attrs, ...children) {
                         newNodes.push(document.createTextNode(''));
                     const parent = marker.parentNode;
                     if (parent) {
-                        const fragment = document.createDocumentFragment();
-                        for (const node of newNodes) {
-                            fragment.appendChild(node);
-                        }
-                        parent.insertBefore(fragment, marker);
-                        for (const node of currentNodes) {
-                            // Only remove if not part of the new nodes (reused)
-                            if (node.parentNode === parent && node !== marker) {
-                                parent.removeChild(node);
-                            }
-                        }
+                        reconcile(parent, currentNodes, newNodes, marker);
                     }
                     currentNodes = newNodes;
                 });

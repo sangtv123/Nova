@@ -1,3 +1,4 @@
+import ts from 'typescript';
 /**
  * Compiler options
  */
@@ -9,7 +10,7 @@ export interface CompilerOptions {
 export interface CompileResult {
     code: string;
     map?: string;
-    ast?: any;
+    ast?: ts.SourceFile;
     signals: Set<string>;
     islands: IslandInfo[];
     /** Static nodes that were hoisted to module scope */
@@ -25,59 +26,35 @@ export interface IslandInfo {
     props: string[];
 }
 /**
- * Parse TSX/JSX into a lightweight AST.
- * Production: replace with @babel/parser or esbuild's built-in parser.
+ * Parse TSX/JSX into a TypeScript AST.
  */
-export declare function parseTSX(code: string, filename: string): any;
+export declare function parseTSX(code: string, filename: string): ts.SourceFile;
 /**
- * Detect all signal/computed/effect declarations in source code.
+ * Detect all signal/computed declarations in source code using AST.
  */
-export declare function detectSignals(ast: any): Set<string>;
+export declare function detectSignals(sourceFile: ts.SourceFile): Set<string>;
 /**
- * Detect PascalCase component usages — candidates for island splitting.
+ * Detect PascalCase component usages — candidates for island splitting using AST.
  */
-export declare function detectIslands(ast: any, code: string): IslandInfo[];
+export declare function detectIslands(sourceFile: ts.SourceFile): IslandInfo[];
 /** Result of the hoisting transform */
 export interface HoistResult {
-    /** Transformed source with cloneNode() calls */
     code: string;
-    /** Module-level declarations to prepend */
     hoisted: string[];
 }
 /**
- * Hoist static JSX nodes to module-level `createTemplate()` calls.
- *
- * Transforms:
- * ```tsx
- * // Before
- * <span class="badge">New</span>
- *
- * // After (module-level)
- * const _s0 = createTemplate(`<span class="badge">New</span>`);
- *
- * // After (inline)
- * _s0.cloneNode(true)
- * ```
+ * Hoist static JSX nodes or transform dynamic ones to direct DOM operations.
  */
-export declare function hoistStaticNodes(code: string): HoistResult;
+export declare function transformOptimizedJSX(sourceFile: ts.SourceFile, code: string): HoistResult;
 /**
- * Optimize static nodes — integrates hoisting into the AST pipeline.
- * Returns the modified AST with hoisted declarations attached.
+ * Generate the final module code.
  */
-export declare function optimizeStaticNodes(ast: any): any;
-/**
- * Generate the final module code from the (possibly hoisted) AST.
- *
- * Prepends:
- *  - Nova imports
- *  - Hoisted static template declarations (module-level, created once)
- */
-export declare function generateDOMOps(ast: any, originalCode: string): string;
+export declare function generateDOMOps(optimized: HoistResult, originalCode: string): string;
 /**
  * Full compilation pipeline:
  *  1. Parse source
  *  2. Detect signals and islands
- *  3. Hoist static JSX nodes
+ *  3. Transform/Hoist JSX nodes
  *  4. Generate optimized module code
  */
 export declare function compile(code: string, options: CompilerOptions): Promise<CompileResult>;
