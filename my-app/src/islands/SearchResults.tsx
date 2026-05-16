@@ -6,15 +6,15 @@ export function SearchResults() {
     <div class="search-results-island card highlight">
       <h3>Island B: Search Results</h3>
       <div class="status-box">
-        <p><strong>Dữ liệu nhận được:</strong> {() => searchQuery.value}</p>
-        <p><strong>Độ dài:</strong> {() => searchQuery.value.length} ký tự</p>
+        <p><strong>Received Data:</strong> {() => searchQuery.value}</p>
+        <p><strong>Length:</strong> {() => searchQuery.value.length} characters</p>
       </div>
       {() => searchQuery.value ? (
         <div class="results-list">
-          <p>Bạn đang tìm kiếm: <span class="text-primary">{searchQuery.value}</span></p>
+          <p>You are searching for: <span class="text-primary">{searchQuery.value}</span></p>
         </div>
       ) : (
-        <p class="empty-state">Vui lòng nhập nội dung ở Island A.</p>
+        <p class="empty-state">Please enter text in Island A.</p>
       )}
     </div>
   );

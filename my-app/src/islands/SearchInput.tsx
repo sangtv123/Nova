@@ -9,7 +9,7 @@ export function SearchInput() {
         type="text" 
         value={() => searchQuery.value} 
         onInput={(e: InputEvent) => searchQuery.value = (e.target as HTMLInputElement).value}
-        placeholder="Nhập nội dung tìm kiếm..."
+        placeholder="Search for something..."
         class="input-field"
       />
       <button onClick={() => searchQuery.value = ''} class="btn secondary">Clear</button>

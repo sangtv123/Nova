@@ -1,21 +1,21 @@
 /**
- * api.ts — Scoped HTTP client cho my-app
+ * api.ts — Scoped HTTP client for my-app
  *
- * Tất cả các service đều import `api` từ đây thay vì
- * tạo client mới, để dùng chung interceptors.
+ * All services import `api` from here instead of
+ * creating a new client, to share interceptors.
  */
 import { createHttpClient, HttpError } from '@nova/http';
 
-// ── 1. Tạo client với base config ─────────────────────────────────────────────
+// ── 1. Create client with base config ─────────────────────────────────────────────
 export const api = createHttpClient({
-  baseUrl: 'https://jsonplaceholder.typicode.com', // demo API công khai
+  baseUrl: 'https://jsonplaceholder.typicode.com', // public demo API
   timeout: 10_000,
   retry: 2,
   retryDelay: 400,
   retryOn: [429, 500, 502, 503, 504],
 });
 
-// ── 2. Auth interceptor — gắn token vào mọi request ──────────────────────────
+// ── 2. Auth interceptor — attach token to every request ──────────────────────────
 api.useRequest(cfg => {
   const token = localStorage.getItem('nova_token');
   if (token) {
@@ -38,7 +38,7 @@ api.useError(err => {
   if (err instanceof HttpError) {
     if (err.status === 401) {
       localStorage.removeItem('nova_token');
-      // Redirect về login (không reload hẳn, dùng router)
+      // Redirect to login (without full reload, using router)
       window.dispatchEvent(new CustomEvent('nova:unauthorized'));
     }
     if (err.isServerError) {
@@ -47,5 +47,5 @@ api.useError(err => {
       );
     }
   }
-  return err; // ném tiếp để component tự xử lý nếu cần
+  return err; // throw further for components to handle if needed
 });

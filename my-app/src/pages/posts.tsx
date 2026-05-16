@@ -6,7 +6,7 @@ import type { Post, CreatePostDto } from '../services/PostService';
 import { HttpError } from '@nova/http';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PostCard — hiển thị 1 bài post
+// PostCard — Displays a single post
 // ─────────────────────────────────────────────────────────────────────────────
 function PostCard({ post, onDelete }: { post: Post; onDelete: (id: number) => void }) {
   const deleting = signal(false);
@@ -39,7 +39,7 @@ function PostCard({ post, onDelete }: { post: Post; onDelete: (id: number) => vo
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CreatePostForm — tạo bài mới
+// CreatePostForm — Create a new post
 // ─────────────────────────────────────────────────────────────────────────────
 function CreatePostForm({ onCreated }: { onCreated: (post: Post) => void }) {
   const title   = signal('');
@@ -95,13 +95,13 @@ function CreatePostForm({ onCreated }: { onCreated: (post: Post) => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PostsPage — trang chính, dùng useHttp reactive hook
+// PostsPage — Main page, uses useHttp reactive hook
 // ─────────────────────────────────────────────────────────────────────────────
 export function PostsPage() {
-  // useHttp trả về signals — tự cập nhật khi request hoàn thành
+  // useHttp returns signals — auto updates when request completes
   const { data, loading, error, execute } = usePosts();
 
-  // Xử lý local mutations mà không cần re-fetch toàn bộ
+  // Handle local mutations without re-fetching everything
   const handleCreated = (post: Post) => {
     if (data.value) {
       data.value = [post, ...data.value];
@@ -115,15 +115,15 @@ export function PostsPage() {
   };
 
   return (
-    <div class="posts-page">
+    <div class="page posts-page">
       <header class="page-header">
         <h1>Posts</h1>
-        <button onClick={() => execute()} disabled={() => loading.value}>
+        <button onClick={() => execute()} disabled={() => loading.value} aria-label="Refresh posts">
           {() => loading.value ? 'Loading…' : '↺ Refresh'}
         </button>
       </header>
 
-      {/* Form tạo post mới */}
+      {/* Create new post form */}
       <CreatePostForm onCreated={handleCreated} />
 
       {/* Loading state */}

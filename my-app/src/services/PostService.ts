@@ -1,8 +1,8 @@
 /**
- * PostService.ts — CRUD service dùng @nova/http
+ * PostService.ts — CRUD service using @nova/http
  *
- * Pattern: mỗi service dùng api singleton từ api.ts,
- * expose cả async methods (cho action) và useHttp hooks (cho component).
+ * Pattern: each service uses the api singleton from api.ts,
+ * exposing both async methods (for actions) and useHttp hooks (for components).
  */
 import { api } from './api';
 import { useHttp } from '@nova/http';
@@ -22,10 +22,10 @@ export interface CreatePostDto {
   body: string;
 }
 
-// ── Reactive hooks (dùng trong JSX component) ─────────────────────────────────
+// ── Reactive hooks (used in JSX components) ─────────────────────────────────
 
 /**
- * Hook lấy danh sách posts — reactive, tự động fetch khi mount.
+ * Hook to get posts list — reactive, auto-fetches on mount.
  *
  * @example
  * function PostList() {
@@ -43,38 +43,20 @@ export function usePosts() {
   return useHttp<Post[]>(api, 'GET', '/posts', {
     immediate: true,
     cacheKey: 'posts-list',
-    cacheTtl: 30_000, // cache 30 giây
+    cacheTtl: 30_000, // cache 30 seconds
   });
 }
 
-/**
- * Hook lấy 1 post theo ID — chỉ fetch khi gọi execute(overrides).
- *
- * @example
- * function PostDetail({ id }: { id: number }) {
- *   const { data, loading, execute } = usePost();
- *   onMount(() => execute({ params: undefined }));   // fetch với id cụ thể
- *   // Hoặc đơn giản hơn — dùng immediate: false rồi gọi execute trong onMount
- * }
- */
-export function usePost(id: number) {
-  return useHttp<Post>(api, 'GET', `/posts/${id}`, {
-    immediate: true,
-    cacheKey: `post-${id}`,
-    cacheTtl: 60_000,
-  });
-}
-
-// ── Imperative methods (dùng trong event handlers / stores) ───────────────────
+// ── Imperative methods (used in event handlers / stores) ───────────────────
 
 export const PostService = {
-  /** Lấy tất cả posts */
+  /** Get all posts */
   async getAll(): Promise<Post[]> {
     const res = await api.get<Post[]>('/posts');
     return res.data;
   },
 
-  /** Lấy 1 post */
+  /** Get post by ID */
   async getById(id: number): Promise<Post> {
     const res = await api.get<Post>(`/posts/${id}`, {
       cacheKey: `post-${id}`,
@@ -83,15 +65,15 @@ export const PostService = {
     return res.data;
   },
 
-  /** Tạo post mới */
+  /** Create new post */
   async create(dto: CreatePostDto): Promise<Post> {
     const res = await api.post<Post>('/posts', dto);
-    // Xóa cache list sau khi tạo mới
+    // Clear list cache after creating
     api.clearCache('posts-list');
     return res.data;
   },
 
-  /** Cập nhật post */
+  /** Update post */
   async update(id: number, dto: Partial<CreatePostDto>): Promise<Post> {
     const res = await api.patch<Post>(`/posts/${id}`, dto);
     api.clearCache(`post-${id}`);
@@ -99,7 +81,7 @@ export const PostService = {
     return res.data;
   },
 
-  /** Xóa post */
+  /** Delete post */
   async delete(id: number): Promise<void> {
     await api.delete(`/posts/${id}`);
     api.clearCache(`post-${id}`);

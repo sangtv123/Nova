@@ -54,7 +54,7 @@ export function TodoIsland() {
               onChange={() => service.toggleTodo(todo.id)} 
             />
             <span class="todo-text">{todo.text}</span>
-            <button class="btn-delete" onClick={() => service.removeTodo(todo.id)}>×</button>
+            <button class="btn-delete" aria-label="Delete quest" onClick={() => service.removeTodo(todo.id)}>×</button>
           </div>
         </li>
       </ul>
