@@ -1,53 +1,25 @@
-import { signal, computed } from '@nova/signals';
+import { signal } from '@nova/signals';
+import { inject, onMount } from '@nova/runtime';
 import { registerIsland } from '@nova/islands';
-
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+import { TodoService } from '../services/TodoService';
 
 export function TodoIsland() {
-  const todos = signal<Todo[]>([]);
+  const service = inject(TodoService);
   const inputValue = signal('');
-  
-  // Derived state: counts
-  const totalCount = computed(() => todos.value.length);
-  const completedCount = computed(() => todos.value.filter(t => t.completed).length);
-  
-  const addTodo = () => {
-    if (!inputValue.value.trim()) return;
-    
-    const newTodo: Todo = {
-      id: Date.now(),
-      text: inputValue.value,
-      completed: false
-    };
-    
-    todos.value = [...todos.value, newTodo];
+
+  onMount(() => {
+    console.log('⚔️ TodoIsland ready for quests!');
+  });
+
+  const handleAdd = () => {
+    service.addTodo(inputValue.value);
     inputValue.value = '';
-  };
-
-  const toggleTodo = (id: number) => {
-    todos.value = todos.value.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-  };
-
-  const removeTodo = (id: number) => {
-    console.log('Removing todo:', id);
-    todos.value = todos.value.filter(todo => todo.id !== id);
-    console.log('New todos count:', todos.value.length);
-  };
-
-  const clearCompleted = () => {
-    todos.value = todos.value.filter(t => !t.completed);
   };
 
   return (
     <div class="interactive-island todo-island" data-island="todo">
       <h3>Quest Log (Todo List)</h3>
-      <p class="island-desc">Manage your tasks with fine-grained signal updates.</p>
+      <p class="island-desc">Manage your tasks with Angular-inspired DI & Directives.</p>
 
       <div class="todo-input-group">
         <input 
@@ -55,36 +27,36 @@ export function TodoIsland() {
           placeholder="Add a new quest..." 
           value={() => inputValue.value}
           onInput={(e: any) => inputValue.value = e.target.value}
-          onKeyDown={(e: any) => e.key === 'Enter' && addTodo()}
+          onKeyDown={(e: any) => e.key === 'Enter' && handleAdd()}
         />
-        <button class="btn primary" onClick={addTodo}>Add</button>
+        <button class="btn primary" onClick={handleAdd}>Add</button>
       </div>
 
       <div class="todo-stats">
         {() => (
           <span>
-            {completedCount.value} / {totalCount.value} completed
+            {service.completedCount.value} / {service.totalCount.value} completed
           </span>
         )}
-        <button class="btn-link" onClick={clearCompleted}>Clear Completed</button>
+        <button class="btn-link" onClick={() => service.clearCompleted()}>Clear Completed</button>
       </div>
 
       <ul class="todo-list">
-        {() => todos.value.length === 0 ? (
-          <li class="empty-state">No quests found. Start by adding one!</li>
-        ) : todos.value.map(todo => (
-          <li class={todo.completed ? 'completed' : ''} key={todo.id}>
-            <div class="todo-item">
-              <input 
-                type="checkbox" 
-                checked={todo.completed} 
-                onChange={() => toggleTodo(todo.id)} 
-              />
-              <span class="todo-text">{todo.text}</span>
-              <button class="btn-delete" onClick={() => removeTodo(todo.id)}>×</button>
-            </div>
-          </li>
-        ))}
+        <li n-if={service.isEmpty} class="empty-state">
+          No quests found. Start by adding one!
+        </li>
+        
+        <li n-for="todo in service.todos" class={() => todo.completed ? 'completed' : ''} key={() => todo.id}>
+          <div class="todo-item">
+            <input 
+              type="checkbox" 
+              checked={() => todo.completed} 
+              onChange={() => service.toggleTodo(todo.id)} 
+            />
+            <span class="todo-text">{todo.text}</span>
+            <button class="btn-delete" onClick={() => service.removeTodo(todo.id)}>×</button>
+          </div>
+        </li>
       </ul>
 
       <style>{`
@@ -179,4 +151,4 @@ export function TodoIsland() {
 }
 
 // Register for client-side hydration
-registerIsland('todo', () => Promise.resolve({ default: TodoIsland }));
+registerIsland('todo', TodoIsland);

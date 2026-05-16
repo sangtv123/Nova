@@ -77,7 +77,7 @@ function scanPages(projectDir: string): Array<{ path: string; importPath: string
     });
 }
 
-import { loadConfig } from './config';
+import { loadConfig } from './config.js';
 import { PluginManager, PluginContext } from '@nova/plugins';
 
 async function dev(args: string[]) {
@@ -126,8 +126,24 @@ async function dev(args: string[]) {
             .map(i => `registerIsland('${i.name}', () => import('${i.importPath}'));`)
             .join('\n');
           
-          if (!source.includes('from \'@nova/router\'')) source = `import { router } from '@nova/router';\n${source}`;
-          if (!source.includes('from \'@nova/islands\'')) source = `import { registerIsland } from '@nova/islands';\n${source}`;
+          // Robust import injection for main.tsx
+          const ensureImport = (pkg: string, identifier: string) => {
+            const regex = new RegExp(`import\\s+\\{([^}]*)\\}\\s+from\\s+['"]${pkg}['"]`);
+            const match = source.match(regex);
+            
+            if (match) {
+              const imports = match[1].split(',').map(i => i.trim());
+              if (!imports.includes(identifier)) {
+                const newImports = [...imports, identifier].join(', ');
+                source = source.replace(match[0], `import { ${newImports} } from '${pkg}'`);
+              }
+            } else if (!source.includes(pkg)) {
+              source = `import { ${identifier} } from '${pkg}';\n${source}`;
+            }
+          };
+
+          ensureImport('@nova/router', 'router');
+          ensureImport('@nova/islands', 'registerIsland');
 
           if (source.includes('router.init()')) {
             source = source.replace('router.init()', `\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}\n\nrouter.init()`);

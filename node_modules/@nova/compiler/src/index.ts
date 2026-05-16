@@ -169,86 +169,153 @@ function isStaticNode(node: ts.Node, sourceFile: ts.SourceFile): boolean {
 }
 
 /**
- * Hoist static JSX nodes or transform dynamic ones to direct DOM operations.
+ * Proper AST-based transformation for Nova JSX
  */
-export function transformOptimizedJSX(sourceFile: ts.SourceFile, code: string): HoistResult {
+export function transformOptimizedJSX(sourceFile: ts.SourceFile, originalCode: string): HoistResult {
   const hoisted: string[] = [];
-  const replacements: { start: number; end: number; text: string }[] = [];
   let counter = 0;
 
-  function visit(node: ts.Node) {
-    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
-      const opening = ts.isJsxElement(node) ? node.openingElement : node;
-      const tagName = opening.tagName.getText(sourceFile);
+  const transformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
+    const { factory } = context;
 
-      // Only optimize native HTML elements (lowercase)
-      if (/^[a-z]/.test(tagName)) {
-        const attributes = opening.attributes.properties;
-        const nIfAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-if') as ts.JsxAttribute;
-        const nForAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-for') as ts.JsxAttribute;
+    return (rootNode) => {
+      const visitor = (node: ts.Node, inJsxContext: boolean = false): ts.Node => {
+        if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+          const opening = ts.isJsxElement(node) ? node.openingElement : node;
+          const tagName = opening.tagName.getText(sourceFile);
+          const attributes = opening.attributes.properties;
 
-        if (nIfAttr) {
-          const condition = nIfAttr.initializer && ts.isJsxExpression(nIfAttr.initializer) ? nIfAttr.initializer.expression?.getText(sourceFile) : null;
-          if (condition) {
-            // Remove n-if from the node for further processing
-            const elementCode = node.getText(sourceFile).replace(/n-if=\{[^}]+\}/, '');
-            replacements.push({
-              start: node.getStart(sourceFile),
-              end: node.getEnd(),
-              text: `(${condition}.value ? ${elementCode} : null)`
-            });
-            return;
+          // 1. Handle Structural Directives (n-if, n-for)
+          const nIfAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-if') as ts.JsxAttribute;
+          const nForAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-for') as ts.JsxAttribute;
+
+          if (nIfAttr || nForAttr) {
+            // Remove the directives from attributes
+            const filteredAttrs = attributes.filter(a => a !== nIfAttr && a !== nForAttr);
+            const newOpening = ts.isJsxElement(node)
+              ? factory.updateJsxOpeningElement(node.openingElement, node.openingElement.tagName, node.openingElement.typeArguments, factory.createJsxAttributes(filteredAttrs as any))
+              : factory.updateJsxSelfClosingElement(node, node.tagName, node.typeArguments, factory.createJsxAttributes(filteredAttrs as any));
+            
+            // Visit children of the transformed element (always in JSX context)
+            let transformedNode: ts.Node = ts.isJsxElement(node)
+              ? factory.updateJsxElement(node, newOpening as ts.JsxOpeningElement, ts.visitNodes(node.children, (child) => visitor(child, true)) as any, node.closingElement)
+              : newOpening;
+
+            if (nIfAttr) {
+              const condition = nIfAttr.initializer && ts.isJsxExpression(nIfAttr.initializer) ? nIfAttr.initializer.expression : null;
+              if (condition) {
+                transformedNode = factory.createConditionalExpression(
+                  factory.createPropertyAccessExpression(condition as ts.Expression, 'value'),
+                  factory.createToken(ts.SyntaxKind.QuestionToken),
+                  transformedNode as ts.Expression,
+                  factory.createToken(ts.SyntaxKind.ColonToken),
+                  factory.createNull()
+                );
+              }
+            }
+
+            if (nForAttr) {
+              const val = nForAttr.initializer && ts.isStringLiteral(nForAttr.initializer) ? nForAttr.initializer.text : null;
+              if (val && val.includes(' in ')) {
+                const [item, items] = val.split(' in ');
+                transformedNode = factory.createCallExpression(
+                  factory.createPropertyAccessExpression(
+                    factory.createPropertyAccessExpression(factory.createIdentifier(items), 'value'),
+                    'map'
+                  ),
+                  undefined,
+                  [
+                    factory.createArrowFunction(
+                      undefined,
+                      undefined,
+                      [factory.createParameterDeclaration(undefined, undefined, item)],
+                      undefined,
+                      factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+                      transformedNode as ts.Expression
+                    )
+                  ]
+                );
+              }
+            }
+
+            // CRITICAL: Only wrap in JsxExpression if it's a child of another JSX element
+            if (inJsxContext) {
+              return factory.createJsxExpression(undefined, transformedNode as ts.Expression);
+            }
+            return factory.createParenthesizedExpression(transformedNode as ts.Expression);
+          }
+
+          // 2. Handle Hoisting for static native elements
+          if (/^[a-z]/.test(tagName) && isStaticNode(node, sourceFile)) {
+            const printer = ts.createPrinter();
+            const jsxStr = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile);
+            const varName = `_s${counter++}`;
+            hoisted.push(`const ${varName} = /*@__PURE__*/ createTemplate(\`${jsxStr.replace(/`/g, '\\`')}\`);`);
+            
+            const call = factory.createCallExpression(
+              factory.createPropertyAccessExpression(factory.createIdentifier(varName), 'cloneNode'),
+              undefined,
+              [factory.createTrue()]
+            );
+
+            if (inJsxContext) {
+              return factory.createJsxExpression(undefined, call);
+            }
+            return factory.createParenthesizedExpression(call);
           }
         }
 
-        if (nForAttr) {
-          const val = nForAttr.initializer && ts.isStringLiteral(nForAttr.initializer) ? nForAttr.initializer.text : null;
-          if (val && val.includes(' in ')) {
-            const [item, items] = val.split(' in ');
-            const elementCode = node.getText(sourceFile).replace(/n-for="[^"]+"/, '');
-            replacements.push({
-              start: node.getStart(sourceFile),
-              end: node.getEnd(),
-              text: `(${items}.value.map(${item} => ${elementCode}))`
-            });
-            return;
-          }
-        }
+        const isJsxParent = ts.isJsxElement(node) || ts.isJsxFragment(node);
+        return ts.visitEachChild(node, (child) => visitor(child, isJsxParent), context);
+      };
 
-        if (isStaticNode(node, sourceFile)) {
-          // Static Hoisting
-          const jsxStr = node.getText(sourceFile);
-          const escaped = jsxStr.replace(/`/g, '\\`');
-          const varName = `_s${counter++}`;
-          hoisted.push(`const ${varName} = /*@__PURE__*/ createTemplate(\`${escaped}\`);`);
-          
-          replacements.push({
-            start: node.getStart(sourceFile),
-            end: node.getEnd(),
-            text: `(${varName}.cloneNode(true))`
-          });
-          return;
-        } else {
-          // Dynamic Optimization (Lite version)
-          // Transform <div class={c}>{v}</div> to an optimized createElement call
-          // or a direct DOM-op IIFE. For now, we'll use a hint for runtime.
-          // In a full implementation, this would emit direct DOM calls.
-        }
-      }
+      return ts.visitNode(rootNode, (node) => visitor(node, false)) as ts.SourceFile;
+    };
+  };
+
+  const result = ts.transform(sourceFile, [transformer]);
+  let transformedSourceFile = result.transformed[0] as ts.SourceFile;
+
+  // 3. Add necessary imports if hoisting was used
+  if (hoisted.length > 0) {
+    const printer = ts.createPrinter();
+    const existingImports = transformedSourceFile.statements.filter(ts.isImportDeclaration);
+    const hasRuntimeImport = existingImports.some(imp => imp.moduleSpecifier.getText(sourceFile).includes('@nova/runtime'));
+    
+    if (hasRuntimeImport) {
+      // Update existing import (complex, so we'll just add a new one for now as it's valid ESM)
+      const newImport = ts.factory.createImportDeclaration(
+        undefined,
+        ts.factory.createImportClause(
+          false,
+          undefined,
+          ts.factory.createNamedImports([
+            ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('createTemplate'))
+          ])
+        ),
+        ts.factory.createStringLiteral('@nova/runtime')
+      );
+      transformedSourceFile = ts.factory.updateSourceFile(transformedSourceFile, [newImport, ...transformedSourceFile.statements]);
+    } else {
+      const newImport = ts.factory.createImportDeclaration(
+        undefined,
+        ts.factory.createImportClause(
+          false,
+          undefined,
+          ts.factory.createNamedImports([
+            ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('createTemplate'))
+          ])
+        ),
+        ts.factory.createStringLiteral('@nova/runtime')
+      );
+      transformedSourceFile = ts.factory.updateSourceFile(transformedSourceFile, [newImport, ...transformedSourceFile.statements]);
     }
-    ts.forEachChild(node, visit);
   }
 
-  visit(sourceFile);
+  const printer = ts.createPrinter();
+  const transformedCode = printer.printFile(transformedSourceFile);
 
-  // Apply replacements
-  let transformed = code;
-  for (let i = replacements.length - 1; i >= 0; i--) {
-    const r = replacements[i];
-    transformed = transformed.slice(0, r.start) + r.text + transformed.slice(r.end);
-  }
-
-  return { code: transformed, hoisted };
+  return { code: transformedCode, hoisted };
 }
 
 // ─── Code generation ───────────────────────────────────────────────────────────
@@ -262,17 +329,12 @@ export function generateDOMOps(optimized: HoistResult, originalCode: string): st
 
   const lines: string[] = [];
 
-  lines.push(`// Generated Nova component`);
-  lines.push(`import { signal, computed, effect, domEffect } from '@nova/signals';`);
-  lines.push(`import { createElement, createTemplate, Fragment } from '@nova/runtime';`);
-
   if (hoisted.length > 0) {
-    lines.push('');
-    lines.push('// ── Hoisted static templates (created once, cloned on each render) ──');
+    lines.push('// ── Hoisted static templates ──');
     lines.push(...hoisted);
+    lines.push('');
   }
 
-  lines.push('');
   lines.push(source);
 
   return lines.join('\n');
@@ -280,10 +342,6 @@ export function generateDOMOps(optimized: HoistResult, originalCode: string): st
 
 /**
  * Full compilation pipeline:
- *  1. Parse source
- *  2. Detect signals and islands
- *  3. Transform/Hoist JSX nodes
- *  4. Generate optimized module code
  */
 export async function compile(
   code: string,

@@ -43,19 +43,15 @@ export interface HoistResult {
     hoisted: string[];
 }
 /**
- * Hoist static JSX nodes or transform dynamic ones to direct DOM operations.
+ * Proper AST-based transformation for Nova JSX
  */
-export declare function transformOptimizedJSX(sourceFile: ts.SourceFile, code: string): HoistResult;
+export declare function transformOptimizedJSX(sourceFile: ts.SourceFile, originalCode: string): HoistResult;
 /**
  * Generate the final module code.
  */
 export declare function generateDOMOps(optimized: HoistResult, originalCode: string): string;
 /**
  * Full compilation pipeline:
- *  1. Parse source
- *  2. Detect signals and islands
- *  3. Transform/Hoist JSX nodes
- *  4. Generate optimized module code
  */
 export declare function compile(code: string, options: CompilerOptions): Promise<CompileResult>;
 //# sourceMappingURL=index.d.ts.map
