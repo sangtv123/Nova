@@ -11,7 +11,8 @@ export interface FormControl<T> {
     isDirty: Signal<boolean>;
     isTouched: Signal<boolean>;
     isValid: Signal<boolean>;
-    validate: () => boolean;
+    isValidating: Signal<boolean>;
+    validate: () => Promise<boolean>;
 }
 /**
  * Built-in validators
@@ -22,11 +23,12 @@ export declare const Validators: {
     minLength: (min: number, msg?: string) => ValidationRule<string>;
 };
 /**
- * useForm Hook - Enhanced version for Giai đoạn 3
+ * useForm Hook - Final Giai đoạn 3 Version
  */
 export declare function useForm<T extends Record<string, any>>(initialValues: T, schema?: Partial<Record<keyof T, ValidationRule<any>[]>>): {
     controls: Record<keyof T, FormControl<any>>;
     isSubmitting: Signal<boolean>;
+    isValidating: Signal<boolean>;
     isFormValid: Signal<boolean>;
     handleSubmit: (callback: (values: T) => Promise<void> | void) => (e: Event) => Promise<void>;
     register: (key: keyof T) => {

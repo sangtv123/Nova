@@ -87,21 +87,31 @@ export declare class Watcher {
     watchDir(dirpath: string, callback: (event: string, filename: string) => void): () => void;
 }
 /**
- * Streaming Response - Utility for Giai đoạn 3
+ * Streaming Response - Core for Giai đoạn 3
  */
 export declare class StreamingResponse {
     private res;
     private hasSentHeader;
     constructor(res: any);
+    /**
+     * Write a chunk of HTML to the stream
+     */
     write(chunk: string): void;
+    /**
+     * Send the initial page shell (head and opening body)
+     */
+    sendShell(title: string, styles?: string[], scripts?: string[]): void;
+    /**
+     * Send an island placeholder and its hydration data
+     */
+    sendIsland(id: string, name: string, html: string, props: any): void;
+    /**
+     * Close the body and html tags and end the response
+     */
     end(): void;
 }
 /**
- * Placeholder for Streaming SSR rendering
+ * Helper to create a streaming SSR response
  */
-export declare function createStreamingSSR(res: any): {
-    sendLayout: (html: string) => void;
-    sendIsland: (id: string, html: string) => void;
-    finish: () => void;
-};
+export declare function createStreamingSSR(res: any): StreamingResponse;
 //# sourceMappingURL=index.d.ts.map

@@ -222,36 +222,70 @@ export class Watcher {
     }
 }
 /**
- * Streaming Response - Utility for Giai đoạn 3
+ * Streaming Response - Core for Giai đoạn 3
  */
 export class StreamingResponse {
     constructor(res) {
         this.hasSentHeader = false;
         this.res = res;
     }
+    /**
+     * Write a chunk of HTML to the stream
+     */
     write(chunk) {
         if (!this.hasSentHeader) {
             this.res.writeHead(200, {
-                'Content-Type': 'text/html',
+                'Content-Type': 'text/html; charset=utf-8',
                 'Transfer-Encoding': 'chunked',
+                'X-Content-Type-Options': 'nosniff',
             });
             this.hasSentHeader = true;
         }
         this.res.write(chunk);
+        // Force flush if the stream supports it
+        if (this.res.flush)
+            this.res.flush();
     }
+    /**
+     * Send the initial page shell (head and opening body)
+     */
+    sendShell(title, styles = [], scripts = []) {
+        this.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  ${styles.map(s => `<link rel="stylesheet" href="${s}">`).join('\n')}
+  ${scripts.map(s => `<script type="module" src="${s}"></script>`).join('\n')}
+</head>
+<body>
+  <div id="app">`);
+    }
+    /**
+     * Send an island placeholder and its hydration data
+     */
+    sendIsland(id, name, html, props) {
+        this.write(`<div id="${id}" data-island="${name}">${html}</div>
+<script type="hydration">
+  window.__HYDRATION_DATA__ = window.__HYDRATION_DATA__ || {};
+  window.__HYDRATION_DATA__["${id}"] = ${JSON.stringify(props)};
+</script>`);
+    }
+    /**
+     * Close the body and html tags and end the response
+     */
     end() {
+        this.write(`  </div>
+</body>
+</html>`);
         this.res.end();
     }
 }
 /**
- * Placeholder for Streaming SSR rendering
+ * Helper to create a streaming SSR response
  */
 export function createStreamingSSR(res) {
-    const stream = new StreamingResponse(res);
-    return {
-        sendLayout: (html) => stream.write(html),
-        sendIsland: (id, html) => stream.write(`<div id="${id}">${html}</div>`),
-        finish: () => stream.end(),
-    };
+    return new StreamingResponse(res);
 }
 //# sourceMappingURL=index.js.map

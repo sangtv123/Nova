@@ -17,27 +17,45 @@ export const Validators = {
     })
 };
 /**
- * useForm Hook - Enhanced version for Giai đoạn 3
+ * useForm Hook - Final Giai đoạn 3 Version
  */
 export function useForm(initialValues, schema = {}) {
     const controls = {};
     const isSubmitting = signal(false);
+    const isValidating = signal(false);
     for (const key in initialValues) {
         const s = signal(initialValues[key]);
         const error = signal(null);
         const isDirty = signal(false);
         const isTouched = signal(false);
         const isValid = signal(true);
-        const validate = () => {
+        const controlValidating = signal(false);
+        const validate = async () => {
             const rules = schema[key];
             if (rules) {
-                for (const rule of rules) {
-                    const result = rule.validate(s.value);
-                    if (result && typeof result === 'string') {
-                        error.value = result;
-                        isValid.value = false;
-                        return false;
+                controlValidating.value = true;
+                isValidating.value = true;
+                try {
+                    const rulesArray = Array.isArray(rules) ? rules : [rules];
+                    for (const rule of rulesArray) {
+                        // Support both ValidationRule objects and simple Validator functions
+                        const validateFn = typeof rule === 'function' ? rule : rule.validate;
+                        const result = await validateFn(s.value);
+                        if (result && typeof result === 'string') {
+                            error.value = result;
+                            isValid.value = false;
+                            return false;
+                        }
+                        else if (result === false) {
+                            error.value = 'Invalid value';
+                            isValid.value = false;
+                            return false;
+                        }
                     }
+                }
+                finally {
+                    controlValidating.value = false;
+                    isValidating.value = Object.values(controls).some(c => c.isValidating.value);
                 }
             }
             error.value = null;
@@ -50,6 +68,7 @@ export function useForm(initialValues, schema = {}) {
             isDirty,
             isTouched,
             isValid,
+            isValidating: controlValidating,
             validate
         };
     }
@@ -59,22 +78,21 @@ export function useForm(initialValues, schema = {}) {
     const handleSubmit = (callback) => {
         return async (e) => {
             e.preventDefault();
-            let allValid = true;
-            const values = {};
-            for (const key in controls) {
-                if (!controls[key].validate()) {
-                    allValid = false;
-                }
-                values[key] = controls[key].value.value;
-            }
-            if (allValid) {
-                isSubmitting.value = true;
-                try {
+            isSubmitting.value = true;
+            try {
+                // Run all validations in parallel
+                const results = await Promise.all(Object.values(controls).map(c => c.validate()));
+                const allValid = results.every(r => r === true);
+                if (allValid) {
+                    const values = {};
+                    for (const key in controls) {
+                        values[key] = controls[key].value.value;
+                    }
                     await callback(values);
                 }
-                finally {
-                    isSubmitting.value = false;
-                }
+            }
+            finally {
+                isSubmitting.value = false;
             }
         };
     };
@@ -87,6 +105,7 @@ export function useForm(initialValues, schema = {}) {
                 const val = target.type === 'checkbox' ? target.checked : target.value;
                 control.value.value = val;
                 control.isDirty.value = true;
+                // Debounced or immediate validation can be chosen here
                 control.validate();
             },
             onBlur: () => {
@@ -98,6 +117,7 @@ export function useForm(initialValues, schema = {}) {
     return {
         controls,
         isSubmitting,
+        isValidating,
         isFormValid,
         handleSubmit,
         register,
