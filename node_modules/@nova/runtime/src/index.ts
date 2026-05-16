@@ -1,4 +1,5 @@
 import type { Signal } from '@nova/signals';
+export * from './di';
 
 /**
  * Hydration data for islands
@@ -265,18 +266,60 @@ function delegateEvent(eventName: string) {
   );
 }
 
+let activeHooks: { onMount: Function[], onUnmount: Function[] } | null = null;
+
+/**
+ * Run a function when the current component is mounted to the DOM
+ */
+export function onMount(fn: Function): void {
+  if (activeHooks) activeHooks.onMount.push(fn);
+  else if (typeof window !== 'undefined') {
+    // If called outside a component but in a browser, run it in the next tick
+    setTimeout(fn, 0);
+  }
+}
+
+/**
+ * Run a function when the current component is removed from the DOM
+ */
+export function onUnmount(fn: Function): void {
+  if (activeHooks) activeHooks.onUnmount.push(fn);
+}
+
 export function createElement(
   tag: string | Function,
   attrs?: Record<string, any> | null,
   ...children: any[]
 ): Element | Element[] {
   if (typeof tag === 'function') {
+    const hooks: { onMount: Function[], onUnmount: Function[] } = { onMount: [], onUnmount: [] };
+    const prevHooks = activeHooks;
+    activeHooks = hooks;
+    
     const props = attrs || {};
     if (children.length > 0) {
       props.children = children.length === 1 ? children[0] : children;
     }
+    
     // FIX: Wrap component execution in untrack to prevent parent effects from tracking child signals
-    return untrack(() => (tag as Function)(props, children));
+    const el = untrack(() => (tag as Function)(props, children));
+    
+    activeHooks = prevHooks;
+
+    // Run mount hooks in the next microtask (after the element is likely in the DOM)
+    if (hooks.onMount.length > 0) {
+      Promise.resolve().then(() => {
+        hooks.onMount.forEach(fn => fn());
+      });
+    }
+
+    // Register unmount hooks using a custom property on the element
+    if (hooks.onUnmount.length > 0 && el instanceof Element) {
+      (el as any).__nova_unmount = hooks.onUnmount;
+      // We'll use a MutationObserver in the router or main entry to call these
+    }
+    
+    return el;
   }
 
   let el: HTMLElement;  // HTMLElement gives access to .style, .className

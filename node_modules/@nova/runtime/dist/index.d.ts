@@ -1,4 +1,5 @@
 import type { Signal } from '@nova/signals';
+export * from './di';
 /**
  * Hydration data for islands
  */
@@ -45,6 +46,14 @@ export declare function createTemplate(html: string): Element;
  * Manually clear the template cache (useful in tests or after major route changes).
  */
 export declare function clearTemplateCache(): void;
+/**
+ * Run a function when the current component is mounted to the DOM
+ */
+export declare function onMount(fn: Function): void;
+/**
+ * Run a function when the current component is removed from the DOM
+ */
+export declare function onUnmount(fn: Function): void;
 export declare function createElement(tag: string | Function, attrs?: Record<string, any> | null, ...children: any[]): Element | Element[];
 /**
  * Text node creation

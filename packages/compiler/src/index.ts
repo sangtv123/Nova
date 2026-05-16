@@ -183,6 +183,38 @@ export function transformOptimizedJSX(sourceFile: ts.SourceFile, code: string): 
 
       // Only optimize native HTML elements (lowercase)
       if (/^[a-z]/.test(tagName)) {
+        const attributes = opening.attributes.properties;
+        const nIfAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-if') as ts.JsxAttribute;
+        const nForAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-for') as ts.JsxAttribute;
+
+        if (nIfAttr) {
+          const condition = nIfAttr.initializer && ts.isJsxExpression(nIfAttr.initializer) ? nIfAttr.initializer.expression?.getText(sourceFile) : null;
+          if (condition) {
+            // Remove n-if from the node for further processing
+            const elementCode = node.getText(sourceFile).replace(/n-if=\{[^}]+\}/, '');
+            replacements.push({
+              start: node.getStart(sourceFile),
+              end: node.getEnd(),
+              text: `(${condition}.value ? ${elementCode} : null)`
+            });
+            return;
+          }
+        }
+
+        if (nForAttr) {
+          const val = nForAttr.initializer && ts.isStringLiteral(nForAttr.initializer) ? nForAttr.initializer.text : null;
+          if (val && val.includes(' in ')) {
+            const [item, items] = val.split(' in ');
+            const elementCode = node.getText(sourceFile).replace(/n-for="[^"]+"/, '');
+            replacements.push({
+              start: node.getStart(sourceFile),
+              end: node.getEnd(),
+              text: `(${items}.value.map(${item} => ${elementCode}))`
+            });
+            return;
+          }
+        }
+
         if (isStaticNode(node, sourceFile)) {
           // Static Hoisting
           const jsxStr = node.getText(sourceFile);

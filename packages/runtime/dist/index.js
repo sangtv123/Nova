@@ -1,3 +1,4 @@
+export * from './di';
 /**
  * DOM patching - minimal diff updates
  */
@@ -196,14 +197,49 @@ function delegateEvent(eventName) {
         }
     }, { passive });
 }
+let activeHooks = null;
+/**
+ * Run a function when the current component is mounted to the DOM
+ */
+export function onMount(fn) {
+    if (activeHooks)
+        activeHooks.onMount.push(fn);
+    else if (typeof window !== 'undefined') {
+        // If called outside a component but in a browser, run it in the next tick
+        setTimeout(fn, 0);
+    }
+}
+/**
+ * Run a function when the current component is removed from the DOM
+ */
+export function onUnmount(fn) {
+    if (activeHooks)
+        activeHooks.onUnmount.push(fn);
+}
 export function createElement(tag, attrs, ...children) {
     if (typeof tag === 'function') {
+        const hooks = { onMount: [], onUnmount: [] };
+        const prevHooks = activeHooks;
+        activeHooks = hooks;
         const props = attrs || {};
         if (children.length > 0) {
             props.children = children.length === 1 ? children[0] : children;
         }
         // FIX: Wrap component execution in untrack to prevent parent effects from tracking child signals
-        return untrack(() => tag(props, children));
+        const el = untrack(() => tag(props, children));
+        activeHooks = prevHooks;
+        // Run mount hooks in the next microtask (after the element is likely in the DOM)
+        if (hooks.onMount.length > 0) {
+            Promise.resolve().then(() => {
+                hooks.onMount.forEach(fn => fn());
+            });
+        }
+        // Register unmount hooks using a custom property on the element
+        if (hooks.onUnmount.length > 0 && el instanceof Element) {
+            el.__nova_unmount = hooks.onUnmount;
+            // We'll use a MutationObserver in the router or main entry to call these
+        }
+        return el;
     }
     let el; // HTMLElement gives access to .style, .className
     if (isHydrating && hydrateCursor && hydrateCursor.nodeType === 1) {
