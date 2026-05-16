@@ -228,7 +228,28 @@ async function dev(args: string[]) {
         }
       }
 
-      // 3. Static Assets & SPA Fallback
+      // 3. Handle SCSS compilation on the fly
+      if (requestUrl.endsWith('.scss')) {
+        const fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
+        if (fs.existsSync(fullPath)) {
+          try {
+            const { execSync } = await import('child_process');
+            console.log(`[nova/sass] Compiling ${requestUrl}...`);
+            // Use npx -y sass to ensure it installs if missing without prompting
+            const css = execSync(`npx -y sass "${fullPath}" --no-source-map`).toString();
+            res.writeHead(200, { 'Content-Type': 'text/css' });
+            res.end(css);
+            return;
+          } catch (err: any) {
+            console.error('[nova/sass] Compilation failed:', err.message);
+            res.writeHead(500);
+            res.end(`SCSS Error: ${err.message}`);
+            return;
+          }
+        }
+      }
+
+      // 4. Static Assets & SPA Fallback
       let filePath = path.join(projectDir, requestUrl === '/' ? 'index.html' : requestUrl.slice(1));
       
       if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
@@ -242,6 +263,7 @@ async function dev(args: string[]) {
         const mimeTypes: Record<string, string> = {
           '.html': 'text/html', 
           '.css': 'text/css', 
+          '.scss': 'text/css',
           '.js': 'application/javascript',
           '.png': 'image/png', 
           '.jpg': 'image/jpeg', 
