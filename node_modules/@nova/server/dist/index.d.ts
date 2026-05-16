@@ -86,4 +86,22 @@ export declare class Watcher {
      */
     watchDir(dirpath: string, callback: (event: string, filename: string) => void): () => void;
 }
+/**
+ * Streaming Response - Utility for Giai đoạn 3
+ */
+export declare class StreamingResponse {
+    private res;
+    private hasSentHeader;
+    constructor(res: any);
+    write(chunk: string): void;
+    end(): void;
+}
+/**
+ * Placeholder for Streaming SSR rendering
+ */
+export declare function createStreamingSSR(res: any): {
+    sendLayout: (html: string) => void;
+    sendIsland: (id: string, html: string) => void;
+    finish: () => void;
+};
 //# sourceMappingURL=index.d.ts.map

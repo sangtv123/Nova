@@ -75,18 +75,15 @@ export class Router {
     }
     // ── Route registration ──────────────────────────────────────────────────
     /**
-     * Register a lazy route.
-     * `module` must be a dynamic import factory: `() => import('./pages/foo')`
+     * Register a lazy route with optional nested layouts.
      */
-    registerRoute(filePath, module, layout) {
+    registerRoute(filePath, module, layouts = []) {
         const { path, pattern } = pathToPattern(filePath);
-        this.routes.set(path, { path, pattern, module, layout });
+        this.routes.set(path, { path, pattern, module, layouts });
     }
     // ── Lazy loading helpers ────────────────────────────────────────────────
     /**
      * Inject a `<link rel="modulepreload">` for a route's chunk.
-     * Called speculatively (e.g. on hover) so the browser downloads the module
-     * before the user actually clicks the link.
      */
     preload(pathname) {
         if (typeof document === 'undefined')
@@ -94,8 +91,6 @@ export class Router {
         const route = this._findRoute(pathname);
         if (!route || this.moduleCache.has(route.path))
             return;
-        // Extract the URL from the import factory string representation
-        // Works with bundlers that encode the chunk path in the factory source
         const factorySrc = route.module.toString();
         const urlMatch = factorySrc.match(/import\(["']([^"']+)["']\)/);
         if (!urlMatch)
@@ -103,14 +98,12 @@ export class Router {
         const link = document.createElement('link');
         link.rel = 'modulepreload';
         link.href = urlMatch[1];
-        // Avoid duplicate preload hints
         if (!document.head.querySelector(`link[href="${link.href}"]`)) {
             document.head.appendChild(link);
         }
     }
     /**
      * Load a route module and cache it.
-     * Subsequent calls for the same route are instant (cache hit).
      */
     async loadModule(route) {
         if (this.moduleCache.has(route.path)) {
@@ -120,9 +113,6 @@ export class Router {
         this.moduleCache.set(route.path, mod);
         return mod;
     }
-    /**
-     * Find the matching Route object for a pathname (without loading it).
-     */
     _findRoute(pathname) {
         const routeArray = Array.from(this.routes.values());
         for (const route of routeArray) {
@@ -133,11 +123,9 @@ export class Router {
     }
     // ── Navigation ─────────────────────────────────────────────────────────
     /**
-     * Navigate to a pathname.
-     * The route module is loaded lazily on first visit; subsequent visits are instant.
+     * Navigate to a pathname and resolve all components and nested layouts.
      */
     async navigate(pathname, skipPushState = false) {
-        // Avoid redundant navigation if already on the same path (except for initial load)
         if (!skipPushState && this.currentMatch && window.location.pathname === pathname) {
             return this.currentMatch;
         }
@@ -145,19 +133,21 @@ export class Router {
         const base = matchRoute(pathname, routeArray);
         if (!base)
             return null;
-        // Parse query string
         const { query } = parseUrl(pathname);
         base.query = query;
-        // Lazy-load the route component
-        const mod = await this.loadModule(base.route);
+        // Load main component and all layouts in parallel for speed
+        const [mod, ...layoutMods] = await Promise.all([
+            this.loadModule(base.route),
+            ...(base.route.layouts || []).map(l => l())
+        ]);
         const component = mod.default ?? mod;
-        // Lazy-load layout if present
-        let layout;
-        if (base.route.layout) {
-            const layoutMod = await base.route.layout();
-            layout = layoutMod.default ?? layoutMod;
-        }
-        const match = { ...base, component, layout };
+        const layouts = layoutMods.map(m => m.default ?? m);
+        const match = {
+            ...base,
+            component,
+            layouts,
+            layout: layouts[0] // Backward compatibility
+        };
         this.currentMatch = match;
         if (!skipPushState) {
             window.history.pushState({}, '', pathname);

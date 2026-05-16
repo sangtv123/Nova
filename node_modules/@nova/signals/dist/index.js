@@ -347,4 +347,47 @@ export function memoSignal(initialValue) {
         },
     };
 }
+// ─── Global Store API ─────────────────────────────────────────────────────────
+/**
+ * `createStore` — creates a reactive proxy object.
+ * Deeply wraps an object so that any property access is reactive.
+ *
+ * @example
+ * const state = createStore({ count: 0, user: { name: 'Nova' } });
+ * effect(() => console.log(state.count));
+ * state.count++; // Triggers effect
+ */
+export function createStore(initialState) {
+    const signalMap = new Map();
+    return new Proxy(initialState, {
+        get(target, prop, receiver) {
+            // Return the value if it's not an object (primitive)
+            const value = Reflect.get(target, prop, receiver);
+            // If it's an object, we should probably wrap it too (nested stores)
+            if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                return createStore(value);
+            }
+            // Track dependency via signal
+            let sig = signalMap.get(prop);
+            if (!sig) {
+                sig = signal(value);
+                signalMap.set(prop, sig);
+            }
+            return sig.value;
+        },
+        set(target, prop, newValue, receiver) {
+            const oldValue = Reflect.get(target, prop, receiver);
+            if (oldValue === newValue)
+                return true;
+            const success = Reflect.set(target, prop, newValue, receiver);
+            if (success) {
+                let sig = signalMap.get(prop);
+                if (sig) {
+                    sig.value = newValue;
+                }
+            }
+            return success;
+        }
+    });
+}
 //# sourceMappingURL=index.js.map

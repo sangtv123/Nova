@@ -262,3 +262,41 @@ export class Watcher {
     }
   }
 }
+/**
+ * Streaming Response - Utility for Giai đoạn 3
+ */
+export class StreamingResponse {
+  private res: any;
+  private hasSentHeader = false;
+
+  constructor(res: any) {
+    this.res = res;
+  }
+
+  write(chunk: string) {
+    if (!this.hasSentHeader) {
+      this.res.writeHead(200, {
+        'Content-Type': 'text/html',
+        'Transfer-Encoding': 'chunked',
+      });
+      this.hasSentHeader = true;
+    }
+    this.res.write(chunk);
+  }
+
+  end() {
+    this.res.end();
+  }
+}
+
+/**
+ * Placeholder for Streaming SSR rendering
+ */
+export function createStreamingSSR(res: any) {
+  const stream = new StreamingResponse(res);
+  return {
+    sendLayout: (html: string) => stream.write(html),
+    sendIsland: (id: string, html: string) => stream.write(`<div id="${id}">${html}</div>`),
+    finish: () => stream.end(),
+  };
+}

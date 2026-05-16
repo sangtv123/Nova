@@ -15,6 +15,7 @@ export interface NovaConfig {
     port?: number;
     host?: string;
     hmr?: boolean;
+    middlewares?: Array<(req: any, res: any, next: () => void) => void>;
   };
   build?: {
     target?: string;

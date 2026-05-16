@@ -1,12 +1,10 @@
-/**
- * Route definition
- */
 export interface Route {
     path: string;
     pattern: RegExp;
     /** Dynamic import factory — the module is fetched only when the route is visited */
     module: () => Promise<any>;
-    layout?: () => Promise<any>;
+    /** Stack of layout factories, from root to leaf */
+    layouts?: Array<() => Promise<any>>;
     isSSR?: boolean;
 }
 /**
@@ -16,9 +14,11 @@ export interface RouteMatch {
     route: Route;
     params: Record<string, string>;
     query: Record<string, string>;
-    /** Resolved default export of the route module (available after navigate resolves) */
+    /** Resolved default export of the route module */
     component?: any;
-    /** Layout component if the route has one */
+    /** Resolved layout components */
+    layouts?: any[];
+    /** Outermost layout for backward compatibility */
     layout?: any;
 }
 /**
@@ -56,28 +56,20 @@ export declare class Router {
      */
     private moduleCache;
     /**
-     * Register a lazy route.
-     * `module` must be a dynamic import factory: `() => import('./pages/foo')`
+     * Register a lazy route with optional nested layouts.
      */
-    registerRoute(filePath: string, module: () => Promise<any>, layout?: () => Promise<any>): void;
+    registerRoute(filePath: string, module: () => Promise<any>, layouts?: Array<() => Promise<any>>): void;
     /**
      * Inject a `<link rel="modulepreload">` for a route's chunk.
-     * Called speculatively (e.g. on hover) so the browser downloads the module
-     * before the user actually clicks the link.
      */
     preload(pathname: string): void;
     /**
      * Load a route module and cache it.
-     * Subsequent calls for the same route are instant (cache hit).
      */
     private loadModule;
-    /**
-     * Find the matching Route object for a pathname (without loading it).
-     */
     private _findRoute;
     /**
-     * Navigate to a pathname.
-     * The route module is loaded lazily on first visit; subsequent visits are instant.
+     * Navigate to a pathname and resolve all components and nested layouts.
      */
     navigate(pathname: string, skipPushState?: boolean): Promise<RouteMatch | null>;
     /**

@@ -1,12 +1,10 @@
-/**
- * Route definition
- */
 export interface Route {
   path: string;
   pattern: RegExp;
   /** Dynamic import factory — the module is fetched only when the route is visited */
   module: () => Promise<any>;
-  layout?: () => Promise<any>;
+  /** Stack of layout factories, from root to leaf */
+  layouts?: Array<() => Promise<any>>;
   isSSR?: boolean;
 }
 
@@ -17,9 +15,11 @@ export interface RouteMatch {
   route: Route;
   params: Record<string, string>;
   query: Record<string, string>;
-  /** Resolved default export of the route module (available after navigate resolves) */
+  /** Resolved default export of the route module */
   component?: any;
-  /** Layout component if the route has one */
+  /** Resolved layout components */
+  layouts?: any[];
+  /** Outermost layout for backward compatibility */
   layout?: any;
 }
 
@@ -117,28 +117,23 @@ export class Router {
   // ── Route registration ──────────────────────────────────────────────────
 
   /**
-   * Register a lazy route.
-   * `module` must be a dynamic import factory: `() => import('./pages/foo')`
+   * Register a lazy route with optional nested layouts.
    */
-  registerRoute(filePath: string, module: () => Promise<any>, layout?: () => Promise<any>): void {
+  registerRoute(filePath: string, module: () => Promise<any>, layouts: Array<() => Promise<any>> = []): void {
     const { path, pattern } = pathToPattern(filePath);
-    this.routes.set(path, { path, pattern, module, layout });
+    this.routes.set(path, { path, pattern, module, layouts });
   }
 
   // ── Lazy loading helpers ────────────────────────────────────────────────
 
   /**
    * Inject a `<link rel="modulepreload">` for a route's chunk.
-   * Called speculatively (e.g. on hover) so the browser downloads the module
-   * before the user actually clicks the link.
    */
   preload(pathname: string): void {
     if (typeof document === 'undefined') return;
     const route = this._findRoute(pathname);
     if (!route || this.moduleCache.has(route.path)) return;
 
-    // Extract the URL from the import factory string representation
-    // Works with bundlers that encode the chunk path in the factory source
     const factorySrc = route.module.toString();
     const urlMatch = factorySrc.match(/import\(["']([^"']+)["']\)/);
     if (!urlMatch) return;
@@ -146,7 +141,6 @@ export class Router {
     const link = document.createElement('link');
     link.rel = 'modulepreload';
     link.href = urlMatch[1];
-    // Avoid duplicate preload hints
     if (!document.head.querySelector(`link[href="${link.href}"]`)) {
       document.head.appendChild(link);
     }
@@ -154,7 +148,6 @@ export class Router {
 
   /**
    * Load a route module and cache it.
-   * Subsequent calls for the same route are instant (cache hit).
    */
   private async loadModule(route: Route): Promise<any> {
     if (this.moduleCache.has(route.path)) {
@@ -165,9 +158,6 @@ export class Router {
     return mod;
   }
 
-  /**
-   * Find the matching Route object for a pathname (without loading it).
-   */
   private _findRoute(pathname: string): Route | null {
     const routeArray = Array.from(this.routes.values());
     for (const route of routeArray) {
@@ -179,11 +169,9 @@ export class Router {
   // ── Navigation ─────────────────────────────────────────────────────────
 
   /**
-   * Navigate to a pathname.
-   * The route module is loaded lazily on first visit; subsequent visits are instant.
+   * Navigate to a pathname and resolve all components and nested layouts.
    */
   async navigate(pathname: string, skipPushState: boolean = false): Promise<RouteMatch | null> {
-    // Avoid redundant navigation if already on the same path (except for initial load)
     if (!skipPushState && this.currentMatch && window.location.pathname === pathname) {
       return this.currentMatch;
     }
@@ -192,22 +180,24 @@ export class Router {
     const base = matchRoute(pathname, routeArray);
     if (!base) return null;
 
-    // Parse query string
     const { query } = parseUrl(pathname);
     base.query = query;
 
-    // Lazy-load the route component
-    const mod = await this.loadModule(base.route);
+    // Load main component and all layouts in parallel for speed
+    const [mod, ...layoutMods] = await Promise.all([
+      this.loadModule(base.route),
+      ...(base.route.layouts || []).map(l => l())
+    ]);
+
     const component = mod.default ?? mod;
+    const layouts = layoutMods.map(m => m.default ?? m);
 
-    // Lazy-load layout if present
-    let layout: any;
-    if (base.route.layout) {
-      const layoutMod = await base.route.layout();
-      layout = layoutMod.default ?? layoutMod;
-    }
-
-    const match: RouteMatch = { ...base, component, layout };
+    const match: RouteMatch = { 
+      ...base, 
+      component, 
+      layouts,
+      layout: layouts[0] // Backward compatibility
+    };
     this.currentMatch = match;
 
     if (!skipPushState) {

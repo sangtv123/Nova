@@ -39,10 +39,9 @@ function scanIslands(projectDir: string): Array<{ name: string; importPath: stri
 }
 
 /**
- * Scan src/pages for file-based routing
+ * Scan src/pages for file-based routing with nested layouts
  */
-function scanPages(projectDir: string): Array<{ path: string; importPath: string }> {
-
+function scanPages(projectDir: string): Array<{ path: string; importPath: string; layouts: string[] }> {
   const pagesDir = path.join(projectDir, 'src/pages');
   if (!fs.existsSync(pagesDir)) return [];
 
@@ -56,17 +55,34 @@ function scanPages(projectDir: string): Array<{ path: string; importPath: string
 
   const allFiles = getFiles(pagesDir);
   return allFiles
-    .filter(f => f.endsWith('.tsx') || f.endsWith('.ts'))
+    .filter(f => (f.endsWith('.tsx') || f.endsWith('.ts')) && !f.includes('layout.'))
     .map(f => {
       const rel = path.relative(pagesDir, f).replace(/\\/g, '/');
       const routePath = `pages/${rel}`;
       const importPath = `./pages/${rel.replace(/\.(tsx?|ts)$/, '')}`;
-      return { path: routePath, importPath };
+      
+      // Find layouts in the hierarchy
+      const layouts: string[] = [];
+      let currentDir = path.dirname(f);
+      while (currentDir.startsWith(pagesDir)) {
+        const layoutPath = path.join(currentDir, 'layout.tsx');
+        if (fs.existsSync(layoutPath)) {
+          const relLayout = path.relative(pagesDir, layoutPath).replace(/\\/g, '/');
+          layouts.unshift(`./pages/${relLayout.replace(/\.tsx$/, '')}`);
+        }
+        currentDir = path.dirname(currentDir);
+      }
+
+      return { path: routePath, importPath, layouts };
     });
 }
 
+import { loadConfig } from './config';
+
 async function dev(args: string[]) {
-  const port = parseInt(args[0] || '3000');
+  const config = loadConfig();
+  const port = config.server?.port || parseInt(args[0] || '3000');
+  const middlewares = config.server?.middlewares || [];
   
   const novaPlugin = {
     name: 'nova',
@@ -90,7 +106,7 @@ async function dev(args: string[]) {
           const islands = scanIslands(process.cwd());
           
           const routeCode = pages
-            .map(p => `router.registerRoute('${p.path}', () => import('${p.importPath}'));`)
+            .map(p => `router.registerRoute('${p.path}', () => import('${p.importPath}'), [${p.layouts.map(l => `() => import('${l}')`).join(', ')}]);`)
             .join('\n');
 
           const islandCode = islands
@@ -108,15 +124,13 @@ async function dev(args: string[]) {
           }
         }
 
-
         const compiled = await compile(source, { filename: args.path, isDev: true });
         return { contents: compiled.code, loader: 'tsx' };
       });
     },
   };
 
-
-  const server = createServer(async (req, res) => {
+  const handleRequest = async (req: any, res: any) => {
     const requestUrl = (req.url || '/').split('?')[0];
     const projectDir = process.cwd();
 
@@ -163,7 +177,12 @@ async function dev(args: string[]) {
             const socket = new WebSocket('ws://' + location.host);
             socket.onmessage = (e) => {
               const data = JSON.parse(e.data);
-              if (data.type === 'reload') location.reload();
+              if (data.type === 'hmr:reload') location.reload();
+              if (data.type === 'hmr:update') {
+                console.log("[HMR] Updating module:", data.moduleId);
+                // Implementation of hot swapping would go here
+                location.reload(); // Fallback for now
+              }
             };`;
           }
 
@@ -176,7 +195,6 @@ async function dev(args: string[]) {
       // 3. Static Assets & SPA Fallback
       let filePath = path.join(projectDir, requestUrl === '/' ? 'index.html' : requestUrl.slice(1));
       
-      // SPA Fallback: If not a file and not an asset, serve index.html
       if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
         if (!path.extname(requestUrl)) {
           filePath = path.join(projectDir, 'index.html');
@@ -205,6 +223,19 @@ async function dev(args: string[]) {
       res.writeHead(500);
       res.end(err.stack);
     }
+  };
+
+  const server = createServer(async (req, res) => {
+    let index = 0;
+    const next = async () => {
+      if (index < middlewares.length) {
+        const mw = middlewares[index++];
+        mw(req, res, next);
+      } else {
+        await handleRequest(req, res);
+      }
+    };
+    await next();
   });
 
   const wss = new WebSocketServer({ server });
@@ -218,7 +249,11 @@ async function dev(args: string[]) {
   const watcher = new Watcher();
   watcher.watchDir(process.cwd(), (event, filename) => {
     console.log(`[HMR] File changed: ${filename}`);
-    hmrHandler.broadcastReload();
+    if (filename.endsWith('.tsx') || filename.endsWith('.ts')) {
+      hmrHandler.broadcastUpdate(filename, ''); // Signaling update
+    } else {
+      hmrHandler.broadcastReload();
+    }
   });
 
   server.listen(port, () => {

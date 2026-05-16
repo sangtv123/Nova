@@ -64,4 +64,14 @@ export declare function domEffect(fn: () => void | (() => void)): () => void;
  * list.value = [1, 2, 3];  // ← no effect re-run (same structure)
  */
 export declare function memoSignal<T>(initialValue: T): Signal<T>;
+/**
+ * `createStore` — creates a reactive proxy object.
+ * Deeply wraps an object so that any property access is reactive.
+ *
+ * @example
+ * const state = createStore({ count: 0, user: { name: 'Nova' } });
+ * effect(() => console.log(state.count));
+ * state.count++; // Triggers effect
+ */
+export declare function createStore<T extends object>(initialState: T): T;
 //# sourceMappingURL=index.d.ts.map
