@@ -1,5 +1,5 @@
 {
-  "name": "my-app",
+  "name": "nova-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,14 +7,13 @@
     "build": "nova build"
   },
   "dependencies": {
-    "@nova/islands": "file:../packages/islands",
-    "@nova/router": "file:../packages/router",
-    "@nova/runtime": "file:../packages/runtime",
-    "@nova/signals": "file:../packages/signals"
+    "@nova/signals": "latest",
+    "@nova/router": "latest",
+    "@nova/islands": "latest",
+    "@nova/runtime": "latest"
   },
   "devDependencies": {
-    "@nova/cli": "file:../packages/cli",
-    "@types/react": "^19.2.14",
+    "@nova/cli": "latest",
     "typescript": "^5.3.0"
   }
 }
