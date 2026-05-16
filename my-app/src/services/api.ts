@@ -16,7 +16,7 @@ export const api = createHttpClient({
 });
 
 // ── 2. Auth interceptor — attach token to every request ──────────────────────────
-api.useRequest(cfg => {
+api.useRequest((cfg: any) => {
   const token = localStorage.getItem('nova_token');
   if (token) {
     cfg.headers ??= {};
@@ -26,15 +26,15 @@ api.useRequest(cfg => {
 });
 
 // ── 3. Response logger (dev only) ─────────────────────────────────────────────
-if (import.meta.env?.DEV) {
-  api.useResponse(res => {
+if ((import.meta as any).env?.DEV) {
+  api.useResponse((res: any) => {
     console.debug(`[HTTP] ${res.config.method} ${res.config.url} → ${res.status}`);
     return res;
   });
 }
 
 // ── 4. Global error handler — 401 → logout, 5xx → toast ──────────────────────
-api.useError(err => {
+api.useError((err: any) => {
   if (err instanceof HttpError) {
     if (err.status === 401) {
       localStorage.removeItem('nova_token');

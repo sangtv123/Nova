@@ -8,7 +8,7 @@ import { HttpError } from '@nova/http';
 // ─────────────────────────────────────────────────────────────────────────────
 // PostCard — Displays a single post
 // ─────────────────────────────────────────────────────────────────────────────
-function PostCard({ post, onDelete }: { post: Post; onDelete: (id: number) => void }) {
+function PostCard({ post, onDelete }: { key?: any, post: Post; onDelete: (id: number) => void }) {
   const deleting = signal(false);
 
   const handleDelete = async () => {
@@ -16,7 +16,7 @@ function PostCard({ post, onDelete }: { post: Post; onDelete: (id: number) => vo
     try {
       await PostService.delete(post.id);
       onDelete(post.id);
-    } catch (e) {
+    } catch (e: any) {
       alert(e instanceof HttpError ? e.message : 'Delete failed');
     } finally {
       deleting.value = false;
@@ -61,7 +61,7 @@ function CreatePostForm({ onCreated }: { onCreated: (post: Post) => void }) {
       title.value = '';
       body.value  = '';
       onCreated(post);
-    } catch (err) {
+    } catch (err: any) {
       formErr.value = err instanceof HttpError ? err.message : 'Failed to create post';
     } finally {
       saving.value = false;
@@ -110,7 +110,7 @@ export function PostsPage() {
 
   const handleDeleted = (id: number) => {
     if (data.value) {
-      data.value = data.value.filter(p => p.id !== id);
+      data.value = data.value.filter((p: Post) => p.id !== id);
     }
   };
 
@@ -148,7 +148,7 @@ export function PostsPage() {
       {/* Data */}
       {() => !loading.value && data.value && (
         <div class="posts-grid">
-          {data.value.slice(0, 20).map(post => (
+          {data.value.slice(0, 20).map((post: Post) => (
             <PostCard key={post.id} post={post} onDelete={handleDeleted} />
           ))}
         </div>

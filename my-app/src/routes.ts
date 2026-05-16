@@ -4,9 +4,9 @@ import { router } from '@nova/router';
  * Guards
  */
 export const authGuard = () => {
-  const isLogged = localStorage.getItem('isLogged');
-  if (!isLogged) {
-    alert('Access Denied! Please "log in" via console by typing: localStorage.setItem("isLogged", "true")');
+  const token = localStorage.getItem('nova_token');
+  if (!token) {
+    window.dispatchEvent(new CustomEvent('nova:unauthorized'));
     return '/'; // Redirect to home
   }
   return true;

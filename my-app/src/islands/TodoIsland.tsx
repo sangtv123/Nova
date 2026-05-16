@@ -4,7 +4,7 @@ import { registerIsland } from '@nova/islands';
 import { TodoService } from '../services/TodoService';
 
 export function TodoIsland() {
-  const service = inject(TodoService);
+  const service = inject(TodoService) as TodoService;
   const inputValue = signal('');
 
   onMount(() => {

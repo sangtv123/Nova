@@ -6,11 +6,13 @@ import { Layout } from './components/Layout';
 import { router } from '@nova/router';
 import { signal, effect } from '@nova/signals';
 
-const PAGES: Record<string, any> = {
-  '/': IndexPage,
-  '/about': AboutPage,
-  '/admin': AdminPage,
-  '/posts': PostsPage,
+type PageComponent = () => JSX.Element;
+
+const PAGES: Record<string, PageComponent> = {
+  '/': IndexPage as PageComponent,
+  '/about': AboutPage as PageComponent,
+  '/admin': AdminPage as PageComponent,
+  '/posts': PostsPage as PageComponent,
 };
 
 export function App() {
