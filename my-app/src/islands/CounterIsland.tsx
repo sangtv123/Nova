@@ -1,8 +1,23 @@
 import { signal } from '@nova/signals';
 import { registerIsland } from '@nova/islands';
 import { useMotion, easing } from '@nova/motion';
+import { onMount, onUnmount, onHydrated } from '@nova/runtime';
 
 export function CounterIsland({ initialCount = 0 }: { initialCount?: number }) {
+  onMount(() => {
+      console.log('[CounterIsland] Component logic initialized');
+    });
+  
+    onHydrated(() => {
+      console.log('[CounterIsland] Island fully hydrated and interactive');
+      // Example: Focus the first input
+      const firstInput = document.querySelector('.contact-form input');
+      if (firstInput) (firstInput as HTMLElement).focus();
+    });
+  
+    onUnmount(() => {
+      console.log('[CounterIsland] Component being destroyed');
+    });
   const count = signal(initialCount);
   
   // Create a motion signal that follows 'count' with an elastic effect

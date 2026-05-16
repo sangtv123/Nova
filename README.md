@@ -84,24 +84,45 @@ export function Counter() {
 
 ### Islands
 
-Mark components for client-side interactivity:
+Mark components for client-side interactivity with flexible hydration strategies:
 
 ```typescript
 // pages/dashboard.tsx
 export function Dashboard() {
-  // Static content
-  const header = <h1>Dashboard</h1>;
-
-  // Interactive island
-  const chart = <Chart data={staticData} />;
-
   return (
     <div>
-      {header}
-      {/* Only Chart is hydrated on client */}
-      {chart}
+      <Header /> {/* Static - 0kb JS */}
+      
+      {/* Hydrate only when visible - optimized performance */}
+      <Chart data={data} data-nova-strategy="visible" />
+      
+      <Footer />
     </div>
   );
+}
+```
+
+### Lifecycle Hooks
+
+Orchestrate side effects at key moments in a component's life:
+
+```typescript
+import { onMount, onHydrated, onCleanup } from '@nova/runtime';
+
+export function InteractiveMap() {
+  onMount(() => {
+    // Runs when component enters DOM
+    console.log("Map container ready");
+  });
+
+  onHydrated(() => {
+    // Runs after JS is loaded and attached (Islands only)
+    const map = new Library.Map('#map-root');
+    
+    onCleanup(() => map.destroy());
+  });
+
+  return <div id="map-root"></div>;
 }
 ```
 
@@ -162,12 +183,31 @@ untrack(() => {
 import { onMount, onUnmount, onCleanup, onHydrated } from '@nova/runtime';
 
 onMount(() => {
-  console.log('Mounted');
+  // Logic after component is added to DOM
 });
 
 onHydrated(() => {
-  console.log('Island hydrated');
+  // Logic after Island becomes interactive on client
 });
+
+onCleanup(() => {
+  // Cleanup logic (alias for onUnmount)
+});
+```
+
+### Islands & Hydration
+
+```typescript
+import { registerIsland, mountIslands } from '@nova/islands';
+
+// 1. Register island (usually automated by compiler)
+registerIsland('counter', CounterComponent);
+
+// 2. Mount islands (in main.ts)
+await mountIslands();
+
+// 3. Use hydration strategies in JSX
+<MyIsland data-nova-strategy="visible" /> // 'eager' | 'visible' | 'idle'
 ```
 
 ### Components
@@ -215,19 +255,7 @@ router.subscribe((match) => {
 });
 ```
 
-### Islands
 
-```typescript
-import { registerIsland, mountIslands } from '@nova/islands';
-
-// Register interactive island
-registerIsland('chart', ChartComponent, (props) => {
-  return hydrate(element, props, ChartComponent);
-});
-
-// Mount all islands on page
-await mountIslands();
-```
 
 ## Configuration
 
