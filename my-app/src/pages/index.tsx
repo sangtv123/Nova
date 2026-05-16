@@ -1,5 +1,6 @@
 import { CounterIsland } from '../islands/CounterIsland';
 import { ContactIsland } from '../islands/ContactIsland';
+import { TodoIsland } from '../islands/TodoIsland';
 
 export function IndexPage() {
   return (
@@ -22,6 +23,10 @@ export function IndexPage() {
             <p>Directly compile TSX to efficient native DOM operations.</p>
           </div>
         </div>
+      </section>
+
+      <section class="island-section">
+        <TodoIsland />
       </section>
 
       <section class="island-section">

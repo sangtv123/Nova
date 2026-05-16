@@ -229,11 +229,15 @@ function scheduleDomFlush() {
 }
 function flushDomEffects() {
     domFlushScheduled = false;
-    // Snapshot so effects added during flush are deferred to the next tick
     const toFlush = [...pendingDomEffects];
     pendingDomEffects.clear();
     for (const eff of toFlush) {
-        eff.run();
+        if (eff._execute) {
+            eff._execute();
+        }
+        else {
+            eff.run();
+        }
     }
 }
 /**
@@ -280,6 +284,7 @@ export function domEffect(fn) {
             currentEffect = prevEffect;
         }
     }
+    effectObj._execute = execute;
     // Override run to handle first execution synchronously (for setup),
     // then switch to scheduled mode for subsequent runs.
     let firstRun = true;

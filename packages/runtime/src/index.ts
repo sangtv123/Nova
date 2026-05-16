@@ -164,7 +164,7 @@ export function mountIsland(
   return hydrate(el as Element, hydrationData, componentFn);
 }
 
-import { effect, untrack } from '@nova/signals';
+import { effect, untrack, domEffect } from '@nova/signals';
 
 /**
  * Create element with attributes
@@ -298,13 +298,12 @@ export function createElement(
           delegateEvent(event);
         }
       } else if (value != null) {
-        const isFormProperty = ['value', 'checked', 'selected', 'selectedIndex'].includes(key) && 
-                              ['input', 'textarea', 'select', 'option'].includes(tag as string);
+        const isFormProperty = ['value', 'checked', 'selected', 'selectedIndex'].includes(key) && ['input', 'textarea', 'select', 'option'].includes(tag as string);
         const isBooleanAttr = ['disabled', 'checked', 'required', 'readonly', 'hidden', 'multiple'].includes(key);
 
         if (isFormProperty) {
           if (typeof value === 'function') {
-            effect(() => {
+            domEffect(() => {
               const val = value();
               (el as any)[key] = val;
               // Also sync attribute for CSS selectors like input[checked]
@@ -359,51 +358,43 @@ export function createElement(
   for (const child of flatChildren(children)) {
     if (child != null) {
       if (typeof child === 'function') {
-        let currentNode: Node;
-
-        if (isHydrating && currentChildCursor) {
-          currentNode = currentChildCursor;
-          currentChildCursor = currentChildCursor.nextSibling;
-        } else {
-          currentNode = document.createTextNode('');
-          el.appendChild(currentNode);
-        }
+        const marker = document.createTextNode('');
+        el.appendChild(marker);
+        let currentNodes: Node[] = [];
 
         effect(() => {
-          const val = child();
-          if (val instanceof Node) {
-            if (currentNode !== val && currentNode.parentNode) {
-              currentNode.parentNode.replaceChild(val, currentNode);
-              currentNode = val;
-            }
-          } else if (Array.isArray(val)) {
-            // Handle arrays (Fragments)
-            const fragment = document.createDocumentFragment();
-            for (const item of val) {
-              if (item instanceof Node) fragment.appendChild(item);
-              else fragment.appendChild(document.createTextNode(String(item)));
-            }
-            
-            // Create a placeholder to keep the position for the next update
-            const placeholder = document.createTextNode('');
-            fragment.appendChild(placeholder);
+          let val = child();
+          if (val === null || val === undefined || val === false) val = '';
 
-            if (currentNode.parentNode) {
-              currentNode.parentNode.replaceChild(fragment, currentNode);
-              currentNode = placeholder;
+          const newNodes: Node[] = [];
+          if (Array.isArray(val)) {
+            for (const item of val) {
+              if (item instanceof Node) newNodes.push(item);
+              else newNodes.push(document.createTextNode(String(item)));
             }
+          } else if (val instanceof Node) {
+            newNodes.push(val);
           } else {
-            const textValue = (val === null || val === undefined || val === false) ? '' : String(val);
-            if (currentNode.nodeType === Node.TEXT_NODE) {
-              currentNode.textContent = textValue;
-            } else {
-              const newText = document.createTextNode(textValue);
-              if (currentNode.parentNode) {
-                currentNode.parentNode.replaceChild(newText, currentNode);
+            newNodes.push(document.createTextNode(String(val)));
+          }
+
+          if (newNodes.length === 0) newNodes.push(document.createTextNode(''));
+
+          const parent = marker.parentNode;
+          if (parent) {
+            const fragment = document.createDocumentFragment();
+            for (const node of newNodes) {
+              fragment.appendChild(node);
+            }
+            parent.insertBefore(fragment, marker);
+            for (const node of currentNodes) {
+              // Only remove if not part of the new nodes (reused)
+              if (node.parentNode === parent && node !== marker) {
+                parent.removeChild(node);
               }
-              currentNode = newText;
             }
           }
+          currentNodes = newNodes;
         });
       } else if (typeof child === 'string' || typeof child === 'number') {
         if (isHydrating && currentChildCursor) {
