@@ -75,11 +75,17 @@ export class Router {
     }
     // ── Route registration ──────────────────────────────────────────────────
     /**
-     * Register a lazy route with optional nested layouts.
+     * Register a lazy route with optional nested layouts, guards, and resolvers.
      */
-    registerRoute(filePath, module, layouts = []) {
+    registerRoute(filePath, module, layouts = [], options = {}) {
         const { path, pattern } = pathToPattern(filePath);
-        this.routes.set(path, { path, pattern, module, layouts });
+        this.routes.set(path, {
+            path,
+            pattern,
+            module,
+            layouts,
+            ...options
+        });
     }
     // ── Lazy loading helpers ────────────────────────────────────────────────
     /**
@@ -124,6 +130,7 @@ export class Router {
     // ── Navigation ─────────────────────────────────────────────────────────
     /**
      * Navigate to a pathname and resolve all components and nested layouts.
+     * Supports Guards (CanActivate) and Resolvers.
      */
     async navigate(pathname, skipPushState = false) {
         if (!skipPushState && this.currentMatch && window.location.pathname === pathname) {
@@ -135,7 +142,18 @@ export class Router {
             return null;
         const { query } = parseUrl(pathname);
         base.query = query;
-        // Load main component and all layouts in parallel for speed
+        // 1. Run Guards (Angular-style CanActivate)
+        if (base.route.canActivate) {
+            for (const guard of base.route.canActivate) {
+                const result = await guard(base);
+                if (result === false)
+                    return null; // Cancel navigation
+                if (typeof result === 'string') {
+                    return this.navigate(result); // Redirect
+                }
+            }
+        }
+        // 2. Load main component and all layouts in parallel
         const [mod, ...layoutMods] = await Promise.all([
             this.loadModule(base.route),
             ...(base.route.layouts || []).map(l => l())
@@ -146,8 +164,18 @@ export class Router {
             ...base,
             component,
             layouts,
-            layout: layouts[0] // Backward compatibility
+            layout: layouts[0],
+            data: { ...(base.route.data || {}) }
         };
+        // 3. Run Resolvers (Angular-style Resolve)
+        if (base.route.resolve) {
+            const resolverKeys = Object.keys(base.route.resolve);
+            const resolverPromises = Object.values(base.route.resolve).map(r => r(match));
+            const resolvedData = await Promise.all(resolverPromises);
+            resolverKeys.forEach((key, i) => {
+                match.data[key] = resolvedData[i];
+            });
+        }
         this.currentMatch = match;
         if (!skipPushState) {
             window.history.pushState({}, '', pathname);

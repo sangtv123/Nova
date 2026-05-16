@@ -1,14 +1,13 @@
-import { router } from '@nova/router';
-
 export function Header() {
   return (
     <header class="app-header">
-      <div class="logo-container" onClick={() => router.navigate('/')}>
+      <div class="logo-container" n-router="/">
         <h1 class="logo">Nova</h1>
       </div>
       <nav class="nav-links">
-        <a href="/" onClick={(e) => { e.preventDefault(); router.navigate('/'); }}>Home</a>
-        <a href="/about" onClick={(e) => { e.preventDefault(); router.navigate('/about'); }}>About</a>
+        <a n-router="/">Home</a>
+        <a n-router="/about">About</a>
+        <a n-router="/admin">Admin</a>
       </nav>
     </header>
   );

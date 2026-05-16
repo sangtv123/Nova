@@ -1,3 +1,6 @@
+export type GuardResult = boolean | string | Promise<boolean | string>;
+export type GuardFn = (match: RouteMatch) => GuardResult;
+export type ResolveFn = (match: RouteMatch) => any | Promise<any>;
 export interface Route {
     path: string;
     pattern: RegExp;
@@ -5,6 +8,12 @@ export interface Route {
     module: () => Promise<any>;
     /** Stack of layout factories, from root to leaf */
     layouts?: Array<() => Promise<any>>;
+    /** Angular-style Guards: check if route can be activated */
+    canActivate?: GuardFn[];
+    /** Angular-style Resolvers: fetch data before route is activated */
+    resolve?: Record<string, ResolveFn>;
+    /** Static data passed to the route */
+    data?: Record<string, any>;
     isSSR?: boolean;
 }
 /**
@@ -18,6 +27,8 @@ export interface RouteMatch {
     component?: any;
     /** Resolved layout components */
     layouts?: any[];
+    /** Resolved data from Resolvers */
+    data?: Record<string, any>;
     /** Outermost layout for backward compatibility */
     layout?: any;
 }
@@ -56,9 +67,9 @@ export declare class Router {
      */
     private moduleCache;
     /**
-     * Register a lazy route with optional nested layouts.
+     * Register a lazy route with optional nested layouts, guards, and resolvers.
      */
-    registerRoute(filePath: string, module: () => Promise<any>, layouts?: Array<() => Promise<any>>): void;
+    registerRoute(filePath: string, module: () => Promise<any>, layouts?: Array<() => Promise<any>>, options?: Partial<Pick<Route, 'canActivate' | 'resolve' | 'data'>>): void;
     /**
      * Inject a `<link rel="modulepreload">` for a route's chunk.
      */
@@ -70,6 +81,7 @@ export declare class Router {
     private _findRoute;
     /**
      * Navigate to a pathname and resolve all components and nested layouts.
+     * Supports Guards (CanActivate) and Resolvers.
      */
     navigate(pathname: string, skipPushState?: boolean): Promise<RouteMatch | null>;
     /**

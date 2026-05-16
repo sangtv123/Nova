@@ -601,7 +601,8 @@ export function render(element: Element | Element[], container: Element | null):
   } else if (element instanceof Node) {
     container.appendChild(element);
   }
-}/**
+}
+/**
  * JSX Type Definitions
  */
 declare global {

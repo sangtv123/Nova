@@ -77,7 +77,10 @@ function isStaticNode(node, sourceFile) {
         // Check attributes
         for (const attr of node.openingElement.attributes.properties) {
             if (ts.isJsxAttribute(attr)) {
-                if (attr.name.getText(sourceFile).startsWith('on'))
+                const name = attr.name.getText(sourceFile);
+                if (name.startsWith('on'))
+                    return false;
+                if (name === 'n-if' || name === 'n-for' || name === 'n-router')
                     return false;
                 if (attr.initializer && !ts.isStringLiteral(attr.initializer))
                     return false;
@@ -132,9 +135,10 @@ export function transformOptimizedJSX(sourceFile, originalCode) {
                     const opening = ts.isJsxElement(node) ? node.openingElement : node;
                     const tagName = opening.tagName.getText(sourceFile);
                     const attributes = opening.attributes.properties;
-                    // 1. Handle Structural Directives (n-if, n-for)
+                    // 1. Handle Directives (n-if, n-for, n-router)
                     const nIfAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-if');
                     const nForAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-for');
+                    const nRouterAttr = attributes.find(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'n-router');
                     if (nIfAttr || nForAttr) {
                         // Remove the directives from attributes
                         const filteredAttrs = attributes.filter(a => a !== nIfAttr && a !== nForAttr);
@@ -168,6 +172,32 @@ export function transformOptimizedJSX(sourceFile, originalCode) {
                         }
                         return factory.createParenthesizedExpression(transformedNode);
                     }
+                    // 1b. Handle n-router (Navigation Directive)
+                    if (nRouterAttr) {
+                        const routeValue = nRouterAttr.initializer && ts.isStringLiteral(nRouterAttr.initializer)
+                            ? nRouterAttr.initializer.text
+                            : (nRouterAttr.initializer && ts.isJsxExpression(nRouterAttr.initializer) ? nRouterAttr.initializer.expression : null);
+                        if (routeValue) {
+                            const filteredAttrs = attributes.filter(a => a !== nRouterAttr);
+                            // Add href if missing
+                            if (!filteredAttrs.some(a => ts.isJsxAttribute(a) && a.name.getText(sourceFile) === 'href')) {
+                                filteredAttrs.push(factory.createJsxAttribute(factory.createIdentifier('href'), typeof routeValue === 'string' ? factory.createStringLiteral(routeValue) : factory.createJsxExpression(undefined, routeValue)));
+                            }
+                            // Add onClick handler: (e) => { e.preventDefault(); router.navigate(routeValue) }
+                            const onClickHandler = factory.createArrowFunction(undefined, undefined, [factory.createParameterDeclaration(undefined, undefined, 'e')], undefined, factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken), factory.createBlock([
+                                factory.createExpressionStatement(factory.createCallExpression(factory.createPropertyAccessExpression(factory.createIdentifier('e'), 'preventDefault'), undefined, [])),
+                                factory.createExpressionStatement(factory.createCallExpression(factory.createPropertyAccessExpression(factory.createIdentifier('router'), 'navigate'), undefined, [typeof routeValue === 'string' ? factory.createStringLiteral(routeValue) : routeValue]))
+                            ]));
+                            filteredAttrs.push(factory.createJsxAttribute(factory.createIdentifier('onClick'), factory.createJsxExpression(undefined, onClickHandler)));
+                            const newOpening = ts.isJsxElement(node)
+                                ? factory.updateJsxOpeningElement(node.openingElement, node.openingElement.tagName, node.openingElement.typeArguments, factory.createJsxAttributes(filteredAttrs))
+                                : factory.updateJsxSelfClosingElement(node, node.tagName, node.typeArguments, factory.createJsxAttributes(filteredAttrs));
+                            // Visit children of the transformed element (always in JSX context)
+                            return ts.isJsxElement(node)
+                                ? factory.updateJsxElement(node, newOpening, ts.visitNodes(node.children, (child) => visitor(child, true)), node.closingElement)
+                                : newOpening;
+                        }
+                    }
                     // 2. Handle Hoisting for static native elements
                     if (/^[a-z]/.test(tagName) && isStaticNode(node, sourceFile)) {
                         const printer = ts.createPrinter();
@@ -189,26 +219,32 @@ export function transformOptimizedJSX(sourceFile, originalCode) {
     };
     const result = ts.transform(sourceFile, [transformer]);
     let transformedSourceFile = result.transformed[0];
-    // 3. Add necessary imports if hoisting was used
-    if (hoisted.length > 0) {
-        const printer = ts.createPrinter();
-        const existingImports = transformedSourceFile.statements.filter(ts.isImportDeclaration);
-        const hasRuntimeImport = existingImports.some(imp => imp.moduleSpecifier.getText(sourceFile).includes('@nova/runtime'));
-        if (hasRuntimeImport) {
-            // Update existing import (complex, so we'll just add a new one for now as it's valid ESM)
+    // 3. Add necessary imports
+    const printer = ts.createPrinter();
+    const existingStatements = transformedSourceFile.statements;
+    const existingImports = existingStatements.filter(ts.isImportDeclaration);
+    const needsRuntime = hoisted.length > 0;
+    const needsRouter = originalCode.includes('n-router'); // Simple check for now
+    let newStatements = [...existingStatements];
+    if (needsRuntime) {
+        const hasCreateTemplate = originalCode.match(/import\s+.*createTemplate/);
+        if (!hasCreateTemplate) {
             const newImport = ts.factory.createImportDeclaration(undefined, ts.factory.createImportClause(false, undefined, ts.factory.createNamedImports([
                 ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('createTemplate'))
             ])), ts.factory.createStringLiteral('@nova/runtime'));
-            transformedSourceFile = ts.factory.updateSourceFile(transformedSourceFile, [newImport, ...transformedSourceFile.statements]);
-        }
-        else {
-            const newImport = ts.factory.createImportDeclaration(undefined, ts.factory.createImportClause(false, undefined, ts.factory.createNamedImports([
-                ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('createTemplate'))
-            ])), ts.factory.createStringLiteral('@nova/runtime'));
-            transformedSourceFile = ts.factory.updateSourceFile(transformedSourceFile, [newImport, ...transformedSourceFile.statements]);
+            newStatements.unshift(newImport);
         }
     }
-    const printer = ts.createPrinter();
+    if (needsRouter) {
+        const hasRouter = originalCode.match(/import\s+.*router/);
+        if (!hasRouter) {
+            const newImport = ts.factory.createImportDeclaration(undefined, ts.factory.createImportClause(false, undefined, ts.factory.createNamedImports([
+                ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('router'))
+            ])), ts.factory.createStringLiteral('@nova/router'));
+            newStatements.unshift(newImport);
+        }
+    }
+    transformedSourceFile = ts.factory.updateSourceFile(transformedSourceFile, newStatements);
     const transformedCode = printer.printFile(transformedSourceFile);
     return { code: transformedCode, hoisted };
 }

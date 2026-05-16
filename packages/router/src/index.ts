@@ -1,3 +1,7 @@
+export type GuardResult = boolean | string | Promise<boolean | string>;
+export type GuardFn = (match: RouteMatch) => GuardResult;
+export type ResolveFn = (match: RouteMatch) => any | Promise<any>;
+
 export interface Route {
   path: string;
   pattern: RegExp;
@@ -5,6 +9,12 @@ export interface Route {
   module: () => Promise<any>;
   /** Stack of layout factories, from root to leaf */
   layouts?: Array<() => Promise<any>>;
+  /** Angular-style Guards: check if route can be activated */
+  canActivate?: GuardFn[];
+  /** Angular-style Resolvers: fetch data before route is activated */
+  resolve?: Record<string, ResolveFn>;
+  /** Static data passed to the route */
+  data?: Record<string, any>;
   isSSR?: boolean;
 }
 
@@ -19,6 +29,8 @@ export interface RouteMatch {
   component?: any;
   /** Resolved layout components */
   layouts?: any[];
+  /** Resolved data from Resolvers */
+  data?: Record<string, any>;
   /** Outermost layout for backward compatibility */
   layout?: any;
 }
@@ -117,11 +129,22 @@ export class Router {
   // ── Route registration ──────────────────────────────────────────────────
 
   /**
-   * Register a lazy route with optional nested layouts.
+   * Register a lazy route with optional nested layouts, guards, and resolvers.
    */
-  registerRoute(filePath: string, module: () => Promise<any>, layouts: Array<() => Promise<any>> = []): void {
+  registerRoute(
+    filePath: string, 
+    module: () => Promise<any>, 
+    layouts: Array<() => Promise<any>> = [],
+    options: Partial<Pick<Route, 'canActivate' | 'resolve' | 'data'>> = {}
+  ): void {
     const { path, pattern } = pathToPattern(filePath);
-    this.routes.set(path, { path, pattern, module, layouts });
+    this.routes.set(path, { 
+      path, 
+      pattern, 
+      module, 
+      layouts, 
+      ...options 
+    });
   }
 
   // ── Lazy loading helpers ────────────────────────────────────────────────
@@ -170,6 +193,7 @@ export class Router {
 
   /**
    * Navigate to a pathname and resolve all components and nested layouts.
+   * Supports Guards (CanActivate) and Resolvers.
    */
   async navigate(pathname: string, skipPushState: boolean = false): Promise<RouteMatch | null> {
     if (!skipPushState && this.currentMatch && window.location.pathname === pathname) {
@@ -183,7 +207,18 @@ export class Router {
     const { query } = parseUrl(pathname);
     base.query = query;
 
-    // Load main component and all layouts in parallel for speed
+    // 1. Run Guards (Angular-style CanActivate)
+    if (base.route.canActivate) {
+      for (const guard of base.route.canActivate) {
+        const result = await guard(base);
+        if (result === false) return null; // Cancel navigation
+        if (typeof result === 'string') {
+          return this.navigate(result); // Redirect
+        }
+      }
+    }
+
+    // 2. Load main component and all layouts in parallel
     const [mod, ...layoutMods] = await Promise.all([
       this.loadModule(base.route),
       ...(base.route.layouts || []).map(l => l())
@@ -196,8 +231,21 @@ export class Router {
       ...base, 
       component, 
       layouts,
-      layout: layouts[0] // Backward compatibility
+      layout: layouts[0],
+      data: { ...(base.route.data || {}) }
     };
+
+    // 3. Run Resolvers (Angular-style Resolve)
+    if (base.route.resolve) {
+      const resolverKeys = Object.keys(base.route.resolve);
+      const resolverPromises = Object.values(base.route.resolve).map(r => r(match));
+      const resolvedData = await Promise.all(resolverPromises);
+      
+      resolverKeys.forEach((key, i) => {
+        match.data![key] = resolvedData[i];
+      });
+    }
+
     this.currentMatch = match;
 
     if (!skipPushState) {

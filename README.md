@@ -1,4 +1,4 @@
-# Nova - AI-Friendly Frontend Framework
+# Nova - Frontend Framework
 
 > Ultra-fast, signals-based, no virtual DOM, island architecture, <5kb runtime
 
@@ -51,7 +51,7 @@ packages/
 Fine-grained reactivity with automatic dependency tracking:
 
 ```typescript
-import { signal, computed, effect } from '@nova/signals';
+import { signal, computed, effect } from "@nova/signals";
 
 const count = signal(0);
 const doubled = computed(() => count.value * 2);
@@ -92,10 +92,10 @@ export function Dashboard() {
   return (
     <div>
       <Header /> {/* Static - 0kb JS */}
-      
+
       {/* Hydrate only when visible - optimized performance */}
       <Chart data={data} data-nova-strategy="visible" />
-      
+
       <Footer />
     </div>
   );
@@ -118,7 +118,7 @@ export function InteractiveMap() {
   onHydrated(() => {
     // Runs after JS is loaded and attached (Islands only)
     const map = new Library.Map('#map-root');
-    
+
     onCleanup(() => map.destroy());
   });
 
@@ -165,7 +165,9 @@ const derived = computed(() => state.value * 2);
 effect(() => {
   console.log(state.value);
   // Returns cleanup function
-  return () => {/* cleanup */};
+  return () => {
+    /* cleanup */
+  };
 });
 
 // Batch updates
@@ -180,7 +182,7 @@ untrack(() => {
 });
 
 // Lifecycles
-import { onMount, onUnmount, onCleanup, onHydrated } from '@nova/runtime';
+import { onMount, onUnmount, onCleanup, onHydrated } from "@nova/runtime";
 
 onMount(() => {
   // Logic after component is added to DOM
@@ -241,33 +243,31 @@ function Button() {
 ### Router
 
 ```typescript
-import { router } from '@nova/router';
+import { router } from "@nova/router";
 
 // Navigate
-await router.navigate('/about');
+await router.navigate("/about");
 
 // Get current route
 const match = router.getCurrentMatch();
 
 // Subscribe to changes
 router.subscribe((match) => {
-  console.log('Route changed:', match?.route.path);
+  console.log("Route changed:", match?.route.path);
 });
 ```
-
-
 
 ## Configuration
 
 Create a `nova.config.ts` file:
 
 ```typescript
-import { defineConfig } from '@nova/cli';
+import { defineConfig } from "@nova/cli";
 
 export default defineConfig({
-  root: '.',
-  entry: 'src/main.ts',
-  outDir: 'dist',
+  root: ".",
+  entry: "src/main.ts",
+  outDir: "dist",
   ssr: true,
   server: {
     port: 3000,
@@ -282,16 +282,16 @@ export default defineConfig({
 Create custom plugins:
 
 ```typescript
-import { definePlugin } from '@nova/plugins';
+import { definePlugin } from "@nova/plugins";
 
 export default definePlugin({
-  name: 'my-plugin',
-  
+  name: "my-plugin",
+
   beforeCompile(code, id) {
     // Transform source code
     return code;
   },
-  
+
   transform(code, id) {
     // Transform modules
     return code;
@@ -310,14 +310,14 @@ export default definePlugin({
 
 ## Comparison
 
-| Feature | Nova | React | Vue | Svelte |
-|---------|------|-------|-----|--------|
-| No Virtual DOM | ✅ | ❌ | ❌ | ✅ |
-| Signals | ✅ | ❌ | ✅ | ✅ |
-| Island Architecture | ✅ | ❌ | ❌ | ❌ |
-| Runtime Size | <5kb | 42kb | 34kb | 14kb |
-| SSR Support | ✅ | ✅ | ✅ | ✅ |
-| AI-Friendly | ✅ | ⚠️ | ⚠️ | ⚠️ |
+| Feature             | Nova | React | Vue  | Svelte |
+| ------------------- | ---- | ----- | ---- | ------ |
+| No Virtual DOM      | ✅   | ❌    | ❌   | ✅     |
+| Signals             | ✅   | ❌    | ✅   | ✅     |
+| Island Architecture | ✅   | ❌    | ❌   | ❌     |
+| Runtime Size        | <5kb | 42kb  | 34kb | 14kb   |
+| SSR Support         | ✅   | ✅    | ✅   | ✅     |
+| AI-Friendly         | ✅   | ⚠️    | ⚠️   | ⚠️     |
 
 ## Development
 

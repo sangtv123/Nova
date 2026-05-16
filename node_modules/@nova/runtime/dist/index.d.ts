@@ -77,7 +77,8 @@ export declare function createText(text: string): Text;
 /**
  * Render an element to the DOM
  */
-export declare function render(element: Element | Element[], container: Element | null): void; /**
+export declare function render(element: Element | Element[], container: Element | null): void;
+/**
  * JSX Type Definitions
  */
 declare global {

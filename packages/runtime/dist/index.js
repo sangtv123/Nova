@@ -520,7 +520,5 @@ export function render(element, container) {
     else if (element instanceof Node) {
         container.appendChild(element);
     }
-} /**
- * JSX Type Definitions
- */
+}
 //# sourceMappingURL=index.js.map

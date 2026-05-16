@@ -1,6 +1,7 @@
 import { Layout } from './components/Layout';
 import { IndexPage } from './pages/index';
 import { AboutPage } from './pages/about';
+import AdminPage from './pages/admin';
 import { router } from '@nova/router';
 import { signal, effect } from '@nova/signals';
 
@@ -23,6 +24,7 @@ export function App() {
       {() => {
         if (currentPath.value === '/') return <IndexPage />;
         if (currentPath.value === '/about') return <AboutPage />;
+        if (currentPath.value === '/admin') return <AdminPage />;
         return <div class="not-found"><h2>404 - Page Not Found</h2></div>;
       }}
     </Layout>
