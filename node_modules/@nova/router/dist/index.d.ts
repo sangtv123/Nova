@@ -61,11 +61,21 @@ export declare class Router {
     private routes;
     private currentMatch;
     private listeners;
+    private beforeNavigateHooks;
+    private afterNavigateHooks;
     /**
      * Cache of already-loaded modules — avoids re-importing the same chunk.
      * Key: route path, Value: resolved module exports.
      */
     private moduleCache;
+    /**
+     * Register a global hook that runs before any navigation.
+     */
+    onBeforeNavigate(hook: (pathname: string) => GuardResult): () => void;
+    /**
+     * Register a global hook that runs after successful navigation.
+     */
+    onAfterNavigate(hook: (match: RouteMatch) => void): () => void;
     /**
      * Register a lazy route with optional nested layouts, guards, and resolvers.
      */

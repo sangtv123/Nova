@@ -123,6 +123,20 @@ function patchChildren(
 
 let isHydrating = false;
 let hydrateCursor: Node | null = null;
+const appReadyListeners = new Set<() => void>();
+let isAppReady = false;
+
+/**
+ * Register a hook to be called when the app is first rendered and ready.
+ */
+export function onAppReady(callback: () => void): () => void {
+  if (isAppReady) {
+    callback();
+    return () => {};
+  }
+  appReadyListeners.add(callback);
+  return () => appReadyListeners.delete(callback);
+}
 
 /**
  * Hydration - reuse server-rendered HTML and attach interactivity without VDOM
@@ -600,6 +614,13 @@ export function render(element: Element | Element[], container: Element | null):
     }
   } else if (element instanceof Node) {
     container.appendChild(element);
+  }
+
+  // Mark app as ready on first render
+  if (!isAppReady) {
+    isAppReady = true;
+    appReadyListeners.forEach(fn => fn());
+    appReadyListeners.clear();
   }
 }
 /**

@@ -67,11 +67,27 @@ export class Router {
         this.routes = new Map();
         this.currentMatch = null;
         this.listeners = new Set();
+        this.beforeNavigateHooks = new Set();
+        this.afterNavigateHooks = new Set();
         /**
          * Cache of already-loaded modules — avoids re-importing the same chunk.
          * Key: route path, Value: resolved module exports.
          */
         this.moduleCache = new Map();
+    }
+    /**
+     * Register a global hook that runs before any navigation.
+     */
+    onBeforeNavigate(hook) {
+        this.beforeNavigateHooks.add(hook);
+        return () => this.beforeNavigateHooks.delete(hook);
+    }
+    /**
+     * Register a global hook that runs after successful navigation.
+     */
+    onAfterNavigate(hook) {
+        this.afterNavigateHooks.add(hook);
+        return () => this.afterNavigateHooks.delete(hook);
     }
     // ── Route registration ──────────────────────────────────────────────────
     /**
@@ -142,6 +158,14 @@ export class Router {
             return null;
         const { query } = parseUrl(pathname);
         base.query = query;
+        // 0. Global Before Navigate Hooks
+        for (const hook of this.beforeNavigateHooks) {
+            const result = await hook(pathname);
+            if (result === false)
+                return null;
+            if (typeof result === 'string')
+                return this.navigate(result);
+        }
         // 1. Run Guards (Angular-style CanActivate)
         if (base.route.canActivate) {
             for (const guard of base.route.canActivate) {
@@ -179,6 +203,10 @@ export class Router {
         this.currentMatch = match;
         if (!skipPushState) {
             window.history.pushState({}, '', pathname);
+        }
+        // 4. Global After Navigate Hooks
+        for (const hook of this.afterNavigateHooks) {
+            hook(match);
         }
         this.notifyListeners(match);
         return match;

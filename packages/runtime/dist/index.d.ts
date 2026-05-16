@@ -21,6 +21,10 @@ export interface MountedIsland {
  */
 export declare function patch(oldVnode: Element | null, newVnode: Element | null, signals: Map<string, Signal<any>>): Element | null;
 /**
+ * Register a hook to be called when the app is first rendered and ready.
+ */
+export declare function onAppReady(callback: () => void): () => void;
+/**
  * Hydration - reuse server-rendered HTML and attach interactivity without VDOM
  */
 export declare function hydrate(el: Element, hydrationData: HydrationData, componentFn: (props: Record<string, any>, signals: Map<string, Signal<any>>) => Element): MountedIsland;

@@ -119,12 +119,30 @@ export class Router {
   private routes: Map<string, Route> = new Map();
   private currentMatch: RouteMatch | null = null;
   private listeners: Set<(match: RouteMatch | null) => void> = new Set();
+  private beforeNavigateHooks: Set<(pathname: string) => GuardResult> = new Set();
+  private afterNavigateHooks: Set<(match: RouteMatch) => void> = new Set();
 
   /**
    * Cache of already-loaded modules — avoids re-importing the same chunk.
    * Key: route path, Value: resolved module exports.
    */
   private moduleCache: Map<string, any> = new Map();
+
+  /**
+   * Register a global hook that runs before any navigation.
+   */
+  onBeforeNavigate(hook: (pathname: string) => GuardResult): () => void {
+    this.beforeNavigateHooks.add(hook);
+    return () => this.beforeNavigateHooks.delete(hook);
+  }
+
+  /**
+   * Register a global hook that runs after successful navigation.
+   */
+  onAfterNavigate(hook: (match: RouteMatch) => void): () => void {
+    this.afterNavigateHooks.add(hook);
+    return () => this.afterNavigateHooks.delete(hook);
+  }
 
   // ── Route registration ──────────────────────────────────────────────────
 
@@ -207,6 +225,13 @@ export class Router {
     const { query } = parseUrl(pathname);
     base.query = query;
 
+    // 0. Global Before Navigate Hooks
+    for (const hook of this.beforeNavigateHooks) {
+      const result = await hook(pathname);
+      if (result === false) return null;
+      if (typeof result === 'string') return this.navigate(result);
+    }
+
     // 1. Run Guards (Angular-style CanActivate)
     if (base.route.canActivate) {
       for (const guard of base.route.canActivate) {
@@ -250,6 +275,11 @@ export class Router {
 
     if (!skipPushState) {
       window.history.pushState({}, '', pathname);
+    }
+
+    // 4. Global After Navigate Hooks
+    for (const hook of this.afterNavigateHooks) {
+      hook(match);
     }
 
     this.notifyListeners(match);

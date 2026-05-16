@@ -81,6 +81,19 @@ function patchChildren(el, newEl, signals) {
 }
 let isHydrating = false;
 let hydrateCursor = null;
+const appReadyListeners = new Set();
+let isAppReady = false;
+/**
+ * Register a hook to be called when the app is first rendered and ready.
+ */
+export function onAppReady(callback) {
+    if (isAppReady) {
+        callback();
+        return () => { };
+    }
+    appReadyListeners.add(callback);
+    return () => appReadyListeners.delete(callback);
+}
 /**
  * Hydration - reuse server-rendered HTML and attach interactivity without VDOM
  */
@@ -519,6 +532,12 @@ export function render(element, container) {
     }
     else if (element instanceof Node) {
         container.appendChild(element);
+    }
+    // Mark app as ready on first render
+    if (!isAppReady) {
+        isAppReady = true;
+        appReadyListeners.forEach(fn => fn());
+        appReadyListeners.clear();
     }
 }
 //# sourceMappingURL=index.js.map
