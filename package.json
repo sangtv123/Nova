@@ -1,0 +1,23 @@
+{
+  "name": "nova",
+  "version": "0.0.1",
+  "description": "A modern frontend framework with signals-based reactivity and island architecture",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "ws": "^8.20.1"
+  }
+}

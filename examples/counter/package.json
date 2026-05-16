@@ -1,0 +1,15 @@
+{
+  "name": "counter-example",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nova dev",
+    "build": "nova build",
+    "preview": "nova preview"
+  },
+  "dependencies": {
+    "@nova/signals": "file:../../packages/signals",
+    "@nova/router": "file:../../packages/router",
+    "@nova/islands": "file:../../packages/islands"
+  }
+}
