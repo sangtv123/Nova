@@ -1,6 +1,6 @@
 import { router } from '@nova/router';
 
-export default function AdminPage() {
+export function AdminPage() {
   const match = router.getCurrentMatch();
   const config = match?.data?.config;
 

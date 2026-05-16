@@ -12,10 +12,8 @@ export function TodoIsland() {
   });
 
   const handleAdd = () => {
-    for(let i = 0; i <= 50; i++) {
-      service.addTodo(inputValue.value + ' - '+ i);
-    }
-    // inputValue.value = '';
+    service.addTodo(inputValue.value);
+    inputValue.value = '';
   };
 
   return (
@@ -28,8 +26,8 @@ export function TodoIsland() {
           type="text" 
           placeholder="Add a new quest..." 
           value={() => inputValue.value}
-          onInput={(e: any) => inputValue.value = e.target.value}
-          onKeyDown={(e: any) => e.key === 'Enter' && handleAdd()}
+          onInput={(e: InputEvent) => inputValue.value = (e.target as HTMLInputElement).value}
+          onKeyDown={(e: KeyboardEvent) => e.key === 'Enter' && handleAdd()}
         />
         <button class="btn primary" onClick={handleAdd}>Add</button>
       </div>
@@ -60,94 +58,6 @@ export function TodoIsland() {
           </div>
         </li>
       </ul>
-
-      <style>{`
-        .todo-island {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 16px;
-          padding: 2rem;
-        }
-        .todo-input-group {
-          display: flex;
-          gap: 0.5rem;
-          margin-bottom: 1.5rem;
-        }
-        .todo-input-group input {
-          flex: 1;
-          padding: 0.8rem 1rem;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          color: white;
-          outline: none;
-        }
-        .todo-input-group input:focus {
-          border-color: var(--primary);
-        }
-        .todo-stats {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.6);
-          margin-bottom: 1rem;
-        }
-        .btn-link {
-          background: none;
-          border: none;
-          color: var(--primary);
-          cursor: pointer;
-          font-size: 0.9rem;
-          padding: 0;
-        }
-        .btn-link:hover {
-          text-decoration: underline;
-        }
-        .todo-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-        .todo-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.8rem;
-          background: rgba(255, 255, 255, 0.02);
-          border-radius: 8px;
-          margin-bottom: 0.5rem;
-          transition: transform 0.2s;
-        }
-        .todo-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-        .todo-text {
-          flex: 1;
-        }
-        li.completed .todo-text {
-          text-decoration: line-through;
-          opacity: 0.5;
-        }
-        .btn-delete {
-          background: none;
-          border: none;
-          color: rgba(255, 255, 255, 0.3);
-          font-size: 1.5rem;
-          cursor: pointer;
-          line-height: 1;
-          padding: 0 0.5rem;
-        }
-        .btn-delete:hover {
-          color: #ff4d4d;
-        }
-        .empty-state {
-          text-align: center;
-          padding: 2rem;
-          color: rgba(255, 255, 255, 0.3);
-          font-style: italic;
-        }
-      `}</style>
     </div>
   );
 }

@@ -10,9 +10,6 @@ export function CounterIsland({ initialCount = 0 }: { initialCount?: number }) {
   
     onHydrated(() => {
       console.log('[CounterIsland] Island fully hydrated and interactive');
-      // Example: Focus the first input
-      const firstInput = document.querySelector('.contact-form input');
-      if (firstInput) (firstInput as HTMLElement).focus();
     });
   
     onUnmount(() => {

@@ -76,45 +76,6 @@ export function ContactIsland() {
           {() => form.isSubmitting.value ? 'Sending...' : 'Send Now'}
         </button>
       </form>
-
-      <style>{`
-        .contact-form {
-          margin-top: 2rem;
-          padding: 2rem;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .form-group {
-          margin-bottom: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .form-group label {
-          font-size: 0.9rem;
-          color: #aaa;
-        }
-        .form-group input, .form-group textarea {
-          padding: 0.8rem;
-          background: rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          color: white;
-          outline: none;
-        }
-        .form-group input:focus {
-          border-color: #4a90e2;
-        }
-        .error {
-          color: #ff4d4f;
-          font-size: 0.8rem;
-        }
-        .btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 }

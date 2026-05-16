@@ -29,13 +29,15 @@ export const configResolver = async () => {
  * Route Configuration
  */
 export function setupRoutes() {
-  // Register custom route for Admin
-  router.registerRoute('pages/admin.tsx', () => import('./pages/admin'), [], {
+  // Register routes metadata
+  router.registerRoute('/', null as any, []);
+  router.registerRoute('/about', null as any, []);
+  router.registerRoute('/posts', null as any, []);
+  
+  router.registerRoute('/admin', null as any, [], {
     canActivate: [authGuard],
     resolve: { 
       config: configResolver 
     }
   });
-  
-  // You can add more manual route registrations here
 }

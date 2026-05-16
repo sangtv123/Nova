@@ -8,7 +8,7 @@ export function SearchInput() {
       <input 
         type="text" 
         value={() => searchQuery.value} 
-        onInput={(e: any) => searchQuery.value = e.target.value}
+        onInput={(e: InputEvent) => searchQuery.value = (e.target as HTMLInputElement).value}
         placeholder="Nhập nội dung tìm kiếm..."
         class="input-field"
       />

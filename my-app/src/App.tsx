@@ -1,10 +1,17 @@
-import { Layout } from './components/Layout';
 import { IndexPage } from './pages/index';
 import { AboutPage } from './pages/about';
-import AdminPage from './pages/admin';
+import { AdminPage } from './pages/admin';
 import { PostsPage } from './pages/posts';
+import { Layout } from './components/Layout';
 import { router } from '@nova/router';
 import { signal, effect } from '@nova/signals';
+
+const PAGES: Record<string, any> = {
+  '/': IndexPage,
+  '/about': AboutPage,
+  '/admin': AdminPage,
+  '/posts': PostsPage,
+};
 
 export function App() {
   const currentPath = signal(window.location.pathname);
@@ -21,13 +28,11 @@ export function App() {
 
   return (
     <Layout>
-      {/* Mock routing rendering */}
       {() => {
-        if (currentPath.value === '/') return <IndexPage />;
-        if (currentPath.value === '/about') return <AboutPage />;
-        if (currentPath.value === '/admin') return <AdminPage />;
-        if (currentPath.value === '/posts') return <PostsPage />;
-        return <div class="not-found"><h2>404 - Page Not Found</h2></div>;
+        const Page = PAGES[currentPath.value];
+        if (!Page) return <div class="not-found"><h2>404 - Page Not Found</h2></div>;
+        
+        return <Page />;
       }}
     </Layout>
   );

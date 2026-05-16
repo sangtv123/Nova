@@ -61,8 +61,8 @@ function CreatePostForm({ onCreated }: { onCreated: (post: Post) => void }) {
       title.value = '';
       body.value  = '';
       onCreated(post);
-    } catch (e) {
-      formErr.value = e instanceof HttpError ? e.message : 'Failed to create post';
+    } catch (err) {
+      formErr.value = err instanceof HttpError ? err.message : 'Failed to create post';
     } finally {
       saving.value = false;
     }
