@@ -12,8 +12,10 @@ export function TodoIsland() {
   });
 
   const handleAdd = () => {
-    service.addTodo(inputValue.value);
-    inputValue.value = '';
+    for(let i = 0; i <= 50; i++) {
+      service.addTodo(inputValue.value + ' - '+ i);
+    }
+    // inputValue.value = '';
   };
 
   return (

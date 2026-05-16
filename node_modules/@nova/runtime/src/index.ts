@@ -476,7 +476,7 @@ export function createElement(
         el.appendChild(marker);
         let currentNodes: Node[] = [];
 
-        const dispose = effect(() => {
+        const dispose = domEffect(() => {
           let val = child();
           if (val === null || val === undefined || val === false) val = '';
 

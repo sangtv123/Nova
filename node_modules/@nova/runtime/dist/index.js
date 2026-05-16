@@ -407,7 +407,7 @@ export function createElement(tag, attrs, ...children) {
                 const marker = document.createTextNode('');
                 el.appendChild(marker);
                 let currentNodes = [];
-                const dispose = effect(() => {
+                const dispose = domEffect(() => {
                     let val = child();
                     if (val === null || val === undefined || val === false)
                         val = '';

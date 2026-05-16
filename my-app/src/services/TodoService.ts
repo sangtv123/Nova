@@ -10,6 +10,7 @@ export interface Todo {
  * TodoService - Managed via Nova DI
  */
 export class TodoService {
+  private nextId = Date.now();
   todos = signal<Todo[]>([]);
   
   totalCount = computed(() => this.todos.value.length);
@@ -20,7 +21,7 @@ export class TodoService {
     if (!text.trim()) return;
     this.todos.value = [
       ...this.todos.value,
-      { id: Date.now(), text, completed: false }
+      { id: this.nextId++, text, completed: false }
     ];
   }
 

@@ -160,6 +160,8 @@ export function transformOptimizedJSX(sourceFile, originalCode) {
                                 ]);
                             }
                         }
+                        // Wrap in arrow function for reactivity
+                        transformedNode = factory.createArrowFunction(undefined, undefined, [], undefined, factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken), transformedNode);
                         // CRITICAL: Only wrap in JsxExpression if it's a child of another JSX element
                         if (inJsxContext) {
                             return factory.createJsxExpression(undefined, transformedNode);

@@ -238,6 +238,16 @@ export function transformOptimizedJSX(sourceFile: ts.SourceFile, originalCode: s
               }
             }
 
+            // Wrap in arrow function for reactivity
+            transformedNode = factory.createArrowFunction(
+              undefined,
+              undefined,
+              [],
+              undefined,
+              factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+              transformedNode as ts.Expression
+            );
+
             // CRITICAL: Only wrap in JsxExpression if it's a child of another JSX element
             if (inJsxContext) {
               return factory.createJsxExpression(undefined, transformedNode as ts.Expression);
