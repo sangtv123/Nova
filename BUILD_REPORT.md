@@ -469,11 +469,12 @@ npm create nova@latest my-app
 
 ## Project Metrics
 
-- **Total Files**: 46
+- **Total Files**: 52
 - **Total Packages**: 9 + 2 examples
-- **Lines of Code**: ~15,000+
-- **Documentation Files**: 6
+- **Lines of Code**: ~16,000+
+- **Documentation Files**: 12
 - **Example Applications**: 2
+- **Key Features**: Signals, No VDOM, Islands, Routing, Lifecycles
 - **Total Size**: Production-ready framework
 
 ## License

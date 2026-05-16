@@ -1,3 +1,4 @@
+import { signal } from '@nova/signals';
 import type { Signal } from '@nova/signals';
 export * from './di';
 
@@ -136,8 +137,9 @@ export function hydrate(
   // Initialize signals from hydration data
   if (hydrationData.signals) {
     for (const [key, value] of Object.entries(hydrationData.signals)) {
-      // Import signal would be done here
-      signals.set(key, { value } as any);
+      // If it's already a signal-like object, use it; otherwise create a new signal
+      const isSignal = value && typeof value === 'object' && 'value' in value;
+      signals.set(key, isSignal ? value : signal(value));
     }
   }
 
@@ -145,12 +147,17 @@ export function hydrate(
   isHydrating = true;
   hydrateCursor = el;
 
-  // Execute component to attach effects to existing DOM (no virtual tree creation)
-  try {
-    componentFn(hydrationData.props, signals);
-  } finally {
-    isHydrating = false;
-    hydrateCursor = null;
+  const { result: componentEl, hooks } = runWithHooks(() => componentFn(hydrationData.props, signals));
+  
+  isHydrating = false;
+  hydrateCursor = null;
+
+  attachHooks(el, hooks);
+
+  // Trigger onHydrated hooks
+  if ((el as any).__nova_hydrated) {
+    (el as any).__nova_hydrated.forEach((fn: Function) => fn());
+    delete (el as any).__nova_hydrated;
   }
 
   return {
@@ -266,7 +273,14 @@ function delegateEvent(eventName: string) {
   );
 }
 
-let activeHooks: { onMount: Function[], onUnmount: Function[], disposals: Function[] } | null = null;
+interface HookContext {
+  onMount: Function[];
+  onUnmount: Function[];
+  onHydrated: Function[];
+  disposals: Function[];
+}
+
+let activeHooks: HookContext | null = null;
 
 /**
  * Run a function when the current component is mounted to the DOM
@@ -274,7 +288,6 @@ let activeHooks: { onMount: Function[], onUnmount: Function[], disposals: Functi
 export function onMount(fn: Function): void {
   if (activeHooks) activeHooks.onMount.push(fn);
   else if (typeof window !== 'undefined') {
-    // If called outside a component but in a browser, run it in the next tick
     setTimeout(fn, 0);
   }
 }
@@ -284,6 +297,64 @@ export function onMount(fn: Function): void {
  */
 export function onUnmount(fn: Function): void {
   if (activeHooks) activeHooks.onUnmount.push(fn);
+}
+
+/**
+ * Alias for onUnmount - run cleanup when component is destroyed
+ */
+export function onCleanup(fn: Function): void {
+  if (activeHooks) activeHooks.onUnmount.push(fn);
+}
+
+/**
+ * Run a function after the Island has been fully hydrated on the client
+ */
+export function onHydrated(fn: Function): void {
+  if (activeHooks) activeHooks.onHydrated.push(fn);
+}
+
+/**
+ * Internal helper to run a component function with hook context
+ */
+function runWithHooks<T>(fn: () => T): { result: T, hooks: HookContext } {
+  const hooks: HookContext = {
+    onMount: [],
+    onUnmount: [],
+    onHydrated: [],
+    disposals: []
+  };
+  const prevHooks = activeHooks;
+  activeHooks = hooks;
+  const result = untrack(fn);
+  activeHooks = prevHooks;
+  return { result, hooks };
+}
+
+/**
+ * Internal helper to attach hooks to an element
+ */
+function attachHooks(el: any, hooks: HookContext): void {
+  if (!(el instanceof Element)) return;
+  
+  if (hooks.onMount.length > 0) {
+    // Run onMount in next tick (after DOM insertion)
+    Promise.resolve().then(() => {
+      hooks.onMount.forEach(fn => fn());
+    });
+  }
+
+  if (hooks.onUnmount.length > 0) {
+    (el as any).__nova_unmount = ((el as any).__nova_unmount || []).concat(hooks.onUnmount);
+  }
+
+  if (hooks.disposals.length > 0) {
+    (el as any).__nova_disposals = ((el as any).__nova_disposals || []).concat(hooks.disposals);
+  }
+
+  if (hooks.onHydrated.length > 0) {
+    // onHydrated will be called manually by the hydration process
+    (el as any).__nova_hydrated = ((el as any).__nova_hydrated || []).concat(hooks.onHydrated);
+  }
 }
 
 // ─── Unmount & Cleanup Observer ───────────────────────────────────────────────
@@ -353,32 +424,15 @@ export function createElement(
   ...children: any[]
 ): Element | Element[] {
   if (typeof tag === 'function') {
-    const hooks: { onMount: Function[], onUnmount: Function[], disposals: Function[] } = { 
-      onMount: [], 
-      onUnmount: [],
-      disposals: []
-    };
-    const prevHooks = activeHooks;
-    activeHooks = hooks;
-    
     const props = attrs || {};
     if (children.length > 0) {
       props.children = children.length === 1 ? children[0] : children;
     }
     
-    const el = untrack(() => (tag as Function)(props, children));
+    const { result: el, hooks } = runWithHooks(() => (tag as Function)(props, children));
     
-    activeHooks = prevHooks;
-
-    if (hooks.onMount.length > 0) {
-      Promise.resolve().then(() => {
-        hooks.onMount.forEach(fn => fn());
-      });
-    }
-
     if (el instanceof Element) {
-      if (hooks.onUnmount.length > 0) (el as any).__nova_unmount = hooks.onUnmount;
-      if (hooks.disposals.length > 0) (el as any).__nova_disposals = hooks.disposals;
+      attachHooks(el, hooks);
     }
     
     return el;

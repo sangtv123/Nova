@@ -28,4 +28,4 @@ export function CounterIsland({ initialCount = 0 }: { initialCount?: number }) {
 }
 
 // Register for client-side hydration
-registerIsland('counter', CounterIsland);
+registerIsland('counter', () => Promise.resolve({ default: CounterIsland }));

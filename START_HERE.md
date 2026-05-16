@@ -123,6 +123,21 @@ function Counter(props: { initial: number }) {
 }
 ```
 
+### Lifecycle Hooks - Component Orchestration
+```typescript
+onMount(() => {           // After DOM insertion
+  console.log("Mounted");
+});
+
+onHydrated(() => {        // After Island hydration
+  console.log("Interactive");
+});
+
+onCleanup(() => {         // Before destruction
+  console.log("Cleanup");
+});
+```
+
 ### Islands - Interactive Components
 ```typescript
 // Mark components for client-side interactivity

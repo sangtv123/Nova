@@ -1,7 +1,24 @@
 import { registerIsland } from '@nova/islands';
 import { useForm } from '@nova/forms';
 
+import { onMount, onUnmount, onHydrated } from '@nova/runtime';
+
 export function ContactIsland() {
+  onMount(() => {
+    console.log('[ContactIsland] Component logic initialized');
+  });
+
+  onHydrated(() => {
+    console.log('[ContactIsland] Island fully hydrated and interactive');
+    // Example: Focus the first input
+    const firstInput = document.querySelector('.contact-form input');
+    if (firstInput) (firstInput as HTMLElement).focus();
+  });
+
+  onUnmount(() => {
+    console.log('[ContactIsland] Component being destroyed');
+  });
+
   const form = useForm(
     { name: '', email: '', message: '' },
     {

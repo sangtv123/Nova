@@ -31,7 +31,8 @@ Nova is a complete, production-ready frontend framework designed specifically fo
 #### @nova/runtime
 - Ultra-lightweight runtime (<5kb)
 - Direct native DOM patching
-- Server-side hydration
+- Unified Lifecycle system (`onMount`, `onUnmount`, `onCleanup`, `onHydrated`)
+- Server-side hydration with lifecycle context
 - Island mounting and management
 - Element creation helpers
 
@@ -243,6 +244,12 @@ Nova is a complete, production-ready frontend framework designed specifically fo
 - Auto-detection
 - Simple configuration
 - Clear mental model
+
+✅ **Standardized Lifecycle System**
+- Unified `onMount` and `onUnmount`
+- Functional `onCleanup` for disposals
+- Specialized `onHydrated` for Islands
+- Consistent hook context across runtime and islands
 
 ✅ **AI-Friendly**
 - Predictable patterns

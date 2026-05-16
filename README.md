@@ -157,6 +157,17 @@ batch(() => {
 untrack(() => {
   const value = signal.value; // No dependency created
 });
+
+// Lifecycles
+import { onMount, onUnmount, onCleanup, onHydrated } from '@nova/runtime';
+
+onMount(() => {
+  console.log('Mounted');
+});
+
+onHydrated(() => {
+  console.log('Island hydrated');
+});
 ```
 
 ### Components

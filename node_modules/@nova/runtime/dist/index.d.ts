@@ -55,6 +55,14 @@ export declare function onMount(fn: Function): void;
  */
 export declare function onUnmount(fn: Function): void;
 /**
+ * Alias for onUnmount - run cleanup when component is destroyed
+ */
+export declare function onCleanup(fn: Function): void;
+/**
+ * Run a function after the Island has been fully hydrated on the client
+ */
+export declare function onHydrated(fn: Function): void;
+/**
  * Starts a global MutationObserver to handle automatic component cleanup.
  * Every time an element is removed from the DOM, Nova will:
  * - Call its onUnmount hooks

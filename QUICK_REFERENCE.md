@@ -147,6 +147,22 @@ patch(oldEl, newEl, signalMap);
 
 // Hydrate server-rendered
 const island = hydrate(el, hydrationData, Component);
+
+### Lifecycles
+```typescript
+import { onMount, onUnmount, onCleanup, onHydrated } from '@nova/runtime';
+
+onMount(() => {
+  // Logic after component is added to DOM
+});
+
+onHydrated(() => {
+  // Logic after Island becomes interactive
+});
+
+onUnmount(() => {
+  // Cleanup logic
+});
 ```
 
 ## Configuration

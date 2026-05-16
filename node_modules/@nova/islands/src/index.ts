@@ -1,4 +1,5 @@
 import { signal } from '@nova/signals';
+import { hydrate } from '@nova/runtime';
 import type { HydrationData } from '@nova/runtime';
 
 /**
@@ -123,15 +124,15 @@ function buildHydrationData(el: Element): HydrationData | null {
   }
 
   // FIX #7: Create real signals instead of plain { value } objects
-  const signals: Record<string, any> = {};
+  const signals = new Map<string, any>();
   for (const [key, value] of Object.entries(parsed.signals ?? {})) {
-    signals[key] = signal(value);
+    signals.set(key, signal(value));
   }
 
   return {
     id,
     props: parsed.props ?? {},
-    signals,
+    signals: Object.fromEntries(signals) as any, // Temporary cast for HydrationData compat
   };
 }
 
@@ -153,15 +154,18 @@ async function hydrateIsland(el: Element): Promise<void> {
   }
 
   try {
-    const hydrateFn = mod.hydrate ?? mod.default;
-    if (typeof hydrateFn !== 'function') {
+    const componentFn = mod.hydrate ?? mod.default;
+    if (typeof componentFn !== 'function') {
       console.error(`[nova/islands] Island "${islandId}" has no default export or hydrate function.`);
       return;
     }
-    const instance = await hydrateFn(hydrationData.props, hydrationData.signals);
-    if (instance?.el) {
-      el.replaceWith(instance.el);
-    }
+
+    // Use the core hydration function to attach interactivity and lifecycle hooks
+    hydrate(el, hydrationData, componentFn);
+    
+    // Mark as hydrated
+    el.setAttribute('data-nova-hydrated', 'true');
+    
   } catch (error) {
     console.error(`[nova/islands] Failed to hydrate island "${islandId}":`, error);
   }
