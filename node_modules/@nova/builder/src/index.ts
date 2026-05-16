@@ -15,7 +15,10 @@ export interface BuildOptions {
   /** Print bundle size analysis after build */
   analyze?: boolean;
   /** External packages — not bundled (saves size on shared host/CDN) */
+  /** External packages — not bundled (saves size on shared host/CDN) */
   external?: string[];
+  /** Custom esbuild plugins */
+  plugins?: any[];
 }
 
 /**
@@ -77,6 +80,7 @@ export class Builder {
       target: 'es2020',
       analyze: false,
       external: [],
+      plugins: [],
       ...options,
     };
   }
@@ -110,6 +114,7 @@ export class Builder {
       outdir: this.options.outDir,
       platform: this.options.ssr ? 'node' : 'browser',
       external: this.options.external,
+      plugins: this.options.plugins,
       // metafile lets us generate a bundle analysis report
       metafile: true,
       // Write files directly to outDir
@@ -176,6 +181,7 @@ export class Builder {
       platform: 'browser',
       metafile: true,
       write: true,
+      plugins: this.options.plugins,
       define: {
         'process.env.NODE_ENV': this.options.minify ? '"production"' : '"development"',
       },

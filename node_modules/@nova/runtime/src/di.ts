@@ -18,7 +18,7 @@ export function provide<T>(token: any, value: T): void {
 export function inject<T>(token: any): T {
   if (!container.has(token)) {
     // Auto-instantiate if it's a class
-    if (typeof token === 'function' && /^\s*class\s+/.test(token.toString())) {
+    if (typeof token === 'function' && /^\s*class[\s{]/.test(token.toString())) {
       const instance = new token();
       container.set(token, instance);
       return instance;

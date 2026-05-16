@@ -11,7 +11,10 @@ export interface BuildOptions {
     /** Print bundle size analysis after build */
     analyze?: boolean;
     /** External packages — not bundled (saves size on shared host/CDN) */
+    /** External packages — not bundled (saves size on shared host/CDN) */
     external?: string[];
+    /** Custom esbuild plugins */
+    plugins?: any[];
 }
 /**
  * Build result

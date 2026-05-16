@@ -7,16 +7,16 @@
     "build": "nova build"
   },
   "dependencies": {
-    "@nova/signals": "latest",
-    "@nova/router": "latest",
-    "@nova/islands": "latest",
-    "@nova/runtime": "latest",
+    "@nova/signals": "file:../packages/signals",
+    "@nova/router": "file:../packages/router",
+    "@nova/islands": "file:../packages/islands",
+    "@nova/runtime": "file:../packages/runtime",
     "@nova/motion": "file:../packages/motion",
-    "@nova/forms": "file:../packages/forms"
-
+    "@nova/forms": "file:../packages/forms",
+    "@nova/http": "file:../packages/http"
   },
   "devDependencies": {
-    "@nova/cli": "latest",
+    "@nova/cli": "file:../packages/cli",
     "typescript": "^5.3.0"
   }
 }
