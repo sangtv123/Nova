@@ -1,6 +1,8 @@
 import { CounterIsland } from '../islands/CounterIsland';
 import { ContactIsland } from '../islands/ContactIsland';
 import { TodoIsland } from '../islands/TodoIsland';
+import { SearchInput } from '../islands/SearchInput';
+import { SearchResults } from '../islands/SearchResults';
 
 export function IndexPage() {
   return (
@@ -31,6 +33,13 @@ export function IndexPage() {
 
       <section class="island-section">
         <CounterIsland initialCount={0} />
+      </section>
+
+      <section class="island-section">
+        <div class="demo-grid">
+          <SearchInput />
+          <SearchResults />
+        </div>
       </section>
 
       <section class="island-section">
