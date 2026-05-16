@@ -8,6 +8,7 @@ export function Header() {
         <a n-router="/">Home</a>
         <a n-router="/about">About</a>
         <a n-router="/admin">Admin</a>
+        <a n-router="/posts">Posts</a>
       </nav>
     </header>
   );
