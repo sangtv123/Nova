@@ -1,0 +1,51 @@
+.contact-form-custom {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid var(--primary);
+
+  h3 {
+    color: var(--text-main);
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    label {
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    input, textarea {
+      padding: 0.8rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: white;
+      outline: none;
+
+      &:focus {
+        border-color: var(--primary);
+      }
+    }
+  }
+
+  .error {
+    color: var(--danger);
+    font-size: 0.8rem;
+  }
+
+  .btn.primary.submitting {
+    opacity: 0.5;
+    cursor: wait;
+    transition: all 0.3s ease;
+  }
+}

@@ -1,6 +1,7 @@
 import { registerIsland } from '@nova/islands';
 import { useForm } from '@nova/forms';
 import { onMount, onUnmount, onHydrated } from '@nova/runtime';
+import './ContactIsland.scss';
 
 export function ContactIsland() {
   // ── State ──────────────────────────────────────────────────────────────────
@@ -45,8 +46,10 @@ export function ContactIsland() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div class="interactive-island contact-form" data-island="contact">
-      <h3>Send us a message</h3>
+    <div class="interactive-island contact-form-custom" data-island="contact">
+      <h3>
+        Send us a message
+      </h3>
 
       <form onSubmit={onSubmit}>
         <div class="form-group">
@@ -84,7 +87,11 @@ export function ContactIsland() {
           {() => form.errors.message.value && <span class="error">{form.errors.message.value}</span>}
         </div>
 
-        <button type="submit" class="btn primary" disabled={() => form.isSubmitting.value}>
+        <button 
+          type="submit" 
+          class={() => `btn primary ${form.isSubmitting.value ? 'submitting' : ''}`}
+          disabled={() => form.isSubmitting.value}
+        >
           {() => (form.isSubmitting.value ? 'Sending…' : 'Send Now')}
         </button>
       </form>

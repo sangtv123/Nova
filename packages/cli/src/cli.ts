@@ -97,6 +97,30 @@ async function dev(args: string[]) {
   const novaPlugin = {
     name: 'nova',
     setup(build: any) {
+      // Handle SCSS imports within JS/TSX
+      build.onResolve({ filter: /\.scss$/ }, (args: any) => {
+        return { path: path.resolve(args.resolveDir, args.path), namespace: 'scss-inline' };
+      });
+
+      build.onLoad({ filter: /.*/, namespace: 'scss-inline' }, async (args: any) => {
+        try {
+          const { execSync } = await import('child_process');
+          const css = execSync(`npx -y sass "${args.path}" --no-source-map`).toString();
+          const js = `
+            if (typeof document !== 'undefined') {
+              const style = document.createElement('style');
+              style.setAttribute('data-nova-style', '${path.basename(args.path)}');
+              style.textContent = ${JSON.stringify(css)};
+              document.head.appendChild(style);
+            }
+          `;
+          return { contents: js, loader: 'js' };
+        } catch (err: any) {
+          console.error('[nova/sass] Inline compilation failed:', err.message);
+          return { contents: '', loader: 'js' };
+        }
+      });
+
       // Mark @nova/* as external and rewrite to a shared URL
       build.onResolve({ filter: /^@nova\// }, (args: any) => {
         return { path: `/@framework/${args.path}`, external: true };
