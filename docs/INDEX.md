@@ -25,6 +25,7 @@ Nova is a modern frontend framework designed for:
 | **No Virtual DOM** | ✅ | ❌ | ❌ | ✅ |
 | **Signals** | ✅ | ❌ | ✅ | ✅ |
 | **Islands Architecture** | ✅ | ❌ | ❌ | ❌ |
+| **Motion Signals (60fps)** | ✅ | ⚠️ | ⚠️ | ⚠️ |
 | **File-based Routing** | ✅ | ⚠️ | ⚠️ | ✅ |
 | **SSR Streaming** | ✅ | ✅ | ✅ | ✅ |
 | **AI-Friendly** | ✅ | ⚠️ | ⚠️ | ⚠️ |
@@ -94,7 +95,7 @@ function Card(props: { title: string; children: any }) {
 
 ### Islands
 
-Interactive components partially hydrated on the client.
+Interactive components partially hydrated on the client. Nova automatically detects and hydrates interactive elements.
 
 ```typescript
 // Server renders everything, only Counter is interactive
@@ -102,11 +103,45 @@ export function Dashboard() {
   return (
     <>
       <Header /> {/* Static */}
-      <Counter /> {/* Interactive island */}
+      <CounterIsland /> {/* Interactive island */}
       <Footer /> {/* Static */}
     </>
   );
 }
+```
+
+### Motion Signals
+
+High-performance 60fps animations integrated directly into the reactivity graph.
+
+```typescript
+import { useMotion, easing } from '@nova/motion';
+
+const count = signal(0);
+const animatedCount = useMotion(count, { duration: 600, easing: easing.elastic });
+
+// Re-renders only the text node, at 60fps
+return <div>{() => Math.round(animatedCount.value)}</div>;
+```
+
+### Advanced Forms
+
+Declarative form handling with validation and loading states.
+
+```typescript
+import { useForm } from '@nova/forms';
+
+const form = useForm({ email: '' }, {
+  email: (v) => v.includes('@') || 'Invalid email'
+});
+
+return (
+  <form onSubmit={form.handleSubmit(saveData)}>
+    <input {...form.register('email')} />
+    {() => form.errors.email.value && <span>{form.errors.email.value}</span>}
+    <button disabled={() => form.isSubmitting.value}>Submit</button>
+  </form>
+);
 ```
 
 ### File-based Routing
@@ -150,6 +185,8 @@ pages/
 - **@nova/signals** - Reactivity core
 - **@nova/compiler** - TSX → native DOM transformation
 - **@nova/runtime** - DOM operations, hydration, <5kb
+- **@nova/forms** - Advanced form handling & validation
+- **@nova/motion** - 60fps Motion signals & animations
 - **@nova/router** - File-based routing
 - **@nova/islands** - Island architecture
 - **@nova/server** - Development server with HMR
@@ -279,6 +316,10 @@ effect(() => {
   cachedDoubled = count.value * 2;
 });
 ```
+
+### 5. Component Isolation
+
+Nova uses `untrack()` internally when executing components. This ensures that reading a signal during a component's setup phase (outside an effect) does not link that component to a parent's reactive scope, preventing unnecessary full-page re-renders.
 
 ## Plugins
 

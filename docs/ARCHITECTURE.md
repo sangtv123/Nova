@@ -153,6 +153,7 @@ Ultra-lightweight (<5kb) runtime for:
 3. Patch attributes conditionally (only if changed) to prevent browser reflows.
 4. Pointer-based DOM tree traversal (firstChild, nextSibling) instead of array instantiation.
 5. Global Event Delegation (one listener per event type on document).
+6. **Component Isolation**: Every component call is wrapped in `untrack()`. This prevents "reactive leakage" where a signal read during a component's initialization (setup phase) could link the entire component to a parent effect, causing unnecessary full re-renders.
 ```
 
 ### True Fine-grained Hydration Process
@@ -205,8 +206,9 @@ Implements island architecture for partial hydration.
 3. Each island gets own bundle
 4. HTML includes island metadata
 5. Client loads metadata
-6. Each island hydrates independently
-7. Page is progressively interactive
+6. **Smart Detection**: Island registry distinguishes between lazy factories and direct components using introspection, allowing for seamless integration of both dynamic imports and pre-loaded modules.
+7. Each island hydrates independently
+8. Page is progressively interactive
 ```
 
 ### Island Metadata
@@ -297,6 +299,25 @@ afterBuild()             // After build
 beforeSSR()              // Before SSR
 afterSSR()               // After SSR
 ```
+
+## Motion Package
+
+Integrated 60fps animations via a specialized "interpolating signal".
+
+### How it works:
+1. `useMotion(target)` creates a local signal initialized to the target's current value.
+2. An `effect` tracks the `target`. When it changes, a high-performance `requestAnimationFrame` loop begins.
+3. On every frame, the local signal is updated using the easing function.
+4. Since DOM updates are fine-grained, only the specific nodes using the motion signal re-render at 60fps.
+
+## Forms Package
+
+Declarative state management for complex user input.
+
+### Architecture:
+- **Control-based**: Each field is an object containing `value`, `error`, and `isDirty` signals.
+- **Unified Events**: The `register()` helper provides standardized `onInput` and `onChange` handlers that sync DOM attributes (like `checked`) automatically.
+- **Validation Pipeline**: Validators are executed reactively on input, but submission is blocked and loading state (`isSubmitting`) is handled automatically.
 
 ### Example Plugin
 

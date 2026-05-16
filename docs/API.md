@@ -164,6 +164,47 @@ function Component() {
 }
 ```
 
+## Motion
+
+### `useMotion(target: Signal<number>, options: AnimateOptions): Signal<number>`
+
+Create a reactive motion signal that "follows" a target signal with animation.
+
+```typescript
+import { useMotion, easing } from '@nova/motion';
+
+const count = signal(0);
+const animated = useMotion(count, { 
+  duration: 600, 
+  easing: easing.elastic 
+});
+```
+
+## Forms
+
+### `useForm<T>(initialValues: T, validators?: Validators<T>)`
+
+Hook for declarative form handling.
+
+```typescript
+import { useForm } from '@nova/forms';
+
+const { register, handleSubmit, errors, isSubmitting } = useForm({
+  name: '',
+  email: ''
+}, {
+  name: (v) => v.length > 0 || 'Required',
+  email: (v) => v.includes('@') || 'Invalid email'
+});
+```
+
+**Properties returned:**
+- `register(name)` - Returns props for an input field (`value`, `onInput`, `checked`)
+- `handleSubmit(callback)` - Wraps a submission handler with validation and loading state
+- `errors` - Object of signals containing validation errors
+- `isSubmitting` - Signal indicating if the form is currently submitting
+- `values` - Object of signals containing current form values
+
 ## Router
 
 ### `router.navigate(path: string): Promise<RouteMatch | null>`
@@ -213,16 +254,18 @@ router.init(); // Listen to popstate, set initial route
 
 ## Islands
 
-### `registerIsland(id: string, component: any, hydrate: (props) => any): void`
+### `registerIsland(id: string, componentOrFactory: any): void`
 
-Register an interactive island.
+Register an interactive island. Can accept a component directly or a lazy import factory.
 
 ```typescript
 import { registerIsland } from '@nova/islands';
 
-registerIsland('counter', Counter, (props) => {
-  return new Counter(props);
-});
+// Direct
+registerIsland('counter', Counter);
+
+// Lazy (recommended for performance)
+registerIsland('counter', () => import('./Counter'));
 ```
 
 ### `mountIslands(): Promise<void>`
