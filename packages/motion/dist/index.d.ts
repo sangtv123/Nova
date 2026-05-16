@@ -21,4 +21,22 @@ export declare function animate(from: number, to: number, options?: AnimateOptio
  * Whenever the target signal changes, this will animate towards the new value.
  */
 export declare function useMotion(target: Signal<number>, options?: AnimateOptions): Signal<number>;
+/**
+ * Animate component for declarative property animations.
+ */
+export declare function Animate(props: {
+    children: any;
+    to: Record<string, number>;
+    options?: AnimateOptions;
+}): any;
+/**
+ * Transition component for entry/exit animations.
+ */
+export declare function Transition(props: {
+    show: Signal<boolean>;
+    children: any;
+    enter?: string;
+    leave?: string;
+    duration?: number;
+}): Text;
 //# sourceMappingURL=index.d.ts.map

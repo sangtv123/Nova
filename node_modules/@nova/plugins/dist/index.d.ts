@@ -14,9 +14,9 @@ export interface PluginContext {
 /**
  * Plugin hook types
  */
-export type BeforeCompileHook = (code: string, id: string, ctx?: PluginContext) => string | null;
-export type AfterCompileHook = (code: string, id: string, ctx?: PluginContext) => string | null;
-export type TransformHook = (code: string, id: string) => string | null;
+export type BeforeCompileHook = (code: string, id: string, ctx?: PluginContext) => Promise<string | null> | string | null;
+export type AfterCompileHook = (code: string, id: string, ctx?: PluginContext) => Promise<string | null> | string | null;
+export type TransformHook = (code: string, id: string) => Promise<string | null> | string | null;
 export type ResolveIdHook = (id: string) => string | null;
 export type LoadHook = (id: string) => string | null;
 /**
@@ -65,18 +65,11 @@ export declare class PluginManager {
  */
 export declare function definePlugin(plugin: Plugin): Plugin;
 /**
- * Built-in plugins
+ * Tailwind CSS plugin for Nova
  */
+export declare const tailwindPlugin: Plugin;
 /**
- * Vue plugin for Nova
+ * SEO optimization plugin
  */
-export declare const vuePlugin: Plugin;
-/**
- * CSS module plugin
- */
-export declare const cssModulePlugin: Plugin;
-/**
- * Auto-import plugin
- */
-export declare const autoImportPlugin: Plugin;
+export declare const seoPlugin: Plugin;
 //# sourceMappingURL=index.d.ts.map

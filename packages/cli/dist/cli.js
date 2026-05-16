@@ -70,10 +70,18 @@ function scanPages(projectDir) {
     });
 }
 import { loadConfig } from './config';
+import { PluginManager } from '@nova/plugins';
 async function dev(args) {
     const config = loadConfig();
     const port = config.server?.port || parseInt(args[0] || '3000');
     const middlewares = config.server?.middlewares || [];
+    const pluginManager = new PluginManager();
+    (config.plugins || []).forEach((p) => pluginManager.use(p));
+    const ctx = {
+        env: 'dev',
+        command: 'serve',
+        config: config
+    };
     const novaPlugin = {
         name: 'nova',
         setup(build) {
@@ -83,6 +91,8 @@ async function dev(args) {
             });
             build.onLoad({ filter: /\.tsx?$/ }, async (args) => {
                 let source = fs.readFileSync(args.path, 'utf8');
+                // 1. Run beforeCompile hooks
+                source = await pluginManager.runHook('beforeCompile', source, ctx);
                 // Auto-inject createElement import for JSX
                 if (args.path.endsWith('.tsx') && !source.includes('createElement') && !source.includes('Fragment')) {
                     source = `import { createElement, Fragment } from '@nova/runtime';\n${source}`;
@@ -97,7 +107,6 @@ async function dev(args) {
                     const islandCode = islands
                         .map(i => `registerIsland('${i.name}', () => import('${i.importPath}'));`)
                         .join('\n');
-                    // Inject imports if missing
                     if (!source.includes('from \'@nova/router\''))
                         source = `import { router } from '@nova/router';\n${source}`;
                     if (!source.includes('from \'@nova/islands\''))
@@ -109,8 +118,13 @@ async function dev(args) {
                         source += `\n\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}`;
                     }
                 }
+                // 2. Run transform hooks
+                source = await pluginManager.runHook('transform', source, ctx);
                 const compiled = await compile(source, { filename: args.path, isDev: true });
-                return { contents: compiled.code, loader: 'tsx' };
+                // 3. Run afterCompile hooks
+                let code = compiled.code;
+                code = await pluginManager.runHook('afterCompile', code, ctx);
+                return { contents: code, loader: 'tsx' };
             });
         },
     };

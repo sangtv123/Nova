@@ -26,9 +26,9 @@ export interface PluginContext {
 /**
  * Plugin hook types
  */
-export type BeforeCompileHook = (code: string, id: string, ctx?: PluginContext) => string | null;
-export type AfterCompileHook = (code: string, id: string, ctx?: PluginContext) => string | null;
-export type TransformHook = (code: string, id: string) => string | null;
+export type BeforeCompileHook = (code: string, id: string, ctx?: PluginContext) => Promise<string | null> | string | null;
+export type AfterCompileHook = (code: string, id: string, ctx?: PluginContext) => Promise<string | null> | string | null;
+export type TransformHook = (code: string, id: string) => Promise<string | null> | string | null;
 export type ResolveIdHook = (id: string) => string | null;
 export type LoadHook = (id: string) => string | null;
 
@@ -134,59 +134,35 @@ export function definePlugin(plugin: Plugin): Plugin {
 }
 
 /**
- * Built-in plugins
+ * Tailwind CSS plugin for Nova
  */
-
-/**
- * Vue plugin for Nova
- */
-export const vuePlugin = definePlugin({
-  name: 'nova-vue',
+export const tailwindPlugin = definePlugin({
+  name: 'nova-tailwind',
   version: '0.0.1',
   apply: 'pre',
 
-  transform(code: string, id: string): string | null {
-    if (!id.endsWith('.vue')) return null;
+  async transform(code: string, id: string): Promise<string | null> {
+    if (!id.endsWith('.css')) return null;
 
-    // Transform .vue files to Nova components
-    return `/* Transformed Vue component: ${id} */\n${code}`;
+    // In a real implementation, this would call tailwindcss.process()
+    console.log(`[nova-tailwind] Processing ${id}...`);
+    return `/* Tailwind processed */\n${code}`;
   },
 });
 
 /**
- * CSS module plugin
+ * SEO optimization plugin
  */
-export const cssModulePlugin = definePlugin({
-  name: 'nova-css-modules',
+export const seoPlugin = definePlugin({
+  name: 'nova-seo',
   version: '0.0.1',
 
-  resolveId(id: string): string | null {
-    if (id.endsWith('.module.css')) {
-      return id;
-    }
-    return null;
-  },
+  afterSSR(html: string, ctx: PluginContext): string {
+    const title = ctx.config.title || 'Nova App';
+    const description = ctx.config.description || 'Built with Nova';
 
-  load(id: string): string | null {
-    if (!id.endsWith('.module.css')) return null;
-
-    // Load CSS as module
-    return `export default {};`;
-  },
-});
-
-/**
- * Auto-import plugin
- */
-export const autoImportPlugin = definePlugin({
-  name: 'nova-auto-import',
-  version: '0.0.1',
-
-  beforeCompile(code: string, id: string): string | null {
-    // Auto-import common Nova utilities
-    if (!code.includes('import')) {
-      return `import { signal, computed, effect } from '@nova/signals';\n${code}`;
-    }
-    return null;
+    return html
+      .replace('<head>', `<head>\n  <title>${title}</title>\n  <meta name="description" content="${description}">`)
+      .replace('</head>', `  <link rel="canonical" href="${ctx.config.url || ''}">\n</head>`);
   },
 });

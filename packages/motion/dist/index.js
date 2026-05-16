@@ -55,4 +55,61 @@ export function useMotion(target, options = {}) {
     });
     return current;
 }
+/**
+ * Animate component for declarative property animations.
+ */
+export function Animate(props) {
+    const el = typeof props.children === 'function' ? props.children() : props.children;
+    if (el instanceof HTMLElement) {
+        for (const [key, targetValue] of Object.entries(props.to)) {
+            const startValue = parseFloat(getComputedStyle(el).getPropertyValue(key)) || 0;
+            const s = animate(startValue, targetValue, props.options);
+            effect(() => {
+                el.style[key] = s.value + (key === 'opacity' ? '' : 'px');
+            });
+        }
+    }
+    return el;
+}
+/**
+ * Transition component for entry/exit animations.
+ */
+export function Transition(props) {
+    const marker = document.createTextNode('');
+    let currentEl = null;
+    const duration = props.duration || 300;
+    effect(() => {
+        if (props.show.value) {
+            if (!currentEl) {
+                const child = typeof props.children === 'function' ? props.children() : props.children;
+                currentEl = child instanceof HTMLElement ? child : null;
+                if (currentEl) {
+                    if (props.enter)
+                        currentEl.classList.add(props.enter);
+                    marker.parentNode?.insertBefore(currentEl, marker);
+                    // Trigger reflow
+                    currentEl.offsetHeight;
+                    if (props.enter) {
+                        setTimeout(() => {
+                            currentEl?.classList.remove(props.enter);
+                        }, duration);
+                    }
+                }
+            }
+        }
+        else {
+            if (currentEl) {
+                if (props.leave)
+                    currentEl.classList.add(props.leave);
+                setTimeout(() => {
+                    if (!props.show.value && currentEl) {
+                        currentEl.remove();
+                        currentEl = null;
+                    }
+                }, duration);
+            }
+        }
+    });
+    return marker;
+}
 //# sourceMappingURL=index.js.map

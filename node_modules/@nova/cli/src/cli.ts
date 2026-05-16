@@ -78,12 +78,22 @@ function scanPages(projectDir: string): Array<{ path: string; importPath: string
 }
 
 import { loadConfig } from './config';
+import { PluginManager, PluginContext } from '@nova/plugins';
 
 async function dev(args: string[]) {
   const config = loadConfig();
   const port = config.server?.port || parseInt(args[0] || '3000');
   const middlewares = config.server?.middlewares || [];
   
+  const pluginManager = new PluginManager();
+  (config.plugins || []).forEach((p: any) => pluginManager.use(p));
+
+  const ctx: PluginContext = {
+    env: 'dev',
+    command: 'serve',
+    config: config
+  };
+
   const novaPlugin = {
     name: 'nova',
     setup(build: any) {
@@ -95,6 +105,9 @@ async function dev(args: string[]) {
       build.onLoad({ filter: /\.tsx?$/ }, async (args: any) => {
         let source = fs.readFileSync(args.path, 'utf8');
         
+        // 1. Run beforeCompile hooks
+        source = await pluginManager.runHook('beforeCompile', source, ctx);
+
         // Auto-inject createElement import for JSX
         if (args.path.endsWith('.tsx') && !source.includes('createElement') && !source.includes('Fragment')) {
           source = `import { createElement, Fragment } from '@nova/runtime';\n${source}`;
@@ -113,7 +126,6 @@ async function dev(args: string[]) {
             .map(i => `registerIsland('${i.name}', () => import('${i.importPath}'));`)
             .join('\n');
           
-          // Inject imports if missing
           if (!source.includes('from \'@nova/router\'')) source = `import { router } from '@nova/router';\n${source}`;
           if (!source.includes('from \'@nova/islands\'')) source = `import { registerIsland } from '@nova/islands';\n${source}`;
 
@@ -124,8 +136,16 @@ async function dev(args: string[]) {
           }
         }
 
+        // 2. Run transform hooks
+        source = await pluginManager.runHook('transform', source, ctx);
+
         const compiled = await compile(source, { filename: args.path, isDev: true });
-        return { contents: compiled.code, loader: 'tsx' };
+        
+        // 3. Run afterCompile hooks
+        let code = compiled.code;
+        code = await pluginManager.runHook('afterCompile', code, ctx);
+
+        return { contents: code, loader: 'tsx' };
       });
     },
   };
