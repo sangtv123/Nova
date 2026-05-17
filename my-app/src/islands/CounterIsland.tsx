@@ -9,7 +9,7 @@ export function CounterIsland({ initialCount = 0 }: { initialCount?: number }) {
 
   // Motion signal that follows 'count' with an elastic easing effect
   const animatedCount = useMotion(count, {
-    duration: 600,
+    duration: 60,
     easing: easing.elastic,
   });
 
