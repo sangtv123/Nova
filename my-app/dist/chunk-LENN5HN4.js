@@ -1,4 +1,4 @@
-import{a as o}from"./chunk-MSMJFYWV.js";import{a}from"./chunk-I6HZLVVZ.js";import{a as n}from"./chunk-JZFSATIH.js";import{a as r}from"./chunk-GBLTPWC6.js";import{a as t}from"./chunk-NVTJDON6.js";import{g as s,k as i}from"./chunk-WIAYVEE5.js";var c=s(`<section class="hero-section">
+import{a as o}from"./chunk-MSMJFYWV.js";import{a}from"./chunk-I6HZLVVZ.js";import{a as n}from"./chunk-JZFSATIH.js";import{a as r}from"./chunk-GBLTPWC6.js";import{a as t}from"./chunk-5VXZQ3AL.js";import{g as s,k as i}from"./chunk-WIAYVEE5.js";var c=s(`<section class="hero-section">
         <h2 class="title">Next-Gen Web Framework</h2>
         <p class="subtitle">Experience the raw speed of signals and no virtual DOM overhead.</p>
         

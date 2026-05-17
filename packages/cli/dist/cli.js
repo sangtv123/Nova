@@ -1,11 +1,23 @@
 #!/usr/bin/env node
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
-import * as fs from 'fs';
-import * as path from 'path';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 import { build as esbuildBuild } from 'esbuild';
 import { compile } from '@nova/compiler';
 import { Watcher, HMRHandler } from '@nova/server';
+const scssCache = new Map();
+function compileScssWithCache(filePath) {
+    const stats = fs.statSync(filePath);
+    const cached = scssCache.get(filePath);
+    if (cached && cached.mtime === stats.mtimeMs) {
+        return cached.css;
+    }
+    const css = execSync(`npx -y sass "${filePath}" --no-source-map --style=compressed`).toString();
+    scssCache.set(filePath, { mtime: stats.mtimeMs, css });
+    return css;
+}
 const args = process.argv.slice(2);
 const command = args[0];
 async function main() {
@@ -249,12 +261,17 @@ async function build(args) {
             html = html.replace('/src/styles.scss', '/styles.css');
             fs.writeFileSync(path.join(process.cwd(), 'dist', 'index.html'), html);
         }
+        // Copy public directory if exists
+        const publicDir = path.join(process.cwd(), 'public');
+        if (fs.existsSync(publicDir)) {
+            console.log('📂 Copying static assets from public/ to dist/...');
+            fs.cpSync(publicDir, path.join(process.cwd(), 'dist'), { recursive: true });
+        }
         // Compile global styles
         const stylesPath = path.join(process.cwd(), 'src', 'styles.scss');
         if (fs.existsSync(stylesPath)) {
-            const { execSync } = await import('child_process');
-            console.log('🎨 Compiling global styles...');
-            const css = execSync(`npx -y sass "${stylesPath}" --no-source-map`).toString();
+            console.log('🎨 Compiling global styles (with cache)...');
+            const css = compileScssWithCache(stylesPath);
             fs.writeFileSync(path.join(process.cwd(), 'dist', 'styles.css'), css);
         }
         console.log('✅ Build complete. You can serve the app using: npx serve dist');
@@ -289,8 +306,7 @@ export function createNovaPlugin(pluginManager, ctx) {
             });
             build.onLoad({ filter: /.*/, namespace: 'scss-inline' }, async (args) => {
                 try {
-                    const { execSync } = await import('child_process');
-                    const css = execSync(`npx -y sass "${args.path}" --no-source-map`).toString();
+                    const css = compileScssWithCache(args.path);
                     const js = `
             if (typeof document !== 'undefined') {
               const style = document.createElement('style');
@@ -325,8 +341,10 @@ export function createNovaPlugin(pluginManager, ctx) {
                 }
                 // Auto-inject routes into the main entry point
                 if (args.path.toLowerCase().endsWith('main.tsx')) {
-                    const pages = scanPages(process.cwd());
-                    const islands = scanIslands(process.cwd());
+                    const [pages, islands] = await Promise.all([
+                        Promise.resolve(scanPages(process.cwd())),
+                        Promise.resolve(scanIslands(process.cwd()))
+                    ]);
                     const routeCode = pages
                         .map(p => `router.registerRoute('${p.path}', () => import('${p.importPath}'), [${p.layouts.map(l => `() => import('${l}')`).join(', ')}]);`)
                         .join('\n');

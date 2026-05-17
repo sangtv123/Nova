@@ -117,7 +117,7 @@
       "format": "esm"
     },
     "scss-inline:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss": {
-      "bytes": 1433,
+      "bytes": 1216,
       "imports": []
     },
     "src/islands/ContactIsland.tsx": {
@@ -662,7 +662,7 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-EFZWTTP4.js",
+          "path": "dist/chunk-LENN5HN4.js",
           "kind": "import-statement"
         },
         {
@@ -686,11 +686,11 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-CCBUVNXC.js",
+          "path": "dist/chunk-D22K7RRY.js",
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-NVTJDON6.js",
+          "path": "dist/chunk-5VXZQ3AL.js",
           "kind": "import-statement"
         },
         {
@@ -702,7 +702,7 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/about-B7XNDDEL.js",
+          "path": "dist/about-JU4PTSTG.js",
           "kind": "dynamic-import"
         },
         {
@@ -710,7 +710,7 @@
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/pages-SMZWXUY7.js",
+          "path": "dist/pages-4K5DOMIB.js",
           "kind": "dynamic-import"
         },
         {
@@ -718,7 +718,7 @@
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/ContactIsland-H4NXBHKE.js",
+          "path": "dist/ContactIsland-TY67ICA6.js",
           "kind": "dynamic-import"
         },
         {
@@ -828,10 +828,10 @@
       "inputs": {},
       "bytes": 119
     },
-    "dist/ContactIsland-H4NXBHKE.js": {
+    "dist/ContactIsland-TY67ICA6.js": {
       "imports": [
         {
-          "path": "dist/chunk-NVTJDON6.js",
+          "path": "dist/chunk-5VXZQ3AL.js",
           "kind": "import-statement"
         },
         {
@@ -924,10 +924,10 @@
       "inputs": {},
       "bytes": 147
     },
-    "dist/pages-SMZWXUY7.js": {
+    "dist/pages-4K5DOMIB.js": {
       "imports": [
         {
-          "path": "dist/chunk-EFZWTTP4.js",
+          "path": "dist/chunk-LENN5HN4.js",
           "kind": "import-statement"
         },
         {
@@ -951,7 +951,7 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-NVTJDON6.js",
+          "path": "dist/chunk-5VXZQ3AL.js",
           "kind": "import-statement"
         },
         {
@@ -970,7 +970,7 @@
       "inputs": {},
       "bytes": 283
     },
-    "dist/chunk-EFZWTTP4.js": {
+    "dist/chunk-LENN5HN4.js": {
       "imports": [
         {
           "path": "dist/chunk-MSMJFYWV.js",
@@ -989,7 +989,7 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-NVTJDON6.js",
+          "path": "dist/chunk-5VXZQ3AL.js",
           "kind": "import-statement"
         },
         {
@@ -1122,14 +1122,14 @@
       },
       "bytes": 68
     },
-    "dist/about-B7XNDDEL.js": {
+    "dist/about-JU4PTSTG.js": {
       "imports": [
         {
-          "path": "dist/chunk-CCBUVNXC.js",
+          "path": "dist/chunk-D22K7RRY.js",
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-NVTJDON6.js",
+          "path": "dist/chunk-5VXZQ3AL.js",
           "kind": "import-statement"
         },
         {
@@ -1148,10 +1148,10 @@
       "inputs": {},
       "bytes": 143
     },
-    "dist/chunk-CCBUVNXC.js": {
+    "dist/chunk-D22K7RRY.js": {
       "imports": [
         {
-          "path": "dist/chunk-NVTJDON6.js",
+          "path": "dist/chunk-5VXZQ3AL.js",
           "kind": "import-statement"
         },
         {
@@ -1169,7 +1169,7 @@
       },
       "bytes": 1208
     },
-    "dist/chunk-NVTJDON6.js": {
+    "dist/chunk-5VXZQ3AL.js": {
       "imports": [
         {
           "path": "dist/chunk-RNJRSZ7W.js",
@@ -1188,13 +1188,13 @@
           "bytesInOutput": 1392
         },
         "scss-inline:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss": {
-          "bytesInOutput": 1254
+          "bytesInOutput": 1080
         },
         "src/islands/ContactIsland.tsx": {
           "bytesInOutput": 2058
         }
       },
-      "bytes": 4842
+      "bytes": 4668
     },
     "dist/chunk-RNJRSZ7W.js": {
       "imports": [

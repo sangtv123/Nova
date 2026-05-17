@@ -1,4 +1,4 @@
-import{a as t}from"./chunk-NVTJDON6.js";import{g as s,k as a}from"./chunk-WIAYVEE5.js";var e=s(`<section class="content-section">
+import{a as t}from"./chunk-5VXZQ3AL.js";import{g as s,k as a}from"./chunk-WIAYVEE5.js";var e=s(`<section class="content-section">
         <h2 class="title">About Nova</h2>
         <div class="card">
           <p>Nova is an ultra-fast, AI-friendly web framework built from the ground up for modern web development.</p>
