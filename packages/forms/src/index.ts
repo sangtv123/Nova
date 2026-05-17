@@ -41,7 +41,7 @@ export const Validators = {
  */
 export function useForm<T extends Record<string, any>>(
   initialValues: T,
-  schema: Partial<Record<keyof T, ValidationRule<any>[]>> = {}
+  schema: Partial<Record<keyof T, (ValidationRule<any> | Validator<any>)[] | (ValidationRule<any> | Validator<any>)>> = {}
 ) {
   const controls = {} as Record<keyof T, FormControl<any>>;
   const isSubmitting = signal(false);
