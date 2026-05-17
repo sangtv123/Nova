@@ -1,4 +1,4 @@
-import { signal, resolvePipe } from '@nova/signals';
+import { signal } from '@nova/signals';
 import { registerIsland } from '@nova/islands';
 import { 
   uppercase, 
@@ -17,10 +17,6 @@ import {
 } from '@nova/signals';
 
 export function PipesDemoIsland() {
-  // Resolve custom pipes from global registry (registered via nova.config.ts customPipes)
-  const exclaim = resolvePipe('exclaim');
-  const mask = resolvePipe('mask');
-
   const textInput = signal('hello nova framework');
   const sensitiveInput = signal('0987654321');
   const priceInput = signal(1234.56);

@@ -451,8 +451,40 @@ export function createNovaPlugin(pluginManager: PluginManager, ctx: PluginContex
           }
         }
 
+        // Auto-inject custom pipe factory functions into any file that references them.
+        // This is the "declare once in nova.config.ts, use everywhere" pattern.
+        {
+          const customPipes: string[] = ctx.config.customPipes || [];
+          if (customPipes.length > 0 && !args.path.toLowerCase().endsWith('main.tsx')) {
+            const projectDir = process.cwd();
+            const pipesDir = path.join(projectDir, 'src', 'pipes');
+            const fileDir = path.dirname(args.path);
+            const injections: string[] = [];
+
+            for (const pipeName of customPipes) {
+              // Only inject if file references this pipe name as a call or in pipe syntax,
+              // and hasn't already imported it from the pipes directory.
+              const isUsed = new RegExp(`\\b${pipeName}\\s*[\\(|]`).test(source);
+              const alreadyImported = source.includes(`_${pipeName}PipeDef`);
+              if (!isUsed || alreadyImported) continue;
+
+              let relPath = path.relative(fileDir, path.join(pipesDir, pipeName)).replace(/\\/g, '/');
+              if (!relPath.startsWith('.')) relPath = `./${relPath}`;
+
+              // Inject: import + a local curried factory matching .pipe(exclaim(arg)) usage
+              injections.push(`import { ${pipeName}Pipe as _${pipeName}PipeDef } from '${relPath}';`);
+              injections.push(`const ${pipeName} = (...args: any[]) => (val: any) => _${pipeName}PipeDef.transform(val, ...args);`);
+            }
+
+            if (injections.length > 0) {
+              source = `// [Nova] Auto-injected pipes (declared in nova.config.ts)\n${injections.join('\n')}\n${source}`;
+            }
+          }
+        }
+
         // 2. Run transform hooks
         source = await pluginManager.runHook('transform', source, ctx);
+
 
         const compiled = await compile(source, { 
           filename: args.path, 
