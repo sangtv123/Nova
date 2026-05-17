@@ -8,6 +8,7 @@ import { execSync } from 'child_process';
 import { build as esbuildBuild, context as esbuildContext, transform as esbuildTransform } from 'esbuild';
 import { compile } from '@nova/compiler';
 import { Watcher, HMRHandler } from '@nova/server';
+import * as sass from 'sass';
 
 const scssCache = new Map<string, { mtime: number, css: string }>();
 
@@ -35,7 +36,8 @@ function compileScssWithCache(filePath: string): string {
     return cached.css;
   }
 
-  const css = execSync(`npx -y sass "${filePath}" --no-source-map --style=compressed`).toString();
+  const result = sass.compile(filePath, { style: 'compressed' });
+  const css = result.css;
   scssCache.set(filePath, { mtime: stats.mtimeMs, css });
   return css;
 }

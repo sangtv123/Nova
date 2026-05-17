@@ -3,10 +3,10 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { context as esbuildContext, transform as esbuildTransform } from 'esbuild';
 import { compile } from '@nova/compiler';
 import { Watcher, HMRHandler } from '@nova/server';
+import * as sass from 'sass';
 const scssCache = new Map();
 // Per-file transpile cache (transpile-only mode — no bundling in dev)
 const transpileCache = new Map();
@@ -27,7 +27,8 @@ function compileScssWithCache(filePath) {
     if (cached && cached.mtime === stats.mtimeMs) {
         return cached.css;
     }
-    const css = execSync(`npx -y sass "${filePath}" --no-source-map --style=compressed`).toString();
+    const result = sass.compile(filePath, { style: 'compressed' });
+    const css = result.css;
     scssCache.set(filePath, { mtime: stats.mtimeMs, css });
     return css;
 }
