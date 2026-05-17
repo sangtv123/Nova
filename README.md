@@ -1,265 +1,277 @@
-# Nova - Frontend Framework
+# Nova - The Next-Generation Web Framework
 
-> Ultra-fast, signals-based, no virtual DOM, island architecture, <5kb runtime
+> Ultra-fast, signals-based reactivity, direct native DOM reconciliation, Island architecture, and robust ecosystem (<5kb runtime).
 
-## Features
+![Nova Framework](https://img.shields.io/badge/Nova%20Framework-v0.0.1-brightgreen?style=for-the-badge&logo=javascript)
 
-- **⚡ Signals-based Reactivity** - Fine-grained, efficient dependency tracking
-- **🏝️ Island Architecture** - Partial hydration for faster page loads
-- **🎯 No Virtual DOM** - Direct native DOM operations for predictability
-- **📦 Tiny Runtime** - Under 5kb gzipped, minimal abstraction
-- **🚀 Zero-config DX** - Works out of the box with smart defaults
-- **🤖 AI-Friendly** - Predictable architecture, easy code generation
-- **⚙️ SSR Streaming** - Server-side rendering with granular updates
-- **🔥 Fast HMR** - Instant hot module replacement in dev
-- **📂 File-based Routing** - Automatic routing from file structure
-- **🧩 Plugin System** - Extend with custom plugins
+Nova is a cutting-edge web application framework engineered for peak performance, exceptional developer experience (DX), and zero Virtual DOM overhead. Instead of performing expensive tree diffing, Nova's compiler translates declarative JSX directly into highly optimized native DOM mutations powered by fine-grained reactivity.
 
-## Quick Start
+---
+
+## 🌟 Key Architectural Features
+
+- **⚡ Fine-Grained Signals:** Extremely efficient reactivity system that tracks precise dependencies and updates only the specific DOM nodes that change, completely eliminating Virtual DOM diffing.
+- **🏝️ Island Architecture & Partial Hydration:** Delivers instant initial page loads with static HTML rendered from the server, selectively hydrating interactive components (Islands) on the client based on customizable strategies (`visible`, `idle`, or `eager`).
+- **🎯 Zero Virtual DOM:** The compiler transforms TSX/JSX directly into native DOM creation and patching code (`createElement`, `setAttribute`), drastically reducing memory usage.
+- **🎨 Component-Scoped Declarative SCSS:** Supports importing SCSS with the `?inline` query parameter, encapsulating styles into the component's lifecycle and automatically cleaning up style tags upon unmounting.
+- **🛣️ Pull-Based Dynamic Routing:** Advanced routing engine supporting lazy-loaded modules, automatic layout wrapping, robust route guards, and seamless 404 error handling.
+- **🛡️ Full Ecosystem Integration:** Includes production-ready solutions for centralized state management (`@nova/store`), form validation (`@nova/forms`), reactive HTTP networking (`@nova/http`), and Angular-style data transformation pipes (`@nova/signals` pipes).
+- **📦 Bundle Guard & SEO Realtime:** Automated bundle auditing during production builds to enforce strict asset size limits, alongside automatic meta tag optimization for superior SEO.
+
+---
+
+## 🚀 Quick Start & Scaffolding
+
+### 1. Create a New Nova Application
+To scaffold a brand new Nova project pre-configured with standard icons, TypeScript configs, and sample components:
 
 ```bash
-# Create a new Nova project
 npm create nova@latest my-app
+```
+
+### 2. Install Dependencies & Start Dev Server
+```bash
 cd my-app
-
-# Start development server
+npm install
 npm run dev
+```
+This launches the development server (defaulting to `http://localhost:3000`) with instant Hot Module Replacement (HMR) for both TypeScript and SCSS without losing application state.
 
-# Build for production
+### 3. Build for Production
+```bash
 npm run build
 ```
+This triggers an optimized production bundle using esbuild/rolldown, performs automatic tree-shaking and island code splitting, validates asset sizes against **Bundle Guard** constraints, and generates an interactive audit report.
 
-## Architecture
+---
 
-```
-packages/
-├── signals/      # Reactivity core
-├── compiler/     # TSX to native DOM
-├── runtime/      # DOM patching & hydration
-├── router/       # File-based routing
-├── islands/      # Island architecture
-├── server/       # Dev server with HMR
-├── builder/      # Rolldown production build
-├── cli/          # Command-line interface
-└── plugins/      # Plugin system
-```
+## 📖 Core Modules Deep Dive
 
-## Core Concepts
+### 1. Reactivity Engine: `@nova/signals`
 
-### Signals
+Signals provide a highly predictable and performant model for managing state:
 
-Fine-grained reactivity with automatic dependency tracking:
-
-```typescript
-import { signal, computed, effect } from "@nova/signals";
+```tsx
+import { signal, computed, effect, batch, untrack } from "@nova/signals";
 
 const count = signal(0);
 const doubled = computed(() => count.value * 2);
 
+// Side effects automatically subscribe to dependencies
 effect(() => {
-  console.log(`Count: ${count.value}`);
+  console.log(`Current Count: ${count.value}, Doubled: ${doubled.value}`);
 });
 
-count.value = 1; // Logs: "Count: 1"
+// Mutating value triggers scheduled updates
+count.value++;
+
+// Batch multiple mutations into a single DOM reconciliation pass
+batch(() => {
+  count.value = 10;
+  count.value = 20;
+});
+
+// Read values without registering reactive subscriptions (prevents infinite loops)
+const currentValue = untrack(() => count.value);
+// Alternatively: count.peek()
 ```
 
-### Components
+### 2. Angular-Style Signal Pipes
 
-Write components with TSX syntax:
+Nova enables elegant declarative data transformation directly on signals:
 
-```typescript
+```tsx
+import { signal } from "@nova/signals";
+import { mask, exclaim } from "@nova/signals/pipes";
+
+// Source signal
+const phone = signal("0987654321");
+
+// Transformed computed signal using chained pipes
+const formattedPhone = computed(() => 
+  phone.pipe(mask("####.###.###")).pipe(exclaim())
+);
+```
+
+### 3. Component Architecture & Inline SCSS (`?inline`)
+
+Components in Nova are standard functions returning JSX. You can inject component-scoped styles directly into the DOM tree:
+
+```tsx
+import { signal } from "@nova/signals";
+import { onMount, onUnmount } from "@nova/runtime";
+import styles from "./Counter.scss?inline";
+
 export function Counter() {
   const count = signal(0);
 
+  onMount(() => console.log("Counter successfully mounted into DOM"));
+  onUnmount(() => console.log("Counter unmounted; style tag will be cleaned up automatically"));
+
   return (
-    <div>
-      <p>Count: {count.value}</p>
-      <button onClick={() => count.value++}>
-        Increment
-      </button>
+    <div class="counter-box">
+      <style>{styles}</style>
+      <h3>Counter: {count.value}</h3>
+      <button onClick={() => count.value++}>Increment</button>
     </div>
   );
 }
 ```
 
-### Islands
+### 4. Island Architecture & Partial Hydration (`@nova/islands`)
 
-Mark components for client-side interactivity with flexible hydration strategies:
+To maximize initial rendering speed, heavy interactive components (e.g., forms, charts, data grids) can be marked as **Islands** for independent client-side hydration.
 
-```typescript
-// pages/dashboard.tsx
-export function Dashboard() {
-  return (
-    <div>
-      <Header /> {/* Static - 0kb JS */}
+```tsx
+// 1. Register the Island component
+import { registerIsland } from "@nova/islands";
+import { useForm } from "@nova/forms";
+import { onHydrated } from "@nova/runtime";
+import styles from "./ContactIsland.scss?inline";
 
-      {/* Hydrate only when visible - optimized performance */}
-      <Chart data={data} data-nova-strategy="visible" />
-
-      <Footer />
-    </div>
-  );
-}
-```
-
-### Lifecycle Hooks
-
-Orchestrate side effects at key moments in a component's life:
-
-```typescript
-import { onMount, onHydrated, onCleanup } from '@nova/runtime';
-
-export function InteractiveMap() {
-  onMount(() => {
-    // Runs when component enters DOM
-    console.log("Map container ready");
-  });
-
+export function ContactIsland() {
   onHydrated(() => {
-    // Runs after JS is loaded and attached (Islands only)
-    const map = new Library.Map('#map-root');
-
-    onCleanup(() => map.destroy());
+    console.log("Island successfully hydrated and attached to client DOM!");
   });
 
-  return <div id="map-root"></div>;
-}
-```
+  const form = useForm({ email: "" }, {
+    email: (v) => v.includes("@") || "Please enter a valid email address"
+  });
 
-### Routing
-
-Automatic file-based routing:
-
-```
-pages/
-├── index.tsx          → /
-├── about.tsx          → /about
-├── posts/
-│   ├── index.tsx      → /posts
-│   └── [id].tsx       → /posts/:id
-└── admin/
-    └── settings.tsx   → /admin/settings
-```
-
-## API Reference
-
-### Signals
-
-```typescript
-// Create a reactive signal
-const state = signal(initialValue);
-
-// Get value (creates dependency)
-console.log(state.value);
-
-// Set value (triggers effects)
-state.value = newValue;
-
-// Peek without dependency
-const value = state.peek();
-
-// Derived signals
-const derived = computed(() => state.value * 2);
-
-// Side effects
-effect(() => {
-  console.log(state.value);
-  // Returns cleanup function
-  return () => {
-    /* cleanup */
-  };
-});
-
-// Batch updates
-batch(() => {
-  signal1.value = 1;
-  signal2.value = 2;
-});
-
-// Untrack dependencies
-untrack(() => {
-  const value = signal.value; // No dependency created
-});
-
-// Lifecycles
-import { onMount, onUnmount, onCleanup, onHydrated } from "@nova/runtime";
-
-onMount(() => {
-  // Logic after component is added to DOM
-});
-
-onHydrated(() => {
-  // Logic after Island becomes interactive on client
-});
-
-onCleanup(() => {
-  // Cleanup logic (alias for onUnmount)
-});
-```
-
-### Islands & Hydration
-
-```typescript
-import { registerIsland, mountIslands } from '@nova/islands';
-
-// 1. Register island (usually automated by compiler)
-registerIsland('counter', CounterComponent);
-
-// 2. Mount islands (in main.ts)
-await mountIslands();
-
-// 3. Use hydration strategies in JSX
-<MyIsland data-nova-strategy="visible" /> // 'eager' | 'visible' | 'idle'
-```
-
-### Components
-
-```typescript
-// Functional components with JSX
-function App() {
-  return <div>Hello Nova!</div>;
-}
-
-// Props
-function Greeting(props: { name: string }) {
-  return <div>Hello {props.name}!</div>;
-}
-
-// Children
-function Card(props: { children: any }) {
-  return <div class="card">{props.children}</div>;
-}
-
-// Event handlers
-function Button() {
   return (
-    <button onClick={(e) => console.log(e)}>
-      Click me
-    </button>
+    <form class="island-form" onSubmit={form.handleSubmit}>
+      <style>{styles}</style>
+      <input n-model={form.values.email} placeholder="Enter your email..." />
+      <span class="error">{form.errors.email}</span>
+      <button type="submit">Submit</button>
+    </form>
   );
 }
 ```
 
-### Router
+In your static page (`pages/index.tsx`), instantiate the Island with an explicit hydration strategy:
+```tsx
+// Strategy options: 'visible' (on scroll into view), 'idle' (requestIdleCallback), or 'eager' (immediate)
+<ContactIsland data-nova-strategy="visible" />
+```
 
+### 5. Dynamic Pull-Based Routing (`@nova/router`)
+
+Nova's routing engine handles lazy-loaded page modules, automated layout enforcement, route protection, and seamless 404 fallbacks.
+
+Define routes (`routes.ts`):
 ```typescript
-import { router } from "@nova/router";
+import { registerRoute } from "@nova/router";
 
-// Navigate
-await router.navigate("/about");
+registerRoute({
+  path: "/",
+  module: () => import("./pages/index"), // Automatically extracts default or named component exports
+});
 
-// Get current route
-const match = router.getCurrentMatch();
-
-// Subscribe to changes
-router.subscribe((match) => {
-  console.log("Route changed:", match?.route.path);
+registerRoute({
+  path: "/admin",
+  module: () => import("./pages/admin"),
+  guard: () => {
+    const isAdmin = localStorage.getItem("role") === "admin";
+    return isAdmin ? true : "/login"; // Redirects unauthorized users
+  }
 });
 ```
 
-## Configuration
+Render in `App.tsx`:
+```tsx
+import { signal, effect } from "@nova/signals";
+import { router } from "@nova/router";
+import { Layout } from "./components/Layout";
 
-Create a `nova.config.ts` file:
+export function App() {
+  const currentMatch = signal(router.getCurrentMatch());
+  const isReady = signal(!!router.getCurrentMatch());
+
+  effect(() => {
+    return router.subscribe((match) => {
+      currentMatch.value = match;
+      isReady.value = true;
+    });
+  });
+
+  return (
+    <Layout>
+      {() => {
+        if (!isReady.value) return <div class="loading">Loading routes...</div>;
+        
+        const match = currentMatch.value;
+        if (!match || !match.component) {
+          return <div class="error-404"><h2>404 - Page Not Found</h2></div>;
+        }
+
+        const Page = match.component;
+        return <Page data={match.data} />;
+      }}
+    </Layout>
+  );
+}
+```
+
+### 6. Centralized State Management (`@nova/store`)
+
+Nova offers a Pinia-inspired global store architecture for sharing state seamlessly across your application:
+
+```typescript
+import { defineStore } from "@nova/store";
+
+export const useAuthStore = defineStore("auth", {
+  state: () => ({ user: null as string | null, token: "" }),
+  persist: true, // Automatically synchronizes with localStorage
+  getters: {
+    isLoggedIn: (state) => !!state.user,
+  },
+  actions: {
+    login(username: string, token: string) {
+      this.user = username;
+      this.token = token;
+    },
+    logout() {
+      this.user = null;
+      this.token = "";
+    }
+  }
+});
+```
+
+Usage in component:
+```tsx
+const auth = useAuthStore();
+return <button onClick={auth.logout}>Sign out {auth.user}</button>;
+```
+
+### 7. Reactive HTTP Client (`@nova/http`)
+
+An advanced HTTP networking client featuring built-in LRU caching, automatic request retries, and direct signal synchronization:
+
+```tsx
+import { useHttp } from "@nova/http";
+
+export function PostList() {
+  const { data, loading, error, refetch } = useHttp("https://api.example.com/posts", {
+    cache: true,
+    ttl: 60000,
+    retry: 3,
+  });
+
+  return (
+    <div class="posts-container">
+      {loading.value && <p>Loading data...</p>}
+      {error.value && <p class="error">Error: {error.value.message}</p>}
+      {data.value && data.value.map((post: any) => <article key={post.id}><h3>{post.title}</h3></article>)}
+    </div>
+  );
+}
+```
+
+---
+
+## 🛠️ Project Configuration (`nova.config.ts`)
 
 ```typescript
 import { defineConfig } from "@nova/cli";
@@ -268,92 +280,43 @@ export default defineConfig({
   root: ".",
   entry: "src/main.ts",
   outDir: "dist",
-  ssr: true,
   server: {
     port: 3000,
     hmr: true,
   },
-  plugins: [],
+  build: {
+    target: "es2022",
+    minify: true,
+    bundleGuard: {
+      maxAssetSizeKB: 4.0, // Triggers warnings/errors if individual chunks exceed 4KB
+    }
+  }
 });
 ```
 
-## Plugins
+---
 
-Create custom plugins:
+## 📊 Monorepo Architecture Overview
 
-```typescript
-import { definePlugin } from "@nova/plugins";
-
-export default definePlugin({
-  name: "my-plugin",
-
-  beforeCompile(code, id) {
-    // Transform source code
-    return code;
-  },
-
-  transform(code, id) {
-    // Transform modules
-    return code;
-  },
-});
+```
+d:\framework\
+├── packages/
+│   ├── signals/      # Core reactivity engine & Signal Pipes
+│   ├── compiler/     # JSX Compiler to Native DOM transformations
+│   ├── runtime/      # DOM reconciliation, patching, & Lifecycle hooks
+│   ├── router/       # Lazy-loaded Router & Guard verification
+│   ├── islands/      # Partial Hydration & Component Isolation
+│   ├── store/        # Pinia-like Centralized State
+│   ├── forms/        # Form Validation & Two-way Binding Directives
+│   ├── http/         # Reactive Networking with LRU Caching
+│   ├── server/       # Dev Server with WebSocket HMR
+│   ├── cli/          # Tooling CLI (nova dev, nova build)
+│   └── create-nova/  # Project Scaffolding CLI (npm create nova)
+└── my-app/           # User Applications
 ```
 
-## Performance
+---
 
-- **Runtime**: <5kb gzipped
-- **Initial Load**: Minimal overhead, direct DOM operations
-- **Hydration**: Progressive, island-by-island
-- **Re-renders**: Only affected signals update DOM
-- **Build**: Fast compilation with esbuild
-- **Dev Server**: Instant HMR with ESM
+## 🛡️ License
 
-## Comparison
-
-| Feature             | Nova | React | Vue  | Svelte |
-| ------------------- | ---- | ----- | ---- | ------ |
-| No Virtual DOM      | ✅   | ❌    | ❌   | ✅     |
-| Signals             | ✅   | ❌    | ✅   | ✅     |
-| Island Architecture | ✅   | ❌    | ❌   | ❌     |
-| Runtime Size        | <5kb | 42kb  | 34kb | 14kb   |
-| SSR Support         | ✅   | ✅    | ✅   | ✅     |
-| AI-Friendly         | ✅   | ⚠️    | ⚠️   | ⚠️     |
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Build all packages
-npm run build
-
-# Type check
-npm run type-check
-
-# Run tests
-npm run test
-
-# Watch mode
-npm run dev
-```
-
-## Contributing
-
-Nova is built with AI agents in mind. The architecture is designed to be:
-
-- **Predictable**: Minimal magic, explicit dependencies
-- **Readable**: Clear code paths, easy to understand
-- **Generatable**: AI can reliably produce working code
-- **Composable**: Small, focused modules
-
-## License
-
-MIT
-
-## Resources
-
-- [Documentation](https://nova.dev/docs)
-- [Examples](./examples)
-- [GitHub](https://github.com/nova-framework/nova)
-- [Community](https://discord.gg/nova)
+Nova Framework is open-source software licensed under the MIT license.

@@ -1,523 +1,232 @@
-# Nova Quick Reference
+# ⚡ Nova API Quick Reference & Cheat Sheet
 
-## Installation & Setup
+This document provides concise, production-ready code snippets and API usage patterns across the Nova Framework ecosystem.
+
+---
+
+## 1. CLI Commands & Workflow
 
 ```bash
-# Create new Nova project
+# Scaffold a new project
 npm create nova@latest my-app
-cd my-app
 
-# Development
-npm run dev          # Start dev server
-npm run build        # Build for production
-npm run type-check   # Type checking
-npm run test         # Run tests
+# Development workflow
+npm run dev        # Launch dev server with real-time HMR
+npm run build      # Build optimized production bundle to /dist
+npm run type-check # Perform strict TypeScript verification
 ```
 
-## Core APIs
+---
 
-### Signals
-```typescript
-import { signal, computed, effect, batch, untrack } from '@nova/signals';
+## 2. Reactivity & Signal Pipes (`@nova/signals`)
 
-// Create reactive value
+```tsx
+import { signal, computed, effect, batch, untrack } from "@nova/signals";
+import { mask, exclaim } from "@nova/signals/pipes";
+
+// 1. Instantiate signal & read/write
 const count = signal(0);
+count.value = 10;
+const current = count.value; // Registers dependency when invoked inside effect/computed
 
-// Read/write value
-console.log(count.value);  // Get
-count.value = 1;           // Set
-
-// Peek without dependency
-const v = count.peek();
-
-// Derived value (auto-updates)
+// 2. Computed signal (automatically recalculates when count changes)
 const doubled = computed(() => count.value * 2);
 
-// Side effects
-const cleanup = effect(() => {
-  console.log(count.value);
-  return () => console.log('cleanup');
+// 3. Side-effect subscription
+effect(() => {
+  console.log(`Counter value: ${count.value}`);
 });
 
-// Batch updates
+// 4. Batch updates (groups multiple mutations into a single DOM update cycle)
 batch(() => {
-  sig1.value = 1;
-  sig2.value = 2;
+  count.value = 20;
+  count.value = 30;
 });
 
-// Read without dependency
-const value = untrack(() => signal.value);
+// 5. Untrack / Peek (read value without registering reactive subscription)
+const val1 = untrack(() => count.value);
+const val2 = count.peek();
+
+// 6. Signal Pipes (Declarative data formatting)
+const phone = signal("0912345678");
+const formattedPhone = computed(() => phone.pipe(mask("####.###.###")).pipe(exclaim()));
 ```
 
-### Components
-```typescript
-// Basic component
-function Welcome() {
-  return <h1>Hello!</h1>;
-}
+---
 
-// With props
-function Greeting(props: { name: string }) {
-  return <h1>Hello, {props.name}!</h1>;
-}
+## 3. UI Components & Inline SCSS (`?inline`)
 
-// With children
-function Card(props: { title: string; children: any }) {
+```tsx
+import { signal } from "@nova/signals";
+import { onMount, onUnmount } from "@nova/runtime";
+import styles from "./Box.scss?inline";
+
+export function Box(props: { title: string; children?: any }) {
+  const active = signal(false);
+
+  onMount(() => console.log("Component mounted into DOM"));
+  onUnmount(() => console.log("Component unmounted from DOM"));
+
   return (
-    <div>
+    <div class={`custom-box ${active.value ? 'active' : ''}`}>
+      <style>{styles}</style>
       <h2>{props.title}</h2>
-      {props.children}
+      <button onClick={() => active.value = !active.value}>
+        {active.value ? 'Disable' : 'Enable'}
+      </button>
+      <div class="content">{props.children}</div>
     </div>
   );
 }
+```
 
-// Interactive component
-function Counter() {
-  const count = signal(0);
-  return (
-    <button onClick={() => count.value++}>
-      Count: {count.value}
-    </button>
-  );
+---
+
+## 4. Island Architecture (`@nova/islands`)
+
+```tsx
+// 1. Island definition and registration
+import { registerIsland } from "@nova/islands";
+import { onHydrated } from "@nova/runtime";
+
+export function ChartIsland(props: { data: number[] }) {
+  onHydrated(() => {
+    // Instantiate heavy charting library once JS is hydrated
+    new Chart("#chart-dom", props.data);
+  });
+  return <div id="chart-dom">Loading interactive chart...</div>;
 }
 
-// Fragment
-function List() {
-  return (
-    <>
-      <li>Item 1</li>
-      <li>Item 2</li>
-    </>
-  );
-}
+// (Automatically handled by CLI during build)
+registerIsland("chart-island", ChartIsland);
+
+// 2. Declaration inside static pages with hydration strategy
+// Options: 'visible' (on scroll into view), 'idle' (when main thread is idle), 'eager' (immediate)
+<ChartIsland data={[10, 20, 30]} data-nova-strategy="visible" />
 ```
 
-### Routing
+---
+
+## 5. Dynamic Routing (`@nova/router`)
+
 ```typescript
-import { router } from '@nova/router';
+// 1. Register routes in routes.ts
+import { registerRoute } from "@nova/router";
 
-// Navigate
-router.navigate('/about');
-router.navigate('/posts/123');
-
-// Get current route
-const match = router.getCurrentMatch();
-// match.route.path
-// match.params
-// match.query
-
-// Listen to changes
-const unsubscribe = router.subscribe((match) => {
-  console.log('Route:', match?.route.path);
-});
-
-// Initialize (in main.ts)
-router.init();
-```
-
-### Islands
-```typescript
-import { registerIsland, mountIslands } from '@nova/islands';
-
-// Register island
-registerIsland('counter', Counter, (props) => {
-  return hydrate(el, props, Counter);
-});
-
-// Mount all islands
-await mountIslands();
-
-// Serialize/deserialize props
-const serialized = serializeProps({ count: 0 });
-const props = deserializeProps(serialized);
-```
-
-### DOM Runtime
-```typescript
-import { createElement, patch, hydrate } from '@nova/runtime';
-
-// Create element
-const button = createElement('button', 
-  { class: 'btn', onClick: handler },
-  'Click me'
-);
-
-// Patch existing element
-patch(oldEl, newEl, signalMap);
-
-// Hydrate server-rendered
-const island = hydrate(el, hydrationData, Component);
-
-### Lifecycles
-```typescript
-import { onMount, onUnmount, onCleanup, onHydrated } from '@nova/runtime';
-
-onMount(() => {
-  // Logic after component is added to DOM
-});
-
-onHydrated(() => {
-  // Logic after Island becomes interactive
-});
-
-onUnmount(() => {
-  // Cleanup logic
+registerRoute({
+  path: "/dashboard",
+  module: () => import("./pages/dashboard"),
+  guard: () => localStorage.getItem("token") ? true : "/login"
 });
 ```
 
-## Configuration
+```tsx
+// 2. Programmatic navigation
+import { router } from "@nova/router";
 
-### nova.config.ts
-```typescript
-import { defineConfig } from '@nova/cli';
+router.navigate("/dashboard");
 
-export default defineConfig({
-  root: '.',
-  entry: 'src/main.ts',
-  outDir: 'dist',
-  publicDir: 'public',
-  
-  ssr: false,
-  minify: true,
-  sourcemap: false,
-  
-  server: {
-    port: 3000,
-    host: 'localhost',
-    hmr: true,
-  },
-  
-  build: {
-    target: 'es2020',
-    minify: true,
-  },
-  
-  plugins: [],
-});
+// Retrieve current matched route details
+const match = router.getCurrentMatch(); // Contains params, query, data
 ```
 
-## File Structure
-
-```
-src/
-├── pages/
-│   ├── index.tsx       # / (home)
-│   ├── about.tsx       # /about
-│   └── posts/
-│       └── [id].tsx    # /posts/:id
-├── components/
-│   ├── Header.tsx
-│   └── Footer.tsx
-├── lib/
-│   └── utils.ts
-└── main.ts             # Entry point
-
-public/
-├── index.html
-└── favicon.ico
-
-nova.config.ts
-package.json
+```tsx
+// 3. Declarative link directives
+<a n-router="/dashboard">Admin Dashboard</a>
 ```
 
-## Common Patterns
+---
 
-### Todo List
-```typescript
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+## 6. Form Validation (`@nova/forms`)
 
-export function TodoApp() {
-  const todos = signal<Todo[]>([]);
-  const input = signal('');
+```tsx
+import { useForm } from "@nova/forms";
 
-  const addTodo = () => {
-    if (input.value.trim()) {
-      todos.value = [...todos.value, {
-        id: Date.now(),
-        text: input.value,
-        completed: false,
-      }];
-      input.value = '';
+export function LoginForm() {
+  const form = useForm({ email: "", password: "" }, {
+    email: (v) => v.includes("@") || "Invalid email address format",
+    password: (v) => v.length >= 6 || "Password must be at least 6 characters",
+  });
+
+  const onSubmit = (e: Event) => {
+    e.preventDefault();
+    if (form.validate()) {
+      console.log("Validated payload:", form.values);
     }
   };
 
   return (
-    <div>
-      <input 
-        value={input.value}
-        onChange={(e) => input.value = e.target.value}
-      />
-      <button onClick={addTodo}>Add</button>
-      <ul>
-        {todos.value.map(todo => (
-          <li key={todo.id}>{todo.text}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-```
+    <form onSubmit={onSubmit}>
+      <input n-model={form.values.email} placeholder="Email" />
+      <span class="error">{form.errors.email}</span>
 
-### Computed Dashboard
-```typescript
-export function Dashboard() {
-  const sales = signal(1000);
-  const expenses = signal(300);
-  const profit = computed(() => sales.value - expenses.value);
-  const margin = computed(() => profit.value / sales.value * 100);
+      <input type="password" n-model={form.values.password} placeholder="Password" />
+      <span class="error">{form.errors.password}</span>
 
-  return (
-    <div>
-      <p>Sales: ${sales.value}</p>
-      <p>Expenses: ${expenses.value}</p>
-      <p>Profit: ${profit.value}</p>
-      <p>Margin: {margin.value}%</p>
-    </div>
-  );
-}
-```
-
-### Conditional Rendering
-```typescript
-export function StatusPage() {
-  const status = signal<'loading' | 'success' | 'error'>('loading');
-
-  return (
-    <div>
-      {status.value === 'loading' && <p>Loading...</p>}
-      {status.value === 'success' && <p>Success!</p>}
-      {status.value === 'error' && <p>Error occurred</p>}
-    </div>
-  );
-}
-```
-
-### Form Handling
-```typescript
-export function Form() {
-  const name = signal('');
-  const email = signal('');
-  const submitted = signal(false);
-
-  const handleSubmit = (e: Event) => {
-    e.preventDefault();
-    submitted.value = true;
-    console.log(name.value, email.value);
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        value={name.value}
-        onChange={(e) => name.value = e.target.value}
-        placeholder="Name"
-      />
-      <input
-        type="email"
-        value={email.value}
-        onChange={(e) => email.value = e.target.value}
-        placeholder="Email"
-      />
-      <button type="submit">Submit</button>
-      {submitted.value && <p>Form submitted!</p>}
+      <button type="submit">Sign In</button>
     </form>
   );
 }
 ```
 
-## Plugin System
+---
+
+## 7. Global State Store (`@nova/store`)
 
 ```typescript
-import { definePlugin } from '@nova/plugins';
+import { defineStore } from "@nova/store";
 
-export default definePlugin({
-  name: 'my-plugin',
-  version: '1.0.0',
-
-  // Transform source code before compilation
-  beforeCompile(code, id) {
-    if (id.endsWith('.special')) {
-      return transformCode(code);
+export const useCartStore = defineStore("cart", {
+  state: () => ({ items: [] as string[] }),
+  persist: true, // Synchronize automatically with localStorage
+  getters: {
+    total: (state) => state.items.length,
+  },
+  actions: {
+    addItem(item: string) {
+      this.items.push(item);
+    },
+    clear() {
+      this.items = [];
     }
-  },
-
-  // Transform compiled modules
-  transform(code, id) {
-    return code;
-  },
-
-  // Resolve module IDs
-  resolveId(id) {
-    if (id === 'special-module') {
-      return 'resolved-path';
-    }
-  },
-
-  // Load module content
-  load(id) {
-    if (id.endsWith('.data')) {
-      return 'export default {}';
-    }
-  },
-
-  // Build hooks
-  beforeBuild(ctx) {
-    console.log('Building for:', ctx.env);
-  },
-
-  afterBuild(ctx) {
-    console.log('Build complete');
-  },
-
-  // SSR hooks
-  beforeSSR(html) {
-    return html;
-  },
-
-  afterSSR(html) {
-    return html;
-  },
-
-  // HMR notification
-  hmrUpdate(moduleId) {
-    console.log('Module updated:', moduleId);
-  },
+  }
 });
 ```
 
-## CLI Commands
-
-```bash
-# Development
-nova dev                    # Start dev server
-nova dev --port 5000      # Custom port
-nova dev --host 0.0.0.0   # Custom host
-
-# Production
-nova build                  # Build for production
-nova build --ssr           # Build with SSR
-nova build --minify        # Minify output
-nova build --sourcemap     # Include source maps
-
-# Project
-nova create my-app         # Create new project
-nova preview               # Preview production build
-
-# Help
-nova --help                # Show help
-nova dev --help            # Command-specific help
+```tsx
+// Usage inside components
+const cart = useCartStore();
+return <button onClick={() => cart.addItem("Book")}>Add Item (Total: {cart.total})</button>;
 ```
-
-## Deployment
-
-### Static Hosting (Vercel, Netlify, etc.)
-```bash
-npm run build
-# Upload dist/ directory
-```
-
-### Server-Side Rendering
-```bash
-npm run build -- --ssr
-# Deploy server with dist/
-```
-
-### Docker
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY . .
-RUN npm install && npm run build
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
-```
-
-## Styling
-
-### Inline Styles
-```typescript
-<div style={{
-  color: 'red',
-  backgroundColor: '#f0f0f0',
-  padding: '10px',
-}}>
-  Styled
-</div>
-```
-
-### CSS Modules
-```typescript
-import styles from './Component.module.css';
-
-<div class={styles.container}>Content</div>
-```
-
-### Tailwind CSS
-```typescript
-<div class="flex gap-4 p-4 bg-gray-100">
-  <button class="px-4 py-2 bg-blue-500 text-white rounded">
-    Click
-  </button>
-</div>
-```
-
-## Debugging
-
-### Console Logging
-```typescript
-const count = signal(0);
-
-effect(() => {
-  console.log('Count:', count.value);
-});
-
-// In DevTools
-console.table([{ count: count.value }]);
-```
-
-### Performance Monitoring
-```typescript
-const start = performance.now();
-
-// Code to measure
-const elapsed = performance.now() - start;
-console.log('Elapsed:', elapsed, 'ms');
-```
-
-## Resources
-
-- 📖 [Full Documentation](./docs)
-- 💻 [Examples](./examples)
-- 📝 [API Reference](./docs/API.md)
-- 🏗️ [Architecture Guide](./docs/ARCHITECTURE.md)
-- 🤝 [Contributing Guide](./docs/CONTRIBUTING.md)
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Signal not updating | Reassign entire value: `sig.value = newValue` |
-| HMR not working | Restart dev server, check WebSocket |
-| Bundle too large | Check for unused dependencies, use islands |
-| SSR errors | Check async operations, use untrack |
-| Type errors | Enable strict mode, add type annotations |
-
-## Tips & Tricks
-
-- ✅ Use `computed()` for derived values
-- ✅ Batch related updates with `batch()`
-- ✅ Use `effect()` for side effects
-- ✅ Mark islands for better performance
-- ✅ Use file-based routing for automatic routes
-- ✅ Leverage TypeScript for type safety
-- ✅ Keep components small and focused
-- ✅ Profile before optimizing
 
 ---
 
-**For more info, visit [docs/](./docs) directory**
+## 8. Reactive HTTP Networking (`@nova/http`)
+
+```tsx
+import { useHttp } from "@nova/http";
+
+export function Users() {
+  const { data, loading, error, refetch } = useHttp("https://api.example.com/users", { cache: true });
+
+  if (loading.value) return <div class="loading">Loading users...</div>;
+  if (error.value) return <div class="error">Error: {error.value.message}</div>;
+  return <ul>{data.value.map((u: any) => <li key={u.id}>{u.name}</li>)}</ul>;
+}
+```
+
+---
+
+## 9. Configuration (`nova.config.ts`)
+
+```typescript
+import { defineConfig } from "@nova/cli";
+
+export default defineConfig({
+  root: ".",
+  entry: "src/main.ts",
+  outDir: "dist",
+  server: { port: 3000, hmr: true },
+  build: { minify: true }
+});
+```

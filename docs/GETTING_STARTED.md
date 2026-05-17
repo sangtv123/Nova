@@ -1,6 +1,12 @@
-# Nova - Getting Started Guide
+# Nova Framework - Getting Started Guide
 
-## Installation
+Welcome to Nova! This guide will walk you through creating your very first high-performance web application from scratch using the Nova Framework.
+
+---
+
+## 1. Installation & Scaffolding
+
+Use the automated `create-nova` CLI tool to scaffold a pre-configured project:
 
 ```bash
 npm create nova@latest my-app
@@ -9,295 +15,105 @@ npm install
 npm run dev
 ```
 
-## Your First Component
+Once launched, open your browser to `http://localhost:3000` to see your running application.
 
-Create `src/App.tsx`:
+---
 
-```typescript
-import { signal } from '@nova/signals';
-
-export default function App() {
-  const count = signal(0);
-
-  return (
-    <div class="container">
-      <h1>Nova App</h1>
-      <p>Count: {count.value}</p>
-      <button onClick={() => count.value++}>
-        Increment
-      </button>
-      <button onClick={() => count.value = 0}>
-        Reset
-      </button>
-    </div>
-  );
-}
-```
-
-## Project Structure
+## 2. Complete Project Architecture
 
 ```
 my-app/
+├── public/                 # Static public assets (favicon.ico, robots.txt...)
 ├── src/
-│   ├── pages/           # File-based routes
-│   │   ├── index.tsx    # Home page (/)
-│   │   ├── about.tsx    # About page (/about)
-│   │   └── posts/
-│   │       └── [id].tsx # Dynamic route (/posts/:id)
-│   ├── components/      # Reusable components
-│   ├── lib/            # Utilities
-│   └── main.ts         # Entry point
-├── public/             # Static assets
-├── nova.config.ts      # Configuration
-└── package.json
+│   ├── components/         # Reusable UI building blocks (Header, Footer, Layout)
+│   ├── islands/            # Interactive client-hydrated Islands (Form, Counter...)
+│   ├── pages/              # File-based route modules (/index, /about, /posts...)
+│   ├── services/           # Network API Services
+│   ├── stores/             # Global state stores (AuthStore, TodoStore...)
+│   ├── styles/             # Global SCSS/CSS stylesheets
+│   ├── App.tsx             # Root application and routing coordinator
+│   ├── main.tsx            # Application entry point
+│   └── routes.ts           # Route definitions & protection guards
+├── nova.config.ts          # Compiler & development server configuration
+├── package.json
+└── tsconfig.json
 ```
 
-## Signals Tutorial
+---
 
-Signals are the core of Nova's reactivity:
+## 3. Creating Your First Component (with Inline SCSS)
 
-```typescript
-import { signal, computed, effect } from '@nova/signals';
+Create `src/components/Welcome.tsx` and `src/components/Welcome.scss`:
 
-// Create a signal
-const name = signal('World');
+```scss
+// Welcome.scss
+.welcome-card {
+  padding: 2rem;
+  background: linear-gradient(135deg, #1e1e2f, #252540);
+  border-radius: 12px;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 
-// Computed value (automatically updated)
-const greeting = computed(() => `Hello, ${name.value}!`);
-
-// Side effect (runs when dependencies change)
-effect(() => {
-  console.log(greeting.value);
-});
-
-// Change signal (triggers computed and effect)
-name.value = 'Nova'; // Logs: "Hello, Nova!"
-```
-
-### Key Methods
-
-- `signal.value` - Get/set value
-- `signal.peek()` - Get without dependency
-- `computed(() => ...)` - Derived value
-- `effect(() => ...)` - Run side effects
-- `batch(() => {...})` - Batch updates
-- `untrack(() => ...)` - Read without dependency
-
-## Components
-
-Components are functions that return JSX:
-
-```typescript
-// Simple component
-function Welcome() {
-  return <h1>Welcome!</h1>;
+  button {
+    background: #00ffcc;
+    color: #000;
+    font-weight: bold;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
 }
+```
 
-// With props
-function Greeting(props: { name: string; age: number }) {
+```tsx
+// Welcome.tsx
+import { signal } from "@nova/signals";
+import styles from "./Welcome.scss?inline"; // Import compiled SCSS directly as a string
+
+export function Welcome() {
+  const clicks = signal(0);
+
   return (
-    <div>
-      <p>{props.name} ({props.age})</p>
+    <div class="welcome-card">
+      <style>{styles}</style>
+      <h2>Welcome to Nova!</h2>
+      <p>Button clicked: {clicks.value} times</p>
+      <button onClick={() => clicks.value++}>Click Me</button>
     </div>
   );
 }
+```
 
-// With children
-function Card(props: { title: string; children: any }) {
+---
+
+## 4. Rendering in a Route Page
+
+Open `src/pages/index.tsx` and include the newly created `Welcome` component:
+
+```tsx
+import { Welcome } from "../components/Welcome";
+
+export default function HomePage() {
   return (
-    <div class="card">
-      <h2>{props.title}</h2>
-      {props.children}
+    <div class="home-page">
+      <h1>Home Page</h1>
+      <Welcome />
     </div>
   );
 }
-
-// Interactive component
-function Counter() {
-  const count = signal(0);
-
-  return (
-    <>
-      <p>Count: {count.value}</p>
-      <button onClick={() => count.value++}>+</button>
-      <button onClick={() => count.value--}>-</button>
-    </>
-  );
-}
 ```
 
-## Routing
+When you save the file, Nova's real-time Hot Module Replacement (HMR) instantly updates the browser UI without losing active component state.
 
-Nova uses file-based routing automatically:
+---
 
-```
-pages/
-├── index.tsx → /
-├── about.tsx → /about
-└── posts/
-    ├── index.tsx → /posts
-    └── [id].tsx → /posts/:id
-```
+## 5. Building for Production
 
-In your component, use the router:
-
-```typescript
-import { router } from '@nova/router';
-
-export default function Navigation() {
-  return (
-    <nav>
-      <a href="/" onClick={(e) => {
-        e.preventDefault();
-        router.navigate('/');
-      }}>
-        Home
-      </a>
-      <a href="/about" onClick={(e) => {
-        e.preventDefault();
-        router.navigate('/about');
-      }}>
-        About
-      </a>
-    </nav>
-  );
-}
-```
-
-## Islands
-
-Mark components as interactive islands:
-
-```typescript
-// Regular server-rendered component
-function BlogPost(props: { title: string; content: string }) {
-  return (
-    <article>
-      <h1>{props.title}</h1>
-      <div>{props.content}</div>
-    </article>
-  );
-}
-
-// Interactive island
-function CommentSection() {
-  const comments = signal<string[]>([]);
-
-  return (
-    <div>
-      <h3>Comments</h3>
-      <ul>
-        {comments.value.map(c => <li>{c}</li>)}
-      </ul>
-      <input 
-        type="text"
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
-            comments.value = [...comments.value, e.target.value];
-            e.target.value = '';
-          }
-        }}
-      />
-    </div>
-  );
-}
-
-// In your page
-export default function Blog() {
-  return (
-    <>
-      <BlogPost title="My Post" content="..." />
-      {/* CommentSection is an island - only hydrated on client */}
-      <CommentSection />
-    </>
-  );
-}
-```
-
-## Server-Side Rendering (SSR)
-
-Enable SSR in `nova.config.ts`:
-
-```typescript
-export default defineConfig({
-  ssr: true,
-});
-```
-
-Your components automatically render on the server:
-
-```typescript
-// This renders on the server first, then hydrates on client
-export default function App() {
-  const data = signal(await fetchData()); // Server-side
-  return <div>{data.value}</div>;
-}
-```
-
-## Styling
-
-Use CSS modules or inline styles:
-
-```typescript
-// CSS modules
-import styles from './Component.module.css';
-
-export function Component() {
-  return <div class={styles.container}>Styled</div>;
-}
-
-// Inline styles
-export function Button() {
-  return (
-    <button style={{
-      color: 'white',
-      backgroundColor: '#0066cc',
-      padding: '8px 16px',
-      border: 'none',
-      borderRadius: '4px',
-    }}>
-      Click me
-    </button>
-  );
-}
-```
-
-## Building for Production
+When your application is ready to deploy, run:
 
 ```bash
 npm run build
 ```
 
-This:
-- Compiles TypeScript
-- Optimizes islands
-- Splits code automatically
-- Minifies bundles
-- Generates source maps (if enabled)
-
-The output is in the `dist/` directory.
-
-## Deployment
-
-Deploy the `dist/` directory to any static host:
-
-```bash
-# Vercel
-vercel deploy
-
-# Netlify
-netlify deploy --prod
-
-# GitHub Pages
-npm run build
-git add dist/
-git commit -m "Deploy"
-git push origin main
-```
-
-## Next Steps
-
-- Explore [examples](../examples)
-- Read the [API reference](./api.md)
-- Check out [plugins](./plugins.md)
-- Join the [community](https://discord.gg/nova)
+Nova will compile your TypeScript, bundle and minify your JS and CSS assets, audit bundle sizes using **Bundle Guard**, and output the optimized build to the `dist/` directory. You can deploy this static directory directly to Vercel, Netlify, Nginx, or AWS S3.
