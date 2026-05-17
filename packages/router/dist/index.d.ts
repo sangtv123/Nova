@@ -79,7 +79,7 @@ export declare class Router {
     /**
      * Register a lazy route with optional nested layouts, guards, and resolvers.
      */
-    registerRoute(filePath: string, module: () => Promise<any>, layouts?: Array<() => Promise<any>>, options?: Partial<Pick<Route, 'canActivate' | 'resolve' | 'data'>>): void;
+    registerRoute(filePath: string, module: (() => Promise<any>) | null, layouts?: Array<() => Promise<any>>, options?: Partial<Pick<Route, 'canActivate' | 'resolve' | 'data'>>): void;
     /**
      * Inject a `<link rel="modulepreload">` for a route's chunk.
      */

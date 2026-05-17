@@ -95,13 +95,27 @@ export class Router {
      */
     registerRoute(filePath, module, layouts = [], options = {}) {
         const { path, pattern } = pathToPattern(filePath);
-        this.routes.set(path, {
-            path,
-            pattern,
-            module,
-            layouts,
-            ...options
-        });
+        const existing = this.routes.get(path);
+        if (existing) {
+            // Merge with existing route config (e.g. from custom setupRoutes vs auto-injected)
+            this.routes.set(path, {
+                ...existing,
+                module: module || existing.module,
+                layouts: layouts.length > 0 ? layouts : existing.layouts,
+                canActivate: options.canActivate || existing.canActivate,
+                resolve: options.resolve || existing.resolve,
+                data: { ...existing.data, ...options.data }
+            });
+        }
+        else {
+            this.routes.set(path, {
+                path,
+                pattern,
+                module: module,
+                layouts,
+                ...options
+            });
+        }
     }
     // ── Lazy loading helpers ────────────────────────────────────────────────
     /**
@@ -154,8 +168,14 @@ export class Router {
         }
         const routeArray = Array.from(this.routes.values());
         const base = matchRoute(pathname, routeArray);
-        if (!base)
+        if (!base) {
+            this.currentMatch = null;
+            if (!skipPushState) {
+                window.history.pushState({}, '', pathname);
+            }
+            this.notifyListeners(null);
             return null;
+        }
         const { query } = parseUrl(pathname);
         base.query = query;
         // 0. Global Before Navigate Hooks
@@ -182,8 +202,20 @@ export class Router {
             this.loadModule(base.route),
             ...(base.route.layouts || []).map(l => l())
         ]);
-        const component = mod.default ?? mod;
-        const layouts = layoutMods.map(m => m.default ?? m);
+        const extractComponent = (m) => {
+            if (m.default)
+                return m.default;
+            if (typeof m === 'function')
+                return m;
+            if (m && typeof m === 'object') {
+                const exportedFn = Object.values(m).find(v => typeof v === 'function');
+                if (exportedFn)
+                    return exportedFn;
+            }
+            return m;
+        };
+        const component = extractComponent(mod);
+        const layouts = layoutMods.map(extractComponent);
         const match = {
             ...base,
             component,

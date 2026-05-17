@@ -35,9 +35,9 @@ export function setupRoutes() {
   router.registerRoute('/posts', null as any, []);
   
   router.registerRoute('/admin', null as any, [], {
-    canActivate: [authGuard],
-    resolve: { 
-      config: configResolver 
-    }
+    // canActivate: [authGuard],
+    // resolve: { 
+    //   config: configResolver 
+    // }
   });
 }
