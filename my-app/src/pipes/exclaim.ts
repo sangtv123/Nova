@@ -1,8 +1,9 @@
-import { definePipe } from '@nova/signals';
+import { definePipe, createPipe } from '@nova/signals';
 
-/**
- * A custom reusable exclaim pipe plugin
- */
+export const exclaim = createPipe((val: any, suffix: string = '!!! 🌟') => {
+  return val == null ? '' : `${val} ${suffix}`;
+});
+
 export const exclaimPipe = definePipe({
   name: 'exclaim',
   transform(val: any, suffix: string = '!!! 🌟') {

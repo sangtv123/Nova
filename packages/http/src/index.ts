@@ -26,10 +26,12 @@ export interface HttpRequestConfig {
   signal?: AbortSignal;
   /** Response type (default: 'json') */
   responseType?: 'json' | 'text' | 'blob' | 'arrayBuffer' | 'none';
-  /** Cache key — if set, response is cached in-memory */
+  /** Cache key — if set, response is cached in-memory and shared across subscribers */
   cacheKey?: string;
-  /** Cache TTL in milliseconds (default: 0 = no expiry) */
+  /** Cache TTL in milliseconds (default: 0 = no expiry). Used for automated Garbage Collection */
   cacheTtl?: number;
+  /** Time in ms before cached data is considered stale for background revalidation (default: 0) */
+  staleTime?: number;
   /** Arbitrary metadata passed through to interceptors */
   meta?: Record<string, unknown>;
 }
@@ -54,6 +56,8 @@ export type ErrorInterceptor = (
   error: HttpError
 ) => HttpError | Promise<HttpError | HttpResponse<unknown>>;
 
+export type CacheListener<T = unknown> = (data: T | null, isValidated?: boolean) => void;
+
 // ─── Error class ──────────────────────────────────────────────────────────────
 
 export class HttpError extends Error {
@@ -74,35 +78,94 @@ export class HttpError extends Error {
   get isServerError()  { return this.status !== null && this.status >= 500; }
 }
 
-// ─── Cache ────────────────────────────────────────────────────────────────────
+// ─── Smart Cache Engine (with GC & PubSub) ────────────────────────────────────
 
 interface CacheEntry<T> {
   data: T;
-  expiresAt: number; // 0 = never expires
+  updatedAt: number;
+  expiresAt: number; // For Garbage Collection
+  staleAt: number;   // For Stale-While-Revalidate
+  gcTimeoutId?: ReturnType<typeof setTimeout>;
 }
 
 class ResponseCache {
   private store = new Map<string, CacheEntry<unknown>>();
+  private listeners = new Map<string, Set<CacheListener>>();
 
-  get<T>(key: string): T | null {
+  get<T>(key: string): { data: T | null; isStale: boolean } {
     const entry = this.store.get(key);
-    if (!entry) return null;
+    if (!entry) return { data: null, isStale: true };
+
     if (entry.expiresAt > 0 && Date.now() > entry.expiresAt) {
-      this.store.delete(key);
-      return null;
+      this.delete(key);
+      return { data: null, isStale: true };
     }
-    return entry.data as T;
+
+    const isStale = entry.staleAt > 0 ? Date.now() > entry.staleAt : false;
+    return { data: entry.data as T, isStale };
   }
 
-  set<T>(key: string, data: T, ttl = 0): void {
-    this.store.set(key, {
-      data,
-      expiresAt: ttl > 0 ? Date.now() + ttl : 0,
-    });
+  set<T>(key: string, data: T, ttl = 0, staleTime = 0): void {
+    const existing = this.store.get(key);
+    if (existing?.gcTimeoutId) {
+      clearTimeout(existing.gcTimeoutId);
+    }
+
+    const now = Date.now();
+    const expiresAt = ttl > 0 ? now + ttl : 0;
+    const staleAt   = staleTime > 0 ? now + staleTime : now;
+
+    let gcTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (ttl > 0) {
+      // Smart automated garbage collection sweep
+      gcTimeoutId = setTimeout(() => {
+        this.delete(key);
+      }, ttl);
+    }
+
+    this.store.set(key, { data, updatedAt: now, expiresAt, staleAt, gcTimeoutId });
+    this.notify(key, data, true);
   }
 
-  delete(key: string): void { this.store.delete(key); }
-  clear(): void             { this.store.clear(); }
+  delete(key: string): void {
+    const existing = this.store.get(key);
+    if (existing?.gcTimeoutId) {
+      clearTimeout(existing.gcTimeoutId);
+    }
+    this.store.delete(key);
+    this.notify(key, null, false);
+  }
+
+  clear(): void {
+    for (const [key, entry] of this.store.entries()) {
+      if (entry.gcTimeoutId) clearTimeout(entry.gcTimeoutId);
+      this.notify(key, null, false);
+    }
+    this.store.clear();
+  }
+
+  subscribe<T>(key: string, listener: CacheListener<T>): () => void {
+    let set = this.listeners.get(key);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(key, set);
+    }
+    set.add(listener as CacheListener);
+
+    return () => {
+      set?.delete(listener as CacheListener);
+      if (set?.size === 0) this.listeners.delete(key);
+    };
+  }
+
+  private notify(key: string, data: unknown | null, isValidated: boolean): void {
+    const set = this.listeners.get(key);
+    if (set) {
+      for (const listener of set) {
+        listener(data, isValidated);
+      }
+    }
+  }
 
   get size() { return this.store.size; }
 }
@@ -117,7 +180,6 @@ function buildUrl(base: string, params?: HttpRequestConfig['params']): string {
       url.searchParams.set(key, String(value));
     }
   }
-  // Return full URL or just path+search depending on whether it's absolute
   return base.startsWith('http') ? url.toString() : url.pathname + url.search;
 }
 
@@ -131,7 +193,8 @@ export class NovaHttpClient {
   private requestInterceptors: RequestInterceptor[]  = [];
   private responseInterceptors: ResponseInterceptor[] = [];
   private errorInterceptors: ErrorInterceptor[]       = [];
-  private cache = new ResponseCache();
+  public cache = new ResponseCache();
+  private inFlightPromises = new Map<string, Promise<HttpResponse<any>>>();
   private defaults: HttpRequestConfig;
 
   constructor(defaults: HttpRequestConfig = {}) {
@@ -147,28 +210,29 @@ export class NovaHttpClient {
 
   // ── Interceptors ─────────────────────────────────────────────────────────
 
-  /** Add a request interceptor. Returns an unregister function. */
   useRequest(interceptor: RequestInterceptor): () => void {
     this.requestInterceptors.push(interceptor);
     return () => { this.requestInterceptors = this.requestInterceptors.filter(i => i !== interceptor); };
   }
 
-  /** Add a response interceptor. Returns an unregister function. */
   useResponse<T = unknown>(interceptor: ResponseInterceptor<T>): () => void {
     this.responseInterceptors.push(interceptor as ResponseInterceptor);
     return () => { this.responseInterceptors = this.responseInterceptors.filter(i => i !== interceptor); };
   }
 
-  /** Add an error interceptor. Returns an unregister function. */
   useError(interceptor: ErrorInterceptor): () => void {
     this.errorInterceptors.push(interceptor);
     return () => { this.errorInterceptors = this.errorInterceptors.filter(i => i !== interceptor); };
   }
 
-  // ── Cache control ─────────────────────────────────────────────────────────
+  // ── Cache & Invalidation control ──────────────────────────────────────────
 
   clearCache(key?: string): void {
     key ? this.cache.delete(key) : this.cache.clear();
+  }
+
+  invalidateQuery(key: string): void {
+    this.cache.delete(key);
   }
 
   // ── Core request ─────────────────────────────────────────────────────────
@@ -184,17 +248,23 @@ export class NovaHttpClient {
 
     let finalConfig = { ...merged, url: fullUrl, method } as HttpRequestConfig & { url: string; method: HttpMethod };
 
-    // Run request interceptors
     for (const interceptor of this.requestInterceptors) {
       finalConfig = await interceptor(finalConfig);
     }
 
-    // Cache hit (GET-only)
+    const dedupeKey = finalConfig.cacheKey ? `${method}:${finalConfig.cacheKey}` : `${method}:${fullUrl}`;
+
+    // Request Deduplication: if an identical request is in flight, await its promise
+    if (method === 'GET' && this.inFlightPromises.has(dedupeKey)) {
+      return this.inFlightPromises.get(dedupeKey) as Promise<HttpResponse<T>>;
+    }
+
+    // Cache hit & Stale-While-Revalidate evaluation
     if (method === 'GET' && finalConfig.cacheKey) {
-      const cached = this.cache.get<T>(finalConfig.cacheKey);
-      if (cached !== null) {
+      const { data, isStale } = this.cache.get<T>(finalConfig.cacheKey);
+      if (data !== null && !isStale) {
         return {
-          data: cached,
+          data,
           status: 200,
           statusText: 'OK (cached)',
           headers: new Headers(),
@@ -203,76 +273,82 @@ export class NovaHttpClient {
       }
     }
 
-    // Attempt with retry
-    const maxAttempts = 1 + (finalConfig.retry ?? 0);
-    const retryOn      = finalConfig.retryOn ?? [408, 429, 500, 502, 503, 504];
-    const retryDelay   = finalConfig.retryDelay ?? 300;
-    let lastError: HttpError | null = null;
+    // Execute network fetch
+    const fetchPromise = (async () => {
+      const maxAttempts = 1 + (finalConfig.retry ?? 0);
+      const retryOn      = finalConfig.retryOn ?? [408, 429, 500, 502, 503, 504];
+      const retryDelay   = finalConfig.retryDelay ?? 300;
+      let lastError: HttpError | null = null;
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      if (attempt > 0) await sleep(retryDelay * attempt); // exponential-ish backoff
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (attempt > 0) await sleep(retryDelay * attempt);
 
-      try {
-        const response = await this._fetch<T>(finalConfig);
+        try {
+          const response = await this._fetch<T>(finalConfig);
 
-        // Run response interceptors
-        let result = response;
-        for (const interceptor of this.responseInterceptors) {
-          result = (await interceptor(result)) as HttpResponse<T>;
-        }
-
-        // Cache successful GET
-        if (method === 'GET' && finalConfig.cacheKey) {
-          this.cache.set(finalConfig.cacheKey, result.data, finalConfig.cacheTtl);
-        }
-
-        return result;
-
-      } catch (err) {
-        const httpErr = err instanceof HttpError ? err : new HttpError(
-          String(err),
-          null,
-          null,
-          finalConfig
-        );
-
-        // Should retry?
-        const shouldRetry =
-          attempt < maxAttempts - 1 &&
-          (httpErr.isNetworkError || (httpErr.status !== null && retryOn.includes(httpErr.status)));
-
-        if (!shouldRetry) {
-          // Run error interceptors
-          let thrownError: HttpError = httpErr;
-          for (const interceptor of this.errorInterceptors) {
-            const result = await interceptor(thrownError);
-            if (!(result instanceof HttpError)) {
-              // Interceptor recovered — return as success
-              return result as HttpResponse<T>;
-            }
-            thrownError = result;
+          let result = response;
+          for (const interceptor of this.responseInterceptors) {
+            result = (await interceptor(result)) as HttpResponse<T>;
           }
-          throw thrownError;
-        }
 
-        lastError = httpErr;
+          if (method === 'GET' && finalConfig.cacheKey) {
+            this.cache.set(finalConfig.cacheKey, result.data, finalConfig.cacheTtl, finalConfig.staleTime);
+          }
+
+          return result;
+
+        } catch (err) {
+          const httpErr = err instanceof HttpError ? err : new HttpError(
+            String(err),
+            null,
+            null,
+            finalConfig
+          );
+
+          const shouldRetry =
+            attempt < maxAttempts - 1 &&
+            (httpErr.isNetworkError || (httpErr.status !== null && retryOn.includes(httpErr.status)));
+
+          if (!shouldRetry) {
+            let thrownError: HttpError = httpErr;
+            for (const interceptor of this.errorInterceptors) {
+              const result = await interceptor(thrownError);
+              if (!(result instanceof HttpError)) {
+                return result as HttpResponse<T>;
+              }
+              thrownError = result;
+            }
+            throw thrownError;
+          }
+
+          lastError = httpErr;
+        }
+      }
+
+      throw lastError!;
+    })();
+
+    if (method === 'GET') {
+      this.inFlightPromises.set(dedupeKey, fetchPromise);
+      try {
+        const res = await fetchPromise;
+        return res;
+      } finally {
+        this.inFlightPromises.delete(dedupeKey);
       }
     }
 
-    throw lastError!;
+    return fetchPromise;
   }
 
-  /** Internal fetch execution with timeout + AbortController */
   private async _fetch<T>(
     config: HttpRequestConfig & { url: string; method: HttpMethod }
   ): Promise<HttpResponse<T>> {
     const controller = new AbortController();
     const externalSignal = config.signal;
 
-    // Forward external abort signal
     externalSignal?.addEventListener('abort', () => controller.abort(externalSignal.reason));
 
-    // Timeout
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     if (config.timeout && config.timeout > 0) {
       timeoutId = setTimeout(() => controller.abort('timeout'), config.timeout);
@@ -293,11 +369,9 @@ export class NovaHttpClient {
     try {
       const res = await fetch(config.url, init);
 
-      // Parse body
       const responseType = config.responseType ?? 'json';
       let data: T;
       if (responseType === 'json') {
-        // Safely parse — some 204 No Content responses have no body
         const text = await res.text();
         data = text ? JSON.parse(text) : null as T;
       } else if (responseType === 'text') {
@@ -346,8 +420,6 @@ export class NovaHttpClient {
     }
   }
 
-  // ── Shorthand methods ─────────────────────────────────────────────────────
-
   get<T = unknown>(url: string, config?: HttpRequestConfig)                           { return this.request<T>('GET',    url, config); }
   post<T = unknown>(url: string, body?: unknown, config?: HttpRequestConfig)          { return this.request<T>('POST',   url, { ...config, body }); }
   put<T = unknown>(url: string, body?: unknown, config?: HttpRequestConfig)           { return this.request<T>('PUT',    url, { ...config, body }); }
@@ -355,7 +427,6 @@ export class NovaHttpClient {
   delete<T = unknown>(url: string, config?: HttpRequestConfig)                        { return this.request<T>('DELETE', url, config); }
   head(url: string, config?: HttpRequestConfig)                                       { return this.request('HEAD',   url, config); }
 
-  /** Create a child client that inherits interceptors + defaults */
   create(overrides: HttpRequestConfig = {}): NovaHttpClient {
     const child = new NovaHttpClient({ ...this.defaults, ...overrides });
     child.requestInterceptors  = [...this.requestInterceptors];
@@ -365,7 +436,7 @@ export class NovaHttpClient {
   }
 }
 
-// ─── Reactive resource (signal-based) ─────────────────────────────────────────
+// ─── Reactive resource (signal-based Smart Query hook) ─────────────────────────
 
 export interface UseHttpOptions<T> extends HttpRequestConfig {
   /** Run immediately on creation (default: true) */
@@ -374,51 +445,59 @@ export interface UseHttpOptions<T> extends HttpRequestConfig {
   transform?: (data: unknown) => T;
   /** Initial value before the first response */
   initialData?: T;
+  /** If true and cache exists but is stale, return cached data immediately while background refetching (default: true) */
+  staleWhileRevalidate?: boolean;
 }
 
 export interface UseHttpResult<T> {
-  /** Reactive signal: the response data */
   data: Signal<T | null>;
-  /** Reactive signal: loading state */
   loading: Signal<boolean>;
-  /** Reactive signal: last HTTP error */
   error: Signal<HttpError | null>;
-  /** Reactive signal: HTTP status code */
   status: Signal<number | null>;
-  /** Computed: true when data is available and not loading */
   isReady: ReturnType<typeof computed<boolean>>;
-  /** Execute the request (or re-execute) */
   execute: (overrides?: HttpRequestConfig) => Promise<void>;
-  /** Abort the in-flight request */
   abort: () => void;
 }
 
-/**
- * `useHttp` — reactive wrapper around NovaHttpClient.
- *
- * Returns signals for `data`, `loading`, `error`, and `status`
- * that update automatically when the request completes or fails.
- *
- * @example
- * const { data, loading, error, execute } = useHttp<User[]>('/api/users');
- * // In JSX:
- * //   {() => loading.value ? <Spinner /> : <UserList users={data.value} />}
- */
 export function useHttp<T = unknown>(
   client: NovaHttpClient,
   method: HttpMethod,
   url: string,
   options: UseHttpOptions<T> = {}
 ): UseHttpResult<T> {
-  const { immediate = true, transform, initialData, ...reqConfig } = options;
+  const { immediate = true, transform, initialData, staleWhileRevalidate = true, ...reqConfig } = options;
 
-  const data    = signal<T | null>(initialData ?? null);
+  let initialVal: T | null = (initialData !== undefined ? initialData : null) as T | null;
+
+  // Stale-While-Revalidate: instant initial cache check
+  if (method === 'GET' && reqConfig.cacheKey) {
+    const { data: cachedData } = client.cache.get<T>(reqConfig.cacheKey);
+    if (cachedData !== null) {
+      initialVal = cachedData as T | null;
+    }
+  }
+
+  const data    = signal<T | null>(initialVal as any);
   const loading = signal<boolean>(false);
   const error   = signal<HttpError | null>(null);
   const status  = signal<number | null>(null);
   const isReady = computed<boolean>(() => !loading.value && data.value !== null && error.value === null);
 
   let controller: AbortController | null = null;
+  let unsubscribeCache: (() => void) | null = null;
+
+  // Subscribe to background cache invalidation or refetches
+  if (method === 'GET' && reqConfig.cacheKey) {
+    unsubscribeCache = client.cache.subscribe<T>(reqConfig.cacheKey, (newData) => {
+      if (newData !== null) {
+        data.value = transform ? transform(newData) : newData;
+        error.value = null;
+      } else {
+        // Query invalidated — refetch automatically
+        execute();
+      }
+    });
+  }
 
   const abort = () => {
     controller?.abort();
@@ -426,7 +505,7 @@ export function useHttp<T = unknown>(
   };
 
   const execute = async (overrides: HttpRequestConfig = {}): Promise<void> => {
-    abort(); // cancel any in-flight request
+    abort();
 
     controller = new AbortController();
     loading.value = true;
@@ -442,7 +521,7 @@ export function useHttp<T = unknown>(
       status.value = res.status;
       data.value   = transform ? transform(res.data) : res.data;
     } catch (err) {
-      if (err instanceof HttpError && err.isAborted) return; // intentional cancel
+      if (err instanceof HttpError && err.isAborted) return;
       error.value  = err instanceof HttpError ? err : new HttpError(String(err), null, null, { url, method });
       status.value = err instanceof HttpError ? err.status : null;
     } finally {
@@ -451,33 +530,21 @@ export function useHttp<T = unknown>(
   };
 
   if (immediate) {
-    // Defer to next microtask so signals are registered before first run
-    Promise.resolve().then(() => execute());
+    // If SWR initial data was populated, background refetch without blocking UI
+    if (data.value !== null && staleWhileRevalidate) {
+      Promise.resolve().then(() => execute());
+    } else {
+      Promise.resolve().then(() => execute());
+    }
   }
 
   return { data, loading, error, status, isReady, execute, abort };
 }
 
-// ─── Singleton default client ─────────────────────────────────────────────────
-
-/**
- * Default global client — use `http.create()` to derive scoped clients
- * (e.g., one per API domain or auth context).
- */
 export const http = new NovaHttpClient();
 
-// ─── Convenience factory ──────────────────────────────────────────────────────
-
-/**
- * Create a new client with custom defaults.
- *
- * @example
- * const api = createHttpClient({ baseUrl: 'https://api.example.com', timeout: 5000 });
- * api.useRequest(cfg => { cfg.headers!['Authorization'] = `Bearer ${token}`; return cfg; });
- */
 export function createHttpClient(defaults: HttpRequestConfig = {}): NovaHttpClient {
   return new NovaHttpClient(defaults);
 }
 
-// ─── Re-export for ergonomics ─────────────────────────────────────────────────
 export type { Signal } from '@nova/signals';
