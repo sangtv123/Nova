@@ -1,0 +1,1 @@
+var c={name:"exclaim",transform(r,t="!!! \u{1F31F}"){return r==null?"":`${r} ${t}`}};var f={name:"mask",transform(r,t=3,e=3,m="*"){if(r==null)return"";let n=String(r);if(n.length<=t+e)return n;let s=n.length-t-e,i=m.repeat(s);return n.slice(0,t)+i+n.slice(n.length-e)}};export{c as a,f as b};

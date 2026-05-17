@@ -71,7 +71,7 @@
       "format": "esm"
     },
     "../packages/router/src/index.ts": {
-      "bytes": 10861,
+      "bytes": 12158,
       "imports": [
         {
           "path": "<runtime>",
@@ -93,6 +93,230 @@
           "path": "../packages/runtime/src/index.ts",
           "kind": "import-statement",
           "original": "@nova/runtime"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/components/Header.tsx": {
+      "bytes": 928,
+      "imports": [
+        {
+          "path": "../packages/router/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/router"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/components/Layout.tsx": {
+      "bytes": 1017,
+      "imports": [
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "src/components/Header.tsx",
+          "kind": "import-statement",
+          "original": "./Header"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/App.tsx": {
+      "bytes": 1236,
+      "imports": [
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "src/components/Layout.tsx",
+          "kind": "import-statement",
+          "original": "./components/Layout"
+        },
+        {
+          "path": "../packages/router/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/router"
+        },
+        {
+          "path": "../packages/signals/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/signals"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/routes.ts": {
+      "bytes": 942,
+      "imports": [
+        {
+          "path": "../packages/router/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/router"
+        }
+      ],
+      "format": "esm"
+    },
+    "../packages/forms/src/index.ts": {
+      "bytes": 5832,
+      "imports": [
+        {
+          "path": "../packages/signals/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/signals"
+        }
+      ],
+      "format": "esm"
+    },
+    "scss-raw:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss": {
+      "bytes": 934,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/islands/ContactIsland.tsx": {
+      "bytes": 4372,
+      "imports": [
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/islands/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/islands"
+        },
+        {
+          "path": "../packages/forms/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/forms"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "scss-raw:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss",
+          "kind": "import-statement",
+          "original": "./ContactIsland.scss?inline"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/islands/PipesDemoIsland.tsx": {
+      "bytes": 18289,
+      "imports": [
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "src/pipes/exclaim.ts",
+          "kind": "import-statement",
+          "original": "../pipes/exclaim"
+        },
+        {
+          "path": "src/pipes/mask.ts",
+          "kind": "import-statement",
+          "original": "../pipes/mask"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/signals/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/signals"
+        },
+        {
+          "path": "../packages/islands/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/islands"
+        },
+        {
+          "path": "../packages/signals/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/signals"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/pages/about.tsx": {
+      "bytes": 1572,
+      "imports": [
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "src/islands/ContactIsland.tsx",
+          "kind": "import-statement",
+          "original": "../islands/ContactIsland"
+        },
+        {
+          "path": "src/islands/PipesDemoIsland.tsx",
+          "kind": "import-statement",
+          "original": "../islands/PipesDemoIsland"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/pages/admin.tsx": {
+      "bytes": 1048,
+      "imports": [
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/runtime/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/runtime"
+        },
+        {
+          "path": "../packages/router/src/index.ts",
+          "kind": "import-statement",
+          "original": "@nova/router"
         }
       ],
       "format": "esm"
@@ -140,57 +364,6 @@
           "path": "../packages/runtime/src/index.ts",
           "kind": "import-statement",
           "original": "@nova/runtime"
-        }
-      ],
-      "format": "esm"
-    },
-    "../packages/forms/src/index.ts": {
-      "bytes": 5832,
-      "imports": [
-        {
-          "path": "../packages/signals/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/signals"
-        }
-      ],
-      "format": "esm"
-    },
-    "scss-inline:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss": {
-      "bytes": 1216,
-      "imports": []
-    },
-    "src/islands/ContactIsland.tsx": {
-      "bytes": 4323,
-      "imports": [
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/islands/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/islands"
-        },
-        {
-          "path": "../packages/forms/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/forms"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "scss-inline:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss",
-          "kind": "import-statement",
-          "original": "./ContactIsland.scss"
         }
       ],
       "format": "esm"
@@ -351,94 +524,6 @@
       ],
       "format": "esm"
     },
-    "src/islands/PipesDemoIsland.tsx": {
-      "bytes": 18289,
-      "imports": [
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "src/pipes/exclaim.ts",
-          "kind": "import-statement",
-          "original": "../pipes/exclaim"
-        },
-        {
-          "path": "src/pipes/mask.ts",
-          "kind": "import-statement",
-          "original": "../pipes/mask"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/signals/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/signals"
-        },
-        {
-          "path": "../packages/islands/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/islands"
-        },
-        {
-          "path": "../packages/signals/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/signals"
-        }
-      ],
-      "format": "esm"
-    },
-    "src/pages/about.tsx": {
-      "bytes": 1572,
-      "imports": [
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "src/islands/ContactIsland.tsx",
-          "kind": "import-statement",
-          "original": "../islands/ContactIsland"
-        },
-        {
-          "path": "src/islands/PipesDemoIsland.tsx",
-          "kind": "import-statement",
-          "original": "../islands/PipesDemoIsland"
-        }
-      ],
-      "format": "esm"
-    },
-    "src/pages/admin.tsx": {
-      "bytes": 1048,
-      "imports": [
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/router/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/router"
-        }
-      ],
-      "format": "esm"
-    },
     "../packages/http/src/index.ts": {
       "bytes": 19721,
       "imports": [
@@ -509,110 +594,6 @@
           "path": "../packages/http/src/index.ts",
           "kind": "import-statement",
           "original": "@nova/http"
-        }
-      ],
-      "format": "esm"
-    },
-    "src/components/Header.tsx": {
-      "bytes": 928,
-      "imports": [
-        {
-          "path": "../packages/router/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/router"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        }
-      ],
-      "format": "esm"
-    },
-    "src/components/Layout.tsx": {
-      "bytes": 1017,
-      "imports": [
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "src/components/Header.tsx",
-          "kind": "import-statement",
-          "original": "./Header"
-        }
-      ],
-      "format": "esm"
-    },
-    "src/App.tsx": {
-      "bytes": 1329,
-      "imports": [
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "../packages/runtime/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/runtime"
-        },
-        {
-          "path": "src/pages/index.tsx",
-          "kind": "import-statement",
-          "original": "./pages/index"
-        },
-        {
-          "path": "src/pages/about.tsx",
-          "kind": "import-statement",
-          "original": "./pages/about"
-        },
-        {
-          "path": "src/pages/admin.tsx",
-          "kind": "import-statement",
-          "original": "./pages/admin"
-        },
-        {
-          "path": "src/pages/posts.tsx",
-          "kind": "import-statement",
-          "original": "./pages/posts"
-        },
-        {
-          "path": "src/components/Layout.tsx",
-          "kind": "import-statement",
-          "original": "./components/Layout"
-        },
-        {
-          "path": "../packages/router/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/router"
-        },
-        {
-          "path": "../packages/signals/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/signals"
-        }
-      ],
-      "format": "esm"
-    },
-    "src/routes.ts": {
-      "bytes": 946,
-      "imports": [
-        {
-          "path": "../packages/router/src/index.ts",
-          "kind": "import-statement",
-          "original": "@nova/router"
         }
       ],
       "format": "esm"
@@ -720,18 +701,14 @@
     }
   },
   "outputs": {
-    "dist/about-QJCS2YKD.js": {
+    "dist/SearchResults-I3U5BK3R.js": {
       "imports": [
         {
-          "path": "dist/chunk-X2KOLYFE.js",
+          "path": "dist/chunk-NO5XUGZ7.js",
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-EGQCT44I.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-7QT3MEVB.js",
+          "path": "dist/chunk-UFRMYMUM.js",
           "kind": "import-statement"
         },
         {
@@ -744,72 +721,24 @@
         }
       ],
       "exports": [
-        "AboutPage"
+        "SearchResults"
       ],
-      "entryPoint": "src/pages/about.tsx",
+      "entryPoint": "src/islands/SearchResults.tsx",
       "inputs": {},
-      "bytes": 171
+      "bytes": 147
     },
-    "dist/admin-YWNYBI6E.js": {
+    "dist/pages-MR56NDI2.js": {
       "imports": [
         {
-          "path": "dist/chunk-US3JYKH4.js",
+          "path": "dist/chunk-NO5XUGZ7.js",
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "AdminPage"
-      ],
-      "entryPoint": "src/pages/admin.tsx",
-      "inputs": {},
-      "bytes": 92
-    },
-    "dist/posts-MQCIHRNW.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-GV4VMKYE.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "PostsPage"
-      ],
-      "entryPoint": "src/pages/posts.tsx",
-      "inputs": {},
-      "bytes": 87
-    },
-    "dist/main.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-X2KOLYFE.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-US3JYKH4.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-GV4VMKYE.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-CJS6QRJ4.js",
+          "path": "dist/chunk-WE2PFIHQ.js",
           "kind": "import-statement"
         },
         {
           "path": "dist/chunk-N2E3UXA7.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-EGQCT44I.js",
           "kind": "import-statement"
         },
         {
@@ -821,15 +750,89 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-NO5XUGZ7.js",
+          "path": "dist/chunk-UFRMYMUM.js",
           "kind": "import-statement"
         },
+        {
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "IndexPage"
+      ],
+      "entryPoint": "src/pages/index.tsx",
+      "inputs": {
+        "src/pages/index.tsx": {
+          "bytesInOutput": 1152
+        }
+      },
+      "bytes": 1474
+    },
+    "dist/chunk-NO5XUGZ7.js": {
+      "imports": [
         {
           "path": "dist/chunk-UFRMYMUM.js",
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-7QT3MEVB.js",
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "a"
+      ],
+      "inputs": {
+        "src/islands/SearchResults.tsx": {
+          "bytesInOutput": 572
+        }
+      },
+      "bytes": 715
+    },
+    "dist/posts-JNYYACQZ.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "PostsPage"
+      ],
+      "entryPoint": "src/pages/posts.tsx",
+      "inputs": {
+        "../packages/http/src/index.ts": {
+          "bytesInOutput": 4853
+        },
+        "src/services/api.ts": {
+          "bytesInOutput": 670
+        },
+        "src/services/PostService.ts": {
+          "bytesInOutput": 555
+        },
+        "src/pages/posts.tsx": {
+          "bytesInOutput": 2019
+        }
+      },
+      "bytes": 8189
+    },
+    "dist/main.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-LT6DGFJS.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-RDPIPYFI.js",
           "kind": "import-statement"
         },
         {
@@ -841,23 +844,23 @@
           "kind": "import-statement"
         },
         {
-          "path": "dist/about-QJCS2YKD.js",
+          "path": "dist/about-3DBAROW3.js",
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/admin-YWNYBI6E.js",
+          "path": "dist/admin-M5MPK5CF.js",
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/pages-YEQSOZKI.js",
+          "path": "dist/pages-MR56NDI2.js",
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/posts-MQCIHRNW.js",
+          "path": "dist/posts-JNYYACQZ.js",
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/ContactIsland-32MW5MQW.js",
+          "path": "dist/ContactIsland-Q6E4RM65.js",
           "kind": "dynamic-import"
         },
         {
@@ -865,7 +868,7 @@
           "kind": "dynamic-import"
         },
         {
-          "path": "dist/PipesDemoIsland-HPLOPHKD.js",
+          "path": "dist/PipesDemoIsland-XRPFE7IA.js",
           "kind": "dynamic-import"
         },
         {
@@ -891,25 +894,25 @@
           "bytesInOutput": 543
         },
         "src/App.tsx": {
-          "bytesInOutput": 298
+          "bytesInOutput": 385
         },
         "src/routes.ts": {
-          "bytesInOutput": 395
+          "bytesInOutput": 147
         },
         "src/main.tsx": {
           "bytesInOutput": 732
         }
       },
-      "bytes": 3020
+      "bytes": 2564
     },
-    "dist/chunk-X2KOLYFE.js": {
+    "dist/ContactIsland-Q6E4RM65.js": {
       "imports": [
         {
-          "path": "dist/chunk-EGQCT44I.js",
+          "path": "dist/chunk-WE2PFIHQ.js",
           "kind": "import-statement"
         },
         {
-          "path": "dist/chunk-7QT3MEVB.js",
+          "path": "dist/chunk-OOJX3UVD.js",
           "kind": "import-statement"
         },
         {
@@ -918,37 +921,163 @@
         }
       ],
       "exports": [
-        "a"
+        "ContactIsland"
       ],
+      "entryPoint": "src/islands/ContactIsland.tsx",
+      "inputs": {},
+      "bytes": 119
+    },
+    "dist/PipesDemoIsland-XRPFE7IA.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-6XOPKNVG.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-LT6DGFJS.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "PipesDemoIsland"
+      ],
+      "entryPoint": "src/islands/PipesDemoIsland.tsx",
+      "inputs": {},
+      "bytes": 149
+    },
+    "dist/about-3DBAROW3.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-WE2PFIHQ.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-6XOPKNVG.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-LT6DGFJS.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "AboutPage"
+      ],
+      "entryPoint": "src/pages/about.tsx",
       "inputs": {
         "src/pages/about.tsx": {
           "bytesInOutput": 1154
         }
       },
-      "bytes": 1297
+      "bytes": 1361
     },
-    "dist/chunk-US3JYKH4.js": {
+    "dist/chunk-WE2PFIHQ.js": {
       "imports": [
+        {
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
         {
           "path": "dist/chunk-64CSBWC7.js",
           "kind": "import-statement"
         }
       ],
       "exports": [
+        "a"
+      ],
+      "inputs": {
+        "../packages/forms/src/index.ts": {
+          "bytesInOutput": 1392
+        },
+        "scss-raw:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss": {
+          "bytesInOutput": 925
+        },
+        "src/islands/ContactIsland.tsx": {
+          "bytesInOutput": 2076
+        }
+      },
+      "bytes": 4531
+    },
+    "dist/chunk-6XOPKNVG.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-LT6DGFJS.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "a"
+      ],
+      "inputs": {
+        "src/islands/PipesDemoIsland.tsx": {
+          "bytesInOutput": 11963
+        }
+      },
+      "bytes": 12212
+    },
+    "dist/chunk-LT6DGFJS.js": {
+      "imports": [],
+      "exports": [
         "a",
         "b"
       ],
       "inputs": {
-        "../packages/router/src/index.ts": {
-          "bytesInOutput": 3125
+        "src/pipes/exclaim.ts": {
+          "bytesInOutput": 85
         },
+        "src/pipes/mask.ts": {
+          "bytesInOutput": 185
+        }
+      },
+      "bytes": 293
+    },
+    "dist/admin-M5MPK5CF.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-RDPIPYFI.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "AdminPage"
+      ],
+      "entryPoint": "src/pages/admin.tsx",
+      "inputs": {
         "src/pages/admin.tsx": {
           "bytesInOutput": 513
         }
       },
-      "bytes": 3715
+      "bytes": 624
     },
-    "dist/chunk-GV4VMKYE.js": {
+    "dist/chunk-RDPIPYFI.js": {
       "imports": [
         {
           "path": "dist/chunk-64CSBWC7.js",
@@ -959,20 +1088,11 @@
         "a"
       ],
       "inputs": {
-        "../packages/http/src/index.ts": {
-          "bytesInOutput": 4853
-        },
-        "src/services/api.ts": {
-          "bytesInOutput": 670
-        },
-        "src/services/PostService.ts": {
-          "bytesInOutput": 555
-        },
-        "src/pages/posts.tsx": {
-          "bytesInOutput": 2019
+        "../packages/router/src/index.ts": {
+          "bytesInOutput": 3558
         }
       },
-      "bytes": 8181
+      "bytes": 3614
     },
     "dist/CounterIsland-E2MY6QPQ.js": {
       "imports": [
@@ -996,12 +1116,8 @@
       "inputs": {},
       "bytes": 119
     },
-    "dist/ContactIsland-32MW5MQW.js": {
+    "dist/chunk-N2E3UXA7.js": {
       "imports": [
-        {
-          "path": "dist/chunk-EGQCT44I.js",
-          "kind": "import-statement"
-        },
         {
           "path": "dist/chunk-OOJX3UVD.js",
           "kind": "import-statement"
@@ -1012,11 +1128,17 @@
         }
       ],
       "exports": [
-        "ContactIsland"
+        "a"
       ],
-      "entryPoint": "src/islands/ContactIsland.tsx",
-      "inputs": {},
-      "bytes": 119
+      "inputs": {
+        "../packages/motion/src/index.ts": {
+          "bytesInOutput": 477
+        },
+        "src/islands/CounterIsland.tsx": {
+          "bytesInOutput": 816
+        }
+      },
+      "bytes": 1431
     },
     "dist/TodoIsland-Z3LZBBLF.js": {
       "imports": [
@@ -1039,6 +1161,30 @@
       "entryPoint": "src/islands/TodoIsland.tsx",
       "inputs": {},
       "bytes": 116
+    },
+    "dist/chunk-SSTEMEBP.js": {
+      "imports": [
+        {
+          "path": "dist/chunk-OOJX3UVD.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "dist/chunk-64CSBWC7.js",
+          "kind": "import-statement"
+        }
+      ],
+      "exports": [
+        "a"
+      ],
+      "inputs": {
+        "src/services/TodoService.ts": {
+          "bytesInOutput": 603
+        },
+        "src/islands/TodoIsland.tsx": {
+          "bytesInOutput": 1274
+        }
+      },
+      "bytes": 2010
     },
     "dist/SearchInput-BX5Q3DKW.js": {
       "imports": [
@@ -1066,190 +1212,6 @@
       "inputs": {},
       "bytes": 145
     },
-    "dist/SearchResults-I3U5BK3R.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-NO5XUGZ7.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-UFRMYMUM.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "SearchResults"
-      ],
-      "entryPoint": "src/islands/SearchResults.tsx",
-      "inputs": {},
-      "bytes": 147
-    },
-    "dist/pages-YEQSOZKI.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-CJS6QRJ4.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-N2E3UXA7.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-EGQCT44I.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-SSTEMEBP.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-6TQRHGEN.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-NO5XUGZ7.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-UFRMYMUM.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "IndexPage"
-      ],
-      "entryPoint": "src/pages/index.tsx",
-      "inputs": {},
-      "bytes": 283
-    },
-    "dist/chunk-CJS6QRJ4.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-N2E3UXA7.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-EGQCT44I.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-SSTEMEBP.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-6TQRHGEN.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-NO5XUGZ7.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "a"
-      ],
-      "inputs": {
-        "src/pages/index.tsx": {
-          "bytesInOutput": 1152
-        }
-      },
-      "bytes": 1410
-    },
-    "dist/chunk-N2E3UXA7.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "a"
-      ],
-      "inputs": {
-        "../packages/motion/src/index.ts": {
-          "bytesInOutput": 477
-        },
-        "src/islands/CounterIsland.tsx": {
-          "bytesInOutput": 816
-        }
-      },
-      "bytes": 1431
-    },
-    "dist/chunk-EGQCT44I.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "a"
-      ],
-      "inputs": {
-        "../packages/forms/src/index.ts": {
-          "bytesInOutput": 1392
-        },
-        "scss-inline:D:\\framework\\my-app\\src\\islands\\ContactIsland.scss": {
-          "bytesInOutput": 1080
-        },
-        "src/islands/ContactIsland.tsx": {
-          "bytesInOutput": 2058
-        }
-      },
-      "bytes": 4668
-    },
-    "dist/chunk-SSTEMEBP.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "a"
-      ],
-      "inputs": {
-        "src/services/TodoService.ts": {
-          "bytesInOutput": 603
-        },
-        "src/islands/TodoIsland.tsx": {
-          "bytesInOutput": 1274
-        }
-      },
-      "bytes": 2010
-    },
     "dist/chunk-6TQRHGEN.js": {
       "imports": [
         {
@@ -1275,31 +1237,6 @@
       },
       "bytes": 487
     },
-    "dist/chunk-NO5XUGZ7.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-UFRMYMUM.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "a"
-      ],
-      "inputs": {
-        "src/islands/SearchResults.tsx": {
-          "bytesInOutput": 572
-        }
-      },
-      "bytes": 715
-    },
     "dist/chunk-UFRMYMUM.js": {
       "imports": [
         {
@@ -1316,57 +1253,6 @@
         }
       },
       "bytes": 68
-    },
-    "dist/PipesDemoIsland-HPLOPHKD.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-7QT3MEVB.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "PipesDemoIsland"
-      ],
-      "entryPoint": "src/islands/PipesDemoIsland.tsx",
-      "inputs": {},
-      "bytes": 126
-    },
-    "dist/chunk-7QT3MEVB.js": {
-      "imports": [
-        {
-          "path": "dist/chunk-OOJX3UVD.js",
-          "kind": "import-statement"
-        },
-        {
-          "path": "dist/chunk-64CSBWC7.js",
-          "kind": "import-statement"
-        }
-      ],
-      "exports": [
-        "a",
-        "b",
-        "c"
-      ],
-      "inputs": {
-        "src/pipes/exclaim.ts": {
-          "bytesInOutput": 85
-        },
-        "src/pipes/mask.ts": {
-          "bytesInOutput": 185
-        },
-        "src/islands/PipesDemoIsland.tsx": {
-          "bytesInOutput": 11965
-        }
-      },
-      "bytes": 12451
     },
     "dist/chunk-OOJX3UVD.js": {
       "imports": [
