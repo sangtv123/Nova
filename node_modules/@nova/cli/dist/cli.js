@@ -8,6 +8,10 @@ import { build as esbuildBuild } from 'esbuild';
 import { compile } from '@nova/compiler';
 import { Watcher, HMRHandler } from '@nova/server';
 const scssCache = new Map();
+// Compile cache for TS/TSX files and @nova framework bundles
+// Key: absolute file path, Value: { mtime, code }
+const tsxCompileCache = new Map();
+const frameworkBundleCache = new Map();
 function compileScssWithCache(filePath) {
     const stats = fs.statSync(filePath);
     const cached = scssCache.get(filePath);
@@ -99,51 +103,71 @@ async function dev(args) {
         const requestUrl = (req.url || '/').split('?')[0];
         const projectDir = process.cwd();
         try {
-            // 1. Handle shared framework modules
+            // 1. Handle shared framework modules (cached by mtime)
             if (requestUrl.startsWith('/@framework/@nova/')) {
                 const pkgName = requestUrl.split('/').pop() || '';
                 const fullPath = path.resolve(projectDir, `../packages/${pkgName}/src/index.ts`);
                 if (fs.existsSync(fullPath)) {
-                    const result = await esbuildBuild({
-                        entryPoints: [fullPath],
-                        bundle: true,
-                        format: 'esm',
-                        write: false,
-                        plugins: [novaPlugin],
-                        define: { 'process.env.NODE_ENV': '"development"' },
-                    });
+                    const mtime = fs.statSync(fullPath).mtimeMs;
+                    const cached = frameworkBundleCache.get(fullPath);
+                    let code;
+                    if (cached && cached.mtime === mtime) {
+                        code = cached.code;
+                    }
+                    else {
+                        const result = await esbuildBuild({
+                            entryPoints: [fullPath],
+                            bundle: true,
+                            format: 'esm',
+                            write: false,
+                            plugins: [novaPlugin],
+                            define: { 'process.env.NODE_ENV': '"development"' },
+                        });
+                        code = result.outputFiles[0].text;
+                        frameworkBundleCache.set(fullPath, { mtime, code });
+                    }
                     res.writeHead(200, { 'Content-Type': 'application/javascript' });
-                    res.end(result.outputFiles[0].text);
+                    res.end(code);
                     return;
                 }
             }
-            // 2. Handle TSX/TS files (Compilation & Bundling)
+            // 2. Handle TSX/TS files (Compilation & Bundling, cached by mtime)
             if (requestUrl.match(/\.(tsx?|ts)$/) || requestUrl === '/src/main.tsx') {
                 const fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
                 if (fs.existsSync(fullPath)) {
-                    const result = await esbuildBuild({
-                        entryPoints: [fullPath],
-                        bundle: true,
-                        format: 'esm',
-                        write: false,
-                        jsxFactory: 'createElement',
-                        jsxFragment: 'Fragment',
-                        plugins: [novaPlugin],
-                        define: { 'process.env.NODE_ENV': '"development"' },
-                    });
-                    let code = result.outputFiles[0].text;
-                    if (requestUrl.endsWith('main.tsx')) {
-                        code += `\nconsole.log("[HMR] Connected");
+                    const mtime = fs.statSync(fullPath).mtimeMs;
+                    const cached = tsxCompileCache.get(fullPath);
+                    let code;
+                    if (cached && cached.mtime === mtime) {
+                        // Cache hit — serve instantly without recompiling
+                        code = cached.code;
+                    }
+                    else {
+                        // Cache miss or file changed — compile and cache
+                        const result = await esbuildBuild({
+                            entryPoints: [fullPath],
+                            bundle: true,
+                            format: 'esm',
+                            write: false,
+                            jsxFactory: 'createElement',
+                            jsxFragment: 'Fragment',
+                            plugins: [novaPlugin],
+                            define: { 'process.env.NODE_ENV': '"development"' },
+                        });
+                        code = result.outputFiles[0].text;
+                        if (requestUrl.endsWith('main.tsx')) {
+                            code += `\nconsole.log("[HMR] Connected");
             const socket = new WebSocket('ws://' + location.host);
             socket.onmessage = (e) => {
               const data = JSON.parse(e.data);
               if (data.type === 'hmr:reload') location.reload();
               if (data.type === 'hmr:update') {
                 console.log("[HMR] Updating module:", data.moduleId);
-                // Implementation of hot swapping would go here
-                location.reload(); // Fallback for now
+                location.reload();
               }
             };`;
+                        }
+                        tsxCompileCache.set(fullPath, { mtime, code });
                     }
                     res.writeHead(200, { 'Content-Type': 'application/javascript' });
                     res.end(code);
@@ -229,7 +253,14 @@ async function dev(args) {
     watcher.watchDir(process.cwd(), (event, filename) => {
         console.log(`[HMR] File changed: ${filename}`);
         if (filename.endsWith('.tsx') || filename.endsWith('.ts')) {
-            hmrHandler.broadcastUpdate(filename, ''); // Signaling update
+            // Invalidate compile cache for the changed file
+            tsxCompileCache.delete(filename);
+            hmrHandler.broadcastUpdate(filename, '');
+        }
+        else if (filename.endsWith('.scss')) {
+            // Invalidate SCSS cache too
+            scssCache.delete(filename);
+            hmrHandler.broadcastReload();
         }
         else {
             hmrHandler.broadcastReload();
