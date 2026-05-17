@@ -4,12 +4,13 @@ import { WebSocketServer } from 'ws';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { context as esbuildContext } from 'esbuild';
+import { context as esbuildContext, transform as esbuildTransform } from 'esbuild';
 import { compile } from '@nova/compiler';
 import { Watcher, HMRHandler } from '@nova/server';
 const scssCache = new Map();
-// Persistent esbuild contexts for incremental builds.
-// Key: entry file path. ctx.rebuild() reuses the cached module graph — only changed files are reprocessed.
+// Per-file transpile cache (transpile-only mode — no bundling in dev)
+const transpileCache = new Map();
+// Persistent esbuild contexts for @nova/* framework packages (bundled once, kept alive)
 const esbuildContexts = new Map();
 async function incrementalBuild(entryPoint, buildOptions) {
     if (!esbuildContexts.has(entryPoint)) {
@@ -128,55 +129,142 @@ async function dev(args) {
                     return;
                 }
             }
-            // 2. Handle TSX/TS files (incremental esbuild context — only changed modules recompiled)
-            if (requestUrl.match(/\.(tsx?|ts)$/) || requestUrl === '/src/main.tsx') {
-                const fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
+            // 2. Handle TSX/TS files — transpile-only, per-file mtime cache, browser handles ESM imports
+            let fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
+            // Resolve extensionless imports (e.g. import './Counter' -> ./Counter.tsx)
+            if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+                if (fs.existsSync(fullPath + '.tsx'))
+                    fullPath += '.tsx';
+                else if (fs.existsSync(fullPath + '.ts'))
+                    fullPath += '.ts';
+                else if (fs.existsSync(fullPath + '/index.tsx'))
+                    fullPath += '/index.tsx';
+                else if (fs.existsSync(fullPath + '/index.ts'))
+                    fullPath += '/index.ts';
+            }
+            if (fullPath.match(/\.(tsx?|ts)$/) || requestUrl === '/src/main.tsx') {
                 if (fs.existsSync(fullPath)) {
-                    let code = await incrementalBuild(fullPath, {
-                        entryPoints: [fullPath],
-                        bundle: true,
+                    // Serve from cache if file unchanged
+                    const mtime = fs.statSync(fullPath).mtimeMs;
+                    const cached = transpileCache.get(fullPath);
+                    if (cached && cached.mtime === mtime) {
+                        res.writeHead(200, { 'Content-Type': 'application/javascript' });
+                        res.end(cached.code);
+                        return;
+                    }
+                    // Nova compiler pipeline (same logic as esbuild onLoad, but without bundling)
+                    let source = fs.readFileSync(fullPath, 'utf8');
+                    source = await pluginManager.runHook('beforeCompile', source, ctx);
+                    if (fullPath.endsWith('.tsx') && !source.includes('createElement') && !source.includes('Fragment')) {
+                        source = `import { createElement, Fragment } from '@nova/runtime';\n${source}`;
+                    }
+                    const isMain = fullPath.toLowerCase().endsWith('main.tsx');
+                    if (isMain) {
+                        const pages = scanPages(projectDir);
+                        const islands = scanIslands(projectDir);
+                        const customPipes = config.customPipes || [];
+                        const routeCode = pages.map(p => `router.registerRoute('${p.path}', () => import('${p.importPath}'), [${p.layouts.map((l) => `() => import('${l}')`).join(', ')}]);`).join('\n');
+                        const islandCode = islands.map((i) => `registerIsland('${i.name}', () => import('${i.importPath}'));`).join('\n');
+                        const pipeImports = customPipes.map(p => `import { ${p}Pipe } from './pipes/${p}';`).join('\n');
+                        const pipeCode = customPipes.map(p => `registerPipe(${p}Pipe);`).join('\n');
+                        const ensureImport = (pkg, id) => {
+                            const m = source.match(new RegExp(`import\\s+\\{([^}]*)\\}\\s+from\\s+['"]${pkg.replace('/', '\\/')}['"]`));
+                            if (m) {
+                                const ids = m[1].split(',').map((s) => s.trim());
+                                if (!ids.includes(id))
+                                    source = source.replace(m[0], `import { ${[...ids, id].join(', ')} } from '${pkg}'`);
+                            }
+                            else if (!source.includes(`'${pkg}'`) && !source.includes(`"${pkg}"`))
+                                source = `import { ${id} } from '${pkg}';\n${source}`;
+                        };
+                        ensureImport('@nova/router', 'router');
+                        ensureImport('@nova/islands', 'registerIsland');
+                        if (customPipes.length > 0) {
+                            ensureImport('@nova/signals', 'registerPipe');
+                            source = `${pipeImports}\n${source}`;
+                        }
+                        const injection = `\n// Auto-routing\n${routeCode}\n// Auto-islands\n${islandCode}\n// Auto-pipes\n${pipeCode}`;
+                        source = source.includes('router.init()') ? source.replace('router.init()', injection + '\nrouter.init()') : source + injection;
+                    }
+                    // Auto-inject custom pipe factories
+                    const customPipesAll = config.customPipes || [];
+                    if (customPipesAll.length > 0 && !isMain) {
+                        const pipesDir = path.join(projectDir, 'src', 'pipes');
+                        const fileDir = path.dirname(fullPath);
+                        const injections = [];
+                        for (const pipeName of customPipesAll) {
+                            if (!new RegExp(`\\b${pipeName}\\s*[\\(|]`).test(source) || source.includes(`_${pipeName}PipeDef`))
+                                continue;
+                            let rel = path.relative(fileDir, path.join(pipesDir, pipeName)).replace(/\\/g, '/');
+                            if (!rel.startsWith('.'))
+                                rel = `./${rel}`;
+                            injections.push(`import { ${pipeName}Pipe as _${pipeName}PipeDef } from '${rel}';`);
+                            injections.push(`const ${pipeName} = (...args: any[]) => (val: any) => _${pipeName}PipeDef.transform(val, ...args);`);
+                        }
+                        if (injections.length > 0)
+                            source = `// [Nova] Auto-injected pipes\n${injections.join('\n')}\n${source}`;
+                    }
+                    source = await pluginManager.runHook('transform', source, ctx);
+                    const compiled = await compile(source, { filename: fullPath, isDev: true, customPipes: config.customPipes });
+                    let code = compiled.code;
+                    code = await pluginManager.runHook('afterCompile', code, ctx);
+                    if (fullPath.endsWith('.tsx') && code.includes('resolvePipe') && !/import\s+{[^}]*\bresolvePipe\b/.test(code)) {
+                        code = `import { resolvePipe } from '@nova/signals';\n${code}`;
+                    }
+                    // Transpile TSX/TS → ESM JS (no bundling — browser handles module graph)
+                    const transpiled = await esbuildTransform(code, {
+                        loader: 'tsx',
                         format: 'esm',
                         jsxFactory: 'createElement',
                         jsxFragment: 'Fragment',
-                        plugins: [novaPlugin],
-                        define: { 'process.env.NODE_ENV': '"development"' },
+                        target: 'es2020',
+                        sourcefile: fullPath,
                     });
-                    if (requestUrl.endsWith('main.tsx') && !code.includes('[HMR] Connected')) {
-                        code += `\nconsole.log('[HMR] Connected');
-            const socket = new WebSocket('ws://' + location.host);
-            socket.onmessage = (e) => {
-              const data = JSON.parse(e.data);
-              if (data.type === 'hmr:reload') location.reload();
-              if (data.type === 'hmr:update') {
-                console.log('[HMR] Updating module:', data.moduleId);
-                location.reload();
-              }
-            };`;
+                    let js = transpiled.code;
+                    // Rewrite @nova/* → /@framework/@nova/* so browser ESM can load them
+                    js = js.replace(/(from\s+['"])@nova\//g, '$1/@framework/@nova/');
+                    js = js.replace(/(import\s+['"])@nova\//g, '$1/@framework/@nova/');
+                    if (isMain) {
+                        js += `\nconsole.log('[HMR] Connected');\nconst _hmrSock = new WebSocket('ws://' + location.host);\n_hmrSock.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'hmr:reload' || d.type === 'hmr:update') location.reload(); };`;
                     }
+                    transpileCache.set(fullPath, { mtime, code: js });
                     res.writeHead(200, { 'Content-Type': 'application/javascript' });
-                    res.end(code);
+                    res.end(js);
                     return;
                 }
             }
-            // 3. Handle SCSS compilation on the fly
-            if (requestUrl.endsWith('.scss')) {
+            // 3. Handle SCSS — cached via compileScssWithCache (mtime-based)
+            if (requestUrl.endsWith('.scss') || requestUrl.endsWith('.css')) {
                 const fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
                 if (fs.existsSync(fullPath)) {
                     try {
-                        const { execSync } = await import('child_process');
-                        console.log(`[nova/sass] Compiling ${requestUrl}...`);
-                        // Use npx -y sass to ensure it installs if missing without prompting
-                        const css = execSync(`npx -y sass "${fullPath}" --no-source-map`).toString();
-                        res.writeHead(200, { 'Content-Type': 'text/css' });
-                        res.end(css);
-                        return;
+                        const isScss = fullPath.endsWith('.scss');
+                        const css = isScss ? compileScssWithCache(fullPath) : fs.readFileSync(fullPath, 'utf8');
+                        // If requested via ES module import, return JS wrapper to satisfy strict MIME type
+                        const dest = req.headers['sec-fetch-dest'];
+                        if (dest === 'script' || dest === 'empty') {
+                            const js = `
+                if (typeof document !== 'undefined') {
+                  const style = document.createElement('style');
+                  style.setAttribute('data-nova-style', '${path.basename(fullPath)}');
+                  style.textContent = ${JSON.stringify(css)};
+                  document.head.appendChild(style);
+                }
+              `;
+                            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+                            res.end(js);
+                        }
+                        else {
+                            res.writeHead(200, { 'Content-Type': 'text/css' });
+                            res.end(css);
+                        }
                     }
                     catch (err) {
                         console.error('[nova/sass] Compilation failed:', err.message);
                         res.writeHead(500);
                         res.end(`SCSS Error: ${err.message}`);
-                        return;
                     }
+                    return;
                 }
             }
             // 4. Static Assets & SPA Fallback
@@ -235,23 +323,15 @@ async function dev(args) {
     });
     const watcher = new Watcher();
     watcher.watchDir(process.cwd(), (event, filename) => {
-        console.log(`[HMR] File changed: ${filename}`);
         if (filename.endsWith('.tsx') || filename.endsWith('.ts')) {
-            // Dispose the stale esbuild context so it rebuilds fresh on next request.
-            // esbuild's incremental context will pick up the changed file automatically
-            // since we dispose & recreate, ensuring no stale module graph.
-            if (esbuildContexts.has(filename)) {
-                esbuildContexts.get(filename).dispose();
-                esbuildContexts.delete(filename);
-            }
-            // Also invalidate main.tsx context since it bundles all app files
-            for (const [key, ctx] of esbuildContexts) {
-                if (key.endsWith('main.tsx')) {
-                    ctx.dispose();
-                    esbuildContexts.delete(key);
-                    break;
+            // Invalidate per-file transpile cache for changed file
+            transpileCache.delete(filename);
+            for (const key of transpileCache.keys()) {
+                if (key.replace(/\\/g, '/').endsWith(filename.replace(/\\/g, '/'))) {
+                    transpileCache.delete(key);
                 }
             }
+            console.log(`[HMR] ${path.basename(filename)} changed — cache cleared`);
             hmrHandler.broadcastUpdate(filename, '');
         }
         else if (filename.endsWith('.scss')) {
@@ -262,10 +342,17 @@ async function dev(args) {
             hmrHandler.broadcastReload();
         }
     });
-    server.listen(port, () => {
+    server.listen(port, async () => {
         console.log(`🚀 Nova dev server running on http://localhost:${port}`);
-        console.log('📝 Edit files to see changes instantly');
-        console.log('💫 HMR enabled for fast refresh');
+        // Pre-warm @nova/* framework bundles in background so first request is instant
+        const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms'];
+        const warmOpts = { bundle: true, format: 'esm', plugins: [novaPlugin], define: { 'process.env.NODE_ENV': '"development"' } };
+        const projectDir = process.cwd();
+        Promise.all(pkgs.map(pkg => {
+            const p = path.resolve(projectDir, `../packages/${pkg}/src/index.ts`);
+            return fs.existsSync(p) ? incrementalBuild(p, { entryPoints: [p], ...warmOpts }).catch(() => { }) : Promise.resolve();
+        })).then(() => console.log('✅ @nova/* packages pre-warmed'));
+        console.log('💫 Transpile-only mode — each file: ~5ms, F5: instant from cache');
     });
 }
 import { createBuilder } from '@nova/builder';
