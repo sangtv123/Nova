@@ -22,19 +22,16 @@ Nova Framework is a robust, production-ready frontend framework structured as a 
 ### 5. `@nova/router`
 - **Responsibility:** Pull-based dynamic router. Handles lazy-loaded ES module pages, automated layout wrapping, route protection guards, and seamless 404 fallbacks.
 
-### 6. `@nova/store`
-- **Responsibility:** Pinia-inspired global state management. Supports automated state persistence (`localStorage`), computed getters, and encapsulated mutation actions.
-
-### 7. `@nova/forms`
+### 6. `@nova/forms`
 - **Responsibility:** Form state and validation manager. Binds directly to DOM inputs via the `n-model` directive and manages real-time validation error tracking.
 
-### 8. `@nova/http`
+### 7. `@nova/http`
 - **Responsibility:** Reactive networking client. Features automatic retry logic, an in-memory LRU cache, and returns network responses directly wrapped as reactive signals.
 
-### 9. `@nova/server`
+### 8. `@nova/server`
 - **Responsibility:** Vite-like development server. Integrates real-time Hot Module Replacement (HMR) via WebSockets to instantly hot-swap TypeScript and SCSS changes without state loss.
 
-### 10. `@nova/cli` & `@nova/create-nova`
+### 9. `@nova/cli` & `@nova/create-nova`
 - **Responsibility:** Comprehensive developer tooling. Scaffolds new projects (`npm create nova`), launches the dev server (`nova dev`), and orchestrates optimized production builds complete with **Bundle Guard** size auditing (`nova build`).
 
 ---
@@ -42,7 +39,7 @@ Nova Framework is a robust, production-ready frontend framework structured as a 
 ## 🚀 Included Example Applications
 
 - **`examples/counter`**: A concise demonstration of signal reactivity and native DOM reconciliation.
-- **`examples/todo-app`**: A comprehensive, feature-rich application integrating Islands, Routing, Global State Store, and Form validation.
+- **`examples/todo-app`**: A comprehensive, feature-rich application integrating Islands, Routing, Signal Reactivity, and Form validation.
 
 ---
 

@@ -1,5 +1,6 @@
+/** @jsx createElement */
+import { createElement, inject, onMount } from '@nova/runtime';
 import { signal } from '@nova/signals';
-import { inject, onMount } from '@nova/runtime';
 import { registerIsland } from '@nova/islands';
 import { TodoService } from '../services/TodoService';
 
@@ -42,21 +43,25 @@ export function TodoIsland() {
       </div>
 
       <ul class="todo-list">
-        <li n-if={service.isEmpty} class="empty-state">
-          No quests found. Start by adding one!
-        </li>
+        {() => service.isEmpty.value && (
+          <li class="empty-state">
+            No quests found. Start by adding one!
+          </li>
+        )}
         
-        <li n-for="todo in service.todos" class={() => todo.completed ? 'completed' : ''} key={() => todo.id}>
-          <div class="todo-item">
-            <input 
-              type="checkbox" 
-              checked={() => todo.completed} 
-              onChange={() => service.toggleTodo(todo.id)} 
-            />
-            <span class="todo-text">{todo.text}</span>
-            <button class="btn-delete" aria-label="Delete quest" onClick={() => service.removeTodo(todo.id)}>×</button>
-          </div>
-        </li>
+        {() => service.todos.value.map(todo => (
+          <li class={() => todo.completed ? 'completed' : ''} key={todo.id}>
+            <div class="todo-item">
+              <input 
+                type="checkbox" 
+                checked={() => todo.completed} 
+                onChange={() => service.toggleTodo(todo.id)} 
+              />
+              <span class="todo-text">{todo.text}</span>
+              <button class="btn-delete" aria-label="Delete quest" onClick={() => service.removeTodo(todo.id)}>×</button>
+            </div>
+          </li>
+        ))}
       </ul>
     </div>
   );

@@ -15,6 +15,8 @@ import {
   reverse,
   truncate
 } from '@nova/signals';
+import { mask } from '../pipes/mask';
+import { exclaim } from '../pipes/exclaim';
 
 export function PipesDemoIsland() {
   const textInput = signal('hello nova framework');
@@ -237,14 +239,14 @@ export function PipesDemoIsland() {
           </p>
           <div style="font-size: 0.95rem; line-height: 1.8;">
             <div><strong>Original Input:</strong> {() => textInput.value}</div>
-            <div><strong>Direct Uppercase:</strong> <span style="color: #10B981; font-weight: bold;">{textInput | uppercase}</span></div>
-            <div><strong>Direct Titlecase:</strong> <span style="color: #FBBF24; font-weight: bold;">{textInput | titlecase}</span></div>
-            <div><strong>Direct Slice (0-10):</strong> <span style="color: #F472B6; font-weight: bold;">{textInput | slice:'0:10'}</span></div>
-            <div><strong>Direct Currency:</strong> <span style="color: #F59E0B; font-weight: bold;">{priceInput | currency}</span></div>
-            <div><strong>Direct Decimal (1.2-3):</strong> <span style="color: #34D399; font-weight: bold;">{decimalInput | decimal:'1.2-3'}</span></div>
-            <div><strong>Direct Percent (1.1-2):</strong> <span style="color: #60A5FA; font-weight: bold;">{percentInput | percent:'1.1-2'}</span></div>
-            <div><strong>Direct Reverse (Preprocessed Custom!):</strong> <span style="color: #A78BFA; font-weight: bold;">{textInput | reverse}</span></div>
-            <div><strong>Direct Truncate (Preprocessed Custom!):</strong> <span style="color: #FBBF24; font-weight: bold;">{textInput | truncate:8:'...'}</span></div>
+            <div><strong>Direct Uppercase:</strong> <span style="color: #10B981; font-weight: bold;">{textInput.pipe(uppercase)}</span></div>
+            <div><strong>Direct Titlecase:</strong> <span style="color: #FBBF24; font-weight: bold;">{textInput.pipe(titlecase)}</span></div>
+            <div><strong>Direct Slice (0-10):</strong> <span style="color: #F472B6; font-weight: bold;">{textInput.pipe(slice(0, 10))}</span></div>
+            <div><strong>Direct Currency:</strong> <span style="color: #F59E0B; font-weight: bold;">{priceInput.pipe(currency('$', 2))}</span></div>
+            <div><strong>Direct Decimal (1.2-3):</strong> <span style="color: #34D399; font-weight: bold;">{decimalInput.pipe(decimal('1.2-3'))}</span></div>
+            <div><strong>Direct Percent (1.1-2):</strong> <span style="color: #60A5FA; font-weight: bold;">{percentInput.pipe(percent('1.1-2'))}</span></div>
+            <div><strong>Direct Reverse (Preprocessed Custom!):</strong> <span style="color: #A78BFA; font-weight: bold;">{textInput.pipe(reverse)}</span></div>
+            <div><strong>Direct Truncate (Preprocessed Custom!):</strong> <span style="color: #FBBF24; font-weight: bold;">{textInput.pipe(truncate(8, '...'))}</span></div>
             
             <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 0.75rem; padding-top: 0.75rem;">
               <span style="font-weight: bold; color: var(--accent-light); display: block; margin-bottom: 0.25rem;">
