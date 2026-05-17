@@ -1,6 +1,6 @@
 import { signal, Signal, computed } from '@nova/signals';
 
-export type Validator<T> = (value: T) => string | null | boolean;
+export type Validator<T> = (value: T) => string | null | boolean | Promise<string | null | boolean>;
 
 export interface ValidationRule<T> {
   name: string;
@@ -16,55 +16,108 @@ export interface FormControl<T> {
   isValid: Signal<boolean>;
   isValidating: Signal<boolean>;
   validate: () => Promise<boolean>;
+  reset: () => void;
+  markAsTouched: () => void;
+  markAsDirty: () => void;
+  setValue: (val: T, options?: { validate?: boolean; dirty?: boolean }) => void;
 }
 
 /**
- * Built-in validators
+ * Built-in validators covering comprehensive form use cases
  */
 export const Validators = {
   required: (msg = 'This field is required'): ValidationRule<any> => ({
     name: 'required',
-    validate: (val) => (val != null && val !== '' && val !== false) ? null : msg
+    validate: (val) => {
+      if (val === null || val === undefined) return msg;
+      if (typeof val === 'string' && val.trim() === '') return msg;
+      if (Array.isArray(val) && val.length === 0) return msg;
+      return null;
+    }
   }),
-  email: (msg = 'Invalid email address'): ValidationRule<string> => ({
+  requiredTrue: (msg = 'This field must be checked/true'): ValidationRule<any> => ({
+    name: 'requiredTrue',
+    validate: (val) => val === true ? null : msg
+  }),
+  email: (msg = 'Invalid email address'): ValidationRule<any> => ({
     name: 'email',
-    validate: (val) => (typeof val === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) ? null : msg
+    validate: (val) => {
+      if (val === null || val === undefined || val === '') return null; // Optional behavior unless required
+      return (typeof val === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) ? null : msg;
+    }
   }),
-  minLength: (min: number, msg?: string): ValidationRule<string> => ({
+  minLength: (min: number, msg?: string): ValidationRule<any> => ({
     name: 'minLength',
-    validate: (val) => (val != null && (typeof val === 'string' || Array.isArray(val)) && val.length >= min) ? null : (msg || `Minimum length is ${min}`)
+    validate: (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      return ((typeof val === 'string' || Array.isArray(val)) && val.length >= min) ? null : (msg || `Minimum length is ${min}`);
+    }
+  }),
+  maxLength: (max: number, msg?: string): ValidationRule<any> => ({
+    name: 'maxLength',
+    validate: (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      return ((typeof val === 'string' || Array.isArray(val)) && val.length <= max) ? null : (msg || `Maximum length is ${max}`);
+    }
+  }),
+  min: (min: number, msg?: string): ValidationRule<any> => ({
+    name: 'min',
+    validate: (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      const num = Number(val);
+      return (!isNaN(num) && num >= min) ? null : (msg || `Minimum value is ${min}`);
+    }
+  }),
+  max: (max: number, msg?: string): ValidationRule<any> => ({
+    name: 'max',
+    validate: (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      const num = Number(val);
+      return (!isNaN(num) && num <= max) ? null : (msg || `Maximum value is ${max}`);
+    }
+  }),
+  pattern: (regex: RegExp, msg = 'Invalid format'): ValidationRule<any> => ({
+    name: 'pattern',
+    validate: (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      return (typeof val === 'string' && regex.test(val)) ? null : msg;
+    }
   })
 };
 
 /**
- * useForm Hook - Final Giai đoạn 3 Version
+ * useForm Hook - Robust Form Validation & Management System
  */
 export function useForm<T extends Record<string, any>>(
   initialValues: T,
   schema: Partial<Record<keyof T, (ValidationRule<any> | Validator<any>)[] | (ValidationRule<any> | Validator<any>)>> = {}
 ) {
+  const currentInitialValues = { ...initialValues };
+  const currentSchema = { ...schema } as Record<string, any>;
   const controls = {} as Record<keyof T, FormControl<any>>;
+  const controlsVersion = signal(0); // Bumped on structure change
   const isSubmitting = signal(false);
   const isValidating = signal(false);
 
-  for (const key in initialValues) {
-    const s = signal(initialValues[key]);
+  const createControl = (key: string, initialVal: any): FormControl<any> => {
+    const s = signal(initialVal);
     const error = signal<string | null>(null);
     const isDirty = signal(false);
     const isTouched = signal(false);
     const isValid = signal(true);
     const controlValidating = signal(false);
 
-    const validate = async () => {
-      const rules = schema[key];
+    const validate = async (): Promise<boolean> => {
+      const rules = currentSchema[key];
       if (rules) {
         controlValidating.value = true;
         isValidating.value = true;
         try {
           const rulesArray = Array.isArray(rules) ? rules : [rules];
           for (const rule of rulesArray) {
-            // Support both ValidationRule objects and simple Validator functions
+            if (!rule) continue;
             const validateFn = typeof rule === 'function' ? rule : rule.validate;
+            if (typeof validateFn !== 'function') continue;
             const result = await validateFn(s.value);
             
             if (result && typeof result === 'string') {
@@ -72,7 +125,7 @@ export function useForm<T extends Record<string, any>>(
               isValid.value = false;
               return false;
             } else if (result === false) {
-              error.value = 'Invalid value';
+              error.value = typeof rule === 'object' && rule.message ? rule.message : 'Invalid value';
               isValid.value = false;
               return false;
             }
@@ -87,37 +140,107 @@ export function useForm<T extends Record<string, any>>(
       return true;
     };
 
-    controls[key] = {
+    const reset = () => {
+      s.value = key in currentInitialValues ? currentInitialValues[key] : initialVal;
+      isDirty.value = false;
+      isTouched.value = false;
+      error.value = null;
+      isValid.value = true;
+      controlValidating.value = false;
+    };
+
+    const markAsTouched = () => {
+      isTouched.value = true;
+      validate();
+    };
+
+    const markAsDirty = () => {
+      isDirty.value = true;
+    };
+
+    const setValue = (val: any, options: { validate?: boolean; dirty?: boolean } = {}) => {
+      s.value = val;
+      if (options.dirty !== false) isDirty.value = true;
+      if (options.validate !== false) validate();
+    };
+
+    return {
       value: s,
       error,
       isDirty,
       isTouched,
       isValid,
       isValidating: controlValidating,
-      validate
+      validate,
+      reset,
+      markAsTouched,
+      markAsDirty,
+      setValue
     };
+  };
+
+  for (const key in currentInitialValues) {
+    controls[key] = createControl(key, currentInitialValues[key]);
   }
 
+  // Dynamic values and errors objects kept in sync with controls
+  const values = {} as Record<keyof T, Signal<any>>;
+  const errors = {} as Record<keyof T, Signal<string | null>>;
+
+  const syncValuesAndErrors = () => {
+    for (const key of Object.keys(values)) {
+      if (!(key in controls)) {
+        delete (values as any)[key];
+        delete (errors as any)[key];
+      }
+    }
+    for (const key in controls) {
+      (values as any)[key] = controls[key].value;
+      (errors as any)[key] = controls[key].error;
+    }
+    controlsVersion.value++;
+  };
+
+  syncValuesAndErrors();
+
   const isFormValid = computed(() => {
+    controlsVersion.value; // Track control structure changes
     return Object.values(controls).every(c => c.isValid.value);
   });
 
-  const handleSubmit = (callback: (values: T) => Promise<void> | void) => {
-    return async (e: Event) => {
-      e.preventDefault();
+  const isFormDirty = computed(() => {
+    controlsVersion.value;
+    return Object.values(controls).some(c => c.isDirty.value);
+  });
+
+  const isFormTouched = computed(() => {
+    controlsVersion.value;
+    return Object.values(controls).some(c => c.isTouched.value);
+  });
+
+  const handleSubmit = (callback: (values: T, e?: Event) => Promise<void> | void) => {
+    return async (e?: Event) => {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
       
       isSubmitting.value = true;
       try {
+        // Mark all fields as touched prior to validation so UI errors immediately appear
+        for (const key in controls) {
+          controls[key].isTouched.value = true;
+        }
+
         // Run all validations in parallel
         const results = await Promise.all(Object.values(controls).map(c => c.validate()));
         const allValid = results.every(r => r === true);
         
         if (allValid) {
-          const values = {} as T;
+          const formValues = {} as T;
           for (const key in controls) {
-            values[key] = controls[key].value.value;
+            formValues[key] = controls[key].value.value;
           }
-          await callback(values);
+          await callback(formValues, e);
         }
       } finally {
         isSubmitting.value = false;
@@ -125,23 +248,98 @@ export function useForm<T extends Record<string, any>>(
     };
   };
 
-  const register = (key: keyof T) => {
+  const register = (key: keyof T, options: { validateOnInput?: boolean; validateOnBlur?: boolean } = {}) => {
     const control = controls[key];
+    if (!control) {
+      throw new Error(`FormControl for key "${String(key)}" does not exist.`);
+    }
+    const { validateOnInput = true, validateOnBlur = true } = options;
+
     return {
+      name: key as string,
       value: () => control.value.value,
       onInput: (e: any) => {
+        if (!e || !e.target) return;
         const target = e.target;
-        const val = target.type === 'checkbox' ? target.checked : target.value;
+        let val = target.type === 'checkbox' ? target.checked : target.value;
+        if (target.type === 'number' && val !== '') {
+          const num = Number(val);
+          if (!isNaN(num)) val = num;
+        } else if (target.multiple && target.options) {
+          val = Array.from(target.selectedOptions)
+            .filter((o: any) => o.selected)
+            .map((o: any) => o.value);
+        }
         control.value.value = val;
         control.isDirty.value = true;
-        // Debounced or immediate validation can be chosen here
-        control.validate();
+        if (validateOnInput) {
+          control.validate();
+        }
       },
       onBlur: () => {
         control.isTouched.value = true;
-        control.validate();
+        if (validateOnBlur) {
+          control.validate();
+        }
       }
     };
+  };
+
+  const setFieldValue = (key: keyof T, value: any, shouldValidate = true) => {
+    const control = controls[key];
+    if (control) {
+      control.setValue(value, { validate: shouldValidate, dirty: true });
+    }
+  };
+
+  const setError = (key: keyof T, errorMessage: string | null) => {
+    const control = controls[key];
+    if (control) {
+      control.error.value = errorMessage;
+      control.isValid.value = !errorMessage;
+    }
+  };
+
+  const markAsTouched = (key: keyof T) => {
+    const control = controls[key];
+    if (control) {
+      control.markAsTouched();
+    }
+  };
+
+  const markAllAsTouched = () => {
+    for (const key in controls) {
+      controls[key].markAsTouched();
+    }
+  };
+
+  const addControl = (key: string, initialVal: any, rules?: (ValidationRule<any> | Validator<any>)[] | (ValidationRule<any> | Validator<any>)) => {
+    if (controls[key as keyof T]) return;
+    (currentInitialValues as any)[key] = initialVal;
+    if (rules) {
+      currentSchema[key] = rules;
+    }
+    controls[key as keyof T] = createControl(key, initialVal);
+    syncValuesAndErrors();
+  };
+
+  const removeControl = (key: string) => {
+    if (!controls[key as keyof T]) return;
+    delete (currentInitialValues as any)[key];
+    delete currentSchema[key];
+    delete controls[key as keyof T];
+    syncValuesAndErrors();
+  };
+
+  const reset = (newInitialValues?: Partial<T>) => {
+    if (newInitialValues) {
+      Object.assign(currentInitialValues, newInitialValues);
+    }
+    for (const key in controls) {
+      controls[key].reset();
+    }
+    isSubmitting.value = false;
+    isValidating.value = false;
   };
 
   return {
@@ -149,18 +347,18 @@ export function useForm<T extends Record<string, any>>(
     isSubmitting,
     isValidating,
     isFormValid,
+    isFormDirty,
+    isFormTouched,
     handleSubmit,
     register,
-    reset: () => {
-      for (const key in initialValues) {
-        controls[key].value.value = initialValues[key];
-        controls[key].isDirty.value = false;
-        controls[key].isTouched.value = false;
-        controls[key].error.value = null;
-      }
-    },
-    // Backward compatibility
-    values: Object.fromEntries(Object.entries(controls).map(([k, v]) => [k, v.value])) as Record<keyof T, Signal<any>>,
-    errors: Object.fromEntries(Object.entries(controls).map(([k, v]) => [k, v.error])) as Record<keyof T, Signal<string | null>>
+    setFieldValue,
+    setError,
+    markAsTouched,
+    markAllAsTouched,
+    addControl,
+    removeControl,
+    reset,
+    values,
+    errors
   };
 }

@@ -213,7 +213,8 @@ async function dev(args: string[]) {
             const fileDir = path.dirname(fullPath);
             const injections: string[] = [];
             for (const pipeName of customPipesAll) {
-              if (!new RegExp(`\\b${pipeName}\\s*[\\(|]`).test(source) || source.includes(`_${pipeName}PipeDef`)) continue;
+              const hasImportOrDecl = new RegExp(`\\bimport\\s+(?:\\{[^}]*\\b${pipeName}\\b[^}]*\\}|${pipeName})\\s+from|\\b(?:const|let|var|function)\\s+${pipeName}\\b`).test(source);
+              if (!new RegExp(`\\b${pipeName}\\s*[\\(|]`).test(source) || source.includes(`_${pipeName}PipeDef`) || hasImportOrDecl) continue;
               let rel = path.relative(fileDir, path.join(pipesDir, pipeName)).replace(/\\/g, '/');
               if (!rel.startsWith('.')) rel = `./${rel}`;
               injections.push(`import { ${pipeName}Pipe as _${pipeName}PipeDef } from '${rel}';`);
@@ -604,7 +605,8 @@ export function createNovaPlugin(pluginManager: PluginManager, ctx: PluginContex
               // and hasn't already imported it from the pipes directory.
               const isUsed = new RegExp(`\\b${pipeName}\\s*[\\(|]`).test(source);
               const alreadyImported = source.includes(`_${pipeName}PipeDef`);
-              if (!isUsed || alreadyImported) continue;
+              const hasImportOrDecl = new RegExp(`\\bimport\\s+(?:\\{[^}]*\\b${pipeName}\\b[^}]*\\}|${pipeName})\\s+from|\\b(?:const|let|var|function)\\s+${pipeName}\\b`).test(source);
+              if (!isUsed || alreadyImported || hasImportOrDecl) continue;
 
               let relPath = path.relative(fileDir, path.join(pipesDir, pipeName)).replace(/\\/g, '/');
               if (!relPath.startsWith('.')) relPath = `./${relPath}`;
