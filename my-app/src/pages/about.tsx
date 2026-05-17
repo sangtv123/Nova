@@ -1,4 +1,5 @@
 import { ContactIsland } from '../islands/ContactIsland';
+import { PipesDemoIsland } from '../islands/PipesDemoIsland';
 
 export function AboutPage() {
   return (
@@ -24,6 +25,10 @@ export function AboutPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section class="content-section">
+        <PipesDemoIsland />
       </section>
 
       <section class="content-section">

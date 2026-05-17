@@ -1,3 +1,4 @@
+export * from './pipes.js';
 /**
  * Global execution context for dependency tracking
  */
@@ -59,6 +60,12 @@ export function signal(initialValue) {
         getSubscribers() {
             return subs;
         },
+        /**
+         * Chain synchronous transformation pipes to return a new computed signal
+         */
+        pipe(...fns) {
+            return computed(() => fns.reduce((val, fn) => fn(val), sig.value));
+        },
     };
     return sig;
 }
@@ -108,6 +115,12 @@ export function computed(fn) {
         },
         getSubscribers() {
             return internalSubs;
+        },
+        /**
+         * Chain synchronous transformation pipes to return a new computed signal
+         */
+        pipe(...fns) {
+            return computed(() => fns.reduce((val, fn) => fn(val), sig.value));
         },
     };
     return sig;
@@ -344,6 +357,9 @@ export function memoSignal(initialValue) {
         },
         getSubscribers() {
             return inner.getSubscribers();
+        },
+        pipe(...fns) {
+            return computed(() => fns.reduce((val, fn) => fn(val), inner.value));
         },
     };
 }

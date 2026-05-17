@@ -6,6 +6,7 @@ export interface CompilerOptions {
     filename: string;
     isSSR?: boolean;
     isDev?: boolean;
+    customPipes?: string[];
 }
 export interface CompileResult {
     code: string;
@@ -50,6 +51,11 @@ export declare function transformOptimizedJSX(sourceFile: ts.SourceFile, origina
  * Generate the final module code.
  */
 export declare function generateDOMOps(optimized: HoistResult, originalCode: string): string;
+/**
+ * Preprocesses JSX/TSX curly brace expressions to compile Angular-style pipes:
+ * `{ expression | pipe:arg1:arg2 }` compiles to `{ () => expression.pipe(pipe(arg1, arg2)) }`
+ */
+export declare function preprocessPipes(code: string, customPipes?: string[]): string;
 /**
  * Full compilation pipeline:
  */

@@ -1,5 +1,7 @@
 import type { Signal, Effect, Subscriber } from './types.js';
 export type { Signal, Effect, Subscriber };
+export * from './pipes.js';
+
 
 // Extended Effect interface with dep-tracking support (internal)
 interface TrackedEffect extends Effect {
@@ -71,6 +73,13 @@ export function signal<T>(initialValue: T): Signal<T> {
     getSubscribers(): Set<Subscriber> {
       return subs;
     },
+
+    /**
+     * Chain synchronous transformation pipes to return a new computed signal
+     */
+    pipe(...fns: Array<(v: any) => any>): Signal<any> {
+      return computed(() => fns.reduce((val, fn) => fn(val), sig.value));
+    },
   };
 
   return sig;
@@ -128,6 +137,13 @@ export function computed<T>(fn: () => T): Signal<T> {
 
     getSubscribers(): Set<Subscriber> {
       return internalSubs;
+    },
+
+    /**
+     * Chain synchronous transformation pipes to return a new computed signal
+     */
+    pipe(...fns: Array<(v: any) => any>): Signal<any> {
+      return computed(() => fns.reduce((val, fn) => fn(val), sig.value));
     },
   };
 
@@ -382,6 +398,9 @@ export function memoSignal<T>(initialValue: T): Signal<T> {
     },
     getSubscribers(): Set<Subscriber> {
       return inner.getSubscribers();
+    },
+    pipe(...fns: Array<(v: any) => any>): Signal<any> {
+      return computed(() => fns.reduce((val, fn) => fn(val), inner.value));
     },
   };
 }

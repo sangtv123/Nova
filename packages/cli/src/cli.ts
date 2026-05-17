@@ -97,7 +97,7 @@ import { loadConfig } from './config.js';
 import { PluginManager, PluginContext } from '@nova/plugins';
 
 async function dev(args: string[]) {
-  const config = loadConfig();
+  const config = await loadConfig();
   const port = config.server?.port || parseInt(args[0] || '3000');
   const middlewares = config.server?.middlewares || [];
   
@@ -217,7 +217,12 @@ async function dev(args: string[]) {
           '.json': 'application/json'
         };
         res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
-        res.end(fs.readFileSync(filePath));
+        
+        let content = fs.readFileSync(filePath, 'utf8');
+        if (filePath.endsWith('index.html')) {
+          content = await pluginManager.runHook('afterSSR', content, ctx);
+        }
+        res.end(content);
         return;
       }
 
@@ -271,12 +276,15 @@ import { createBuilder } from '@nova/builder';
 
 async function build(args: string[]) {
   console.log('📦 Building Nova app...');
-  const config = loadConfig();
+  const config = await loadConfig();
   const pluginManager = new PluginManager();
   (config.plugins || []).forEach((p: any) => pluginManager.use(p));
   const ctx: PluginContext = { env: 'prod', command: 'build', config };
   
   try {
+    // Kích hoạt hook beforeBuild trước khi build
+    await pluginManager.runHook('beforeBuild', ctx);
+
     const builder = createBuilder({
       entry: path.join(process.cwd(), 'src/main.tsx'),
       outDir: path.join(process.cwd(), 'dist'),
@@ -292,6 +300,10 @@ async function build(args: string[]) {
       let html = fs.readFileSync(indexPath, 'utf8');
       html = html.replace('/src/main.tsx', '/main.js');
       html = html.replace('/src/styles.scss', '/styles.css');
+      
+      // Chạy afterSSR hooks khi biên dịch/đóng gói index.html
+      html = await pluginManager.runHook('afterSSR', html, ctx);
+
       fs.writeFileSync(path.join(process.cwd(), 'dist', 'index.html'), html);
     }
     
@@ -309,6 +321,9 @@ async function build(args: string[]) {
       const css = compileScssWithCache(stylesPath);
       fs.writeFileSync(path.join(process.cwd(), 'dist', 'styles.css'), css);
     }
+
+    // Kích hoạt hook afterBuild sau khi build xong
+    await pluginManager.runHook('afterBuild', ctx);
 
     console.log('✅ Build complete. You can serve the app using: npx serve dist');
   } catch (err) {
@@ -397,6 +412,14 @@ export function createNovaPlugin(pluginManager: PluginManager, ctx: PluginContex
           const islandCode = islands
             .map(i => `registerIsland('${i.name}', () => import('${i.importPath}'));`)
             .join('\n');
+
+          const customPipes: string[] = ctx.config.customPipes || [];
+          const pipeImports = customPipes
+            .map(p => `import { ${p}Pipe } from './pipes/${p}';`)
+            .join('\n');
+          const pipeCode = customPipes
+            .map(p => `registerPipe(${p}Pipe);`)
+            .join('\n');
           
           // Robust import injection for main.tsx
           const ensureImport = (pkg: string, identifier: string) => {
@@ -416,22 +439,35 @@ export function createNovaPlugin(pluginManager: PluginManager, ctx: PluginContex
 
           ensureImport('@nova/router', 'router');
           ensureImport('@nova/islands', 'registerIsland');
+          if (customPipes.length > 0) {
+            ensureImport('@nova/signals', 'registerPipe');
+            source = `${pipeImports}\n${source}`;
+          }
 
           if (source.includes('router.init()')) {
-            source = source.replace('router.init()', `\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}\n\nrouter.init()`);
+            source = source.replace('router.init()', `\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}\n\n// Auto-pipes\n${pipeCode}\n\nrouter.init()`);
           } else {
-            source += `\n\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}`;
+            source += `\n\n// Auto-routing\n${routeCode}\n\n// Auto-islands\n${islandCode}\n\n// Auto-pipes\n${pipeCode}`;
           }
         }
 
         // 2. Run transform hooks
         source = await pluginManager.runHook('transform', source, ctx);
 
-        const compiled = await compile(source, { filename: args.path, isDev: ctx.env === 'dev' });
+        const compiled = await compile(source, { 
+          filename: args.path, 
+          isDev: ctx.env === 'dev',
+          customPipes: ctx.config.customPipes
+        });
         
         // 3. Run afterCompile hooks
         let code = compiled.code;
         code = await pluginManager.runHook('afterCompile', code, ctx);
+
+        // Auto-inject resolvePipe import from @nova/signals if custom pipes are resolved at runtime
+        if (args.path.endsWith('.tsx') && code.includes('resolvePipe') && !/import\s+{[^}]*\bresolvePipe\b[^}]*}\s+from\s+['"]@nova\/signals['"]/.test(code)) {
+          code = `import { resolvePipe } from '@nova/signals';\n${code}`;
+        }
 
         return { contents: code, loader: 'tsx' };
       });

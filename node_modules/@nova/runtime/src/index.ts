@@ -539,13 +539,17 @@ export function createElement(
 
   for (const child of flatChildren(children)) {
     if (child != null) {
-      if (typeof child === 'function') {
+      const isSignal = child && typeof child === 'object' && 'value' in child && typeof (child as any).getSubscribers === 'function';
+      if (typeof child === 'function' || isSignal) {
         const marker = document.createTextNode('');
         el.appendChild(marker);
         let currentNodes: Node[] = [];
 
         const dispose = domEffect(() => {
-          let val = child();
+          let val = isSignal ? (child as any).value : child();
+          if (val && typeof val === 'object' && 'value' in val && typeof (val as any).getSubscribers === 'function') {
+            val = (val as any).value;
+          }
           if (val === null || val === undefined || val === false) val = '';
 
           const newNodes: Node[] = [];

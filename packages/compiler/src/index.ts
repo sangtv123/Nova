@@ -7,6 +7,7 @@ export interface CompilerOptions {
   filename: string;
   isSSR?: boolean;
   isDev?: boolean;
+  customPipes?: string[];
 }
 
 export interface CompileResult {
@@ -411,18 +412,124 @@ export function generateDOMOps(optimized: HoistResult, originalCode: string): st
 }
 
 /**
+ * Preprocesses JSX/TSX curly brace expressions to compile Angular-style pipes:
+ * `{ expression | pipe:arg1:arg2 }` compiles to `{ () => expression.pipe(pipe(arg1, arg2)) }`
+ */
+export function preprocessPipes(code: string, customPipes: string[] = []): string {
+  const KNOWN_PIPES = [
+    'uppercase', 'lowercase', 'titlecase', 'keyvalue', 'async', 'asyncPipe', 
+    'currency', 'date', 'json', 'defaultVal', 'decimal', 'percent', 'slice',
+    'reverse', 'truncate',
+    ...customPipes
+  ];
+
+  return code.replace(/\{([^}]+)\}/g, (match, expression) => {
+    // Avoid double braces like style={{ ... }}
+    if (expression.startsWith('{') && expression.endsWith('}')) return match;
+    if (!expression.includes('|')) return match;
+
+    const parts = expression.split('|').map((s: string) => s.trim());
+    if (parts.length < 2) return match;
+
+    // Check if all RHS parts are actually known pipes to prevent bitwise OR confusion
+    let hasPipes = true;
+    for (let i = 1; i < parts.length; i++) {
+      const pipePart = parts[i];
+      const colonIndex = pipePart.indexOf(':');
+      const pipeName = colonIndex === -1 ? pipePart : pipePart.substring(0, colonIndex).trim();
+      if (!KNOWN_PIPES.includes(pipeName)) {
+        hasPipes = false;
+        break;
+      }
+    }
+
+    if (!hasPipes) return match;
+
+    const BUILTIN_PIPES = [
+      'uppercase', 'lowercase', 'titlecase', 'keyvalue', 'async', 'asyncPipe', 
+      'currency', 'date', 'json', 'defaultVal', 'decimal', 'percent', 'slice',
+      'reverse', 'truncate'
+    ];
+
+    let result = parts[0];
+
+    for (let i = 1; i < parts.length; i++) {
+      const pipePart = parts[i];
+      const colonIndex = pipePart.indexOf(':');
+      
+      if (colonIndex === -1) {
+        const pipeName = pipePart;
+        const isBuiltin = BUILTIN_PIPES.includes(pipeName);
+        
+        if (isBuiltin) {
+          const directPipes = ['uppercase', 'lowercase', 'titlecase', 'keyvalue', 'async', 'asyncPipe', 'reverse'];
+          if (directPipes.includes(pipeName)) {
+            result = `${result}.pipe(${pipeName})`;
+          } else {
+            result = `${result}.pipe(${pipeName}())`;
+          }
+        } else {
+          result = `${result}.pipe(resolvePipe('${pipeName}')())`;
+        }
+      } else {
+        const pipeName = pipePart.substring(0, colonIndex).trim();
+        const argsStr = pipePart.substring(colonIndex + 1);
+        
+        const args: string[] = [];
+        let currentArg = '';
+        let inString = false;
+        let stringChar = '';
+
+        for (let j = 0; j < argsStr.length; j++) {
+          const char = argsStr[j];
+          if ((char === "'" || char === '"' || char === '`') && argsStr[j - 1] !== '\\') {
+            if (!inString) {
+              inString = true;
+              stringChar = char;
+            } else if (char === stringChar) {
+              inString = false;
+            }
+            currentArg += char;
+          } else if (char === ':' && !inString) {
+            args.push(currentArg.trim());
+            currentArg = '';
+          } else {
+            currentArg += char;
+          }
+        }
+        if (currentArg.trim()) {
+          args.push(currentArg.trim());
+        }
+
+        const formattedArgs = args.join(', ');
+        const isBuiltin = BUILTIN_PIPES.includes(pipeName);
+        
+        if (isBuiltin) {
+          result = `${result}.pipe(${pipeName}(${formattedArgs}))`;
+        } else {
+          result = `${result}.pipe(resolvePipe('${pipeName}')(${formattedArgs}))`;
+        }
+      }
+    }
+
+    return `{() => ${result}.value}`;
+  });
+}
+
+/**
  * Full compilation pipeline:
  */
 export async function compile(
   code: string,
   options: CompilerOptions
 ): Promise<CompileResult> {
-  const sourceFile = parseTSX(code, options.filename);
+  const preprocessedCode = preprocessPipes(code, options.customPipes);
+  const sourceFile = parseTSX(preprocessedCode, options.filename);
   const signals = detectSignals(sourceFile);
   const islands = detectIslands(sourceFile);
 
-  const optimized = transformOptimizedJSX(sourceFile, code);
-  const generatedCode = generateDOMOps(optimized, code);
+  const optimized = transformOptimizedJSX(sourceFile, preprocessedCode);
+  const generatedCode = generateDOMOps(optimized, preprocessedCode);
   const hoistedCount = (optimized.hoisted).length;
 
   if (options.isDev && hoistedCount > 0) {

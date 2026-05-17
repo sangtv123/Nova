@@ -1,5 +1,6 @@
 import type { Signal, Effect, Subscriber } from './types.js';
 export type { Signal, Effect, Subscriber };
+export * from './pipes.js';
 /**
  * Create a reactive signal with initial value
  * Tracks all dependent effects and computed values

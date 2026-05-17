@@ -1,0 +1,2394 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova Audit Report - Bundle Guard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d13;
+      --card-bg: rgba(255, 255, 255, 0.02);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f3f4f6;
+      --primary: #8b5cf6;
+      --primary-gradient: linear-gradient(135deg, #a78bfa, #8b5cf6, #3b82f6);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', 'Inter', sans-serif;
+      margin: 0;
+      padding: 3rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 1100px;
+      width: 100%;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 4rem;
+      position: relative;
+    }
+    .header h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin: 0;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1.5px;
+    }
+    .header p {
+      color: #9ca3af;
+      margin-top: 0.8rem;
+      font-size: 1.2rem;
+      font-weight: 300;
+    }
+    .summary-card {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(59, 130, 246, 0.08));
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin-bottom: 3.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      backdrop-filter: blur(12px);
+      gap: 2rem;
+    }
+    .summary-info h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+    }
+    .summary-info p {
+      color: #9ca3af;
+      margin: 0;
+      font-size: 1rem;
+    }
+    .summary-stats {
+      display: flex;
+      gap: 3rem;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    .stat-lbl {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.8rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.8rem;
+      backdrop-filter: blur(8px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+    }
+    .card.pass::before { background: var(--success); }
+    .card.warn::before { background: var(--warning); }
+    .card.fail::before { background: var(--error); }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      word-break: break-all;
+      color: #e5e7eb;
+    }
+    .card-size {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 0.5rem 0 1.2rem 0;
+    }
+    .card-meta {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge.pass { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+    .badge.warn { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+    .badge.fail { background: rgba(239, 68, 68, 0.12); color: var(--error); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛡️ Nova Bundle Audit</h1>
+      <p>Hệ thống giám sát và bảo mật kích thước tài nguyên sau đóng gói</p>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-info">
+        <h2>Phân tích kích thước tài nguyên</h2>
+        <p>Giới hạn được cài đặt: <b>4.0 KB</b> mỗi tệp</p>
+      </div>
+      <div class="summary-stats">
+        <div class="stat-item">
+          <div class="stat-num" style="color: var(--primary);">115</div>
+          <div class="stat-lbl">Tổng số tệp</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" style="color: var(--success);">91</div>
+          <div class="stat-lbl">Đạt chuẩn</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" style="color: var(--error)">19</div>
+          <div class="stat-lbl">Vượt mức</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">about-56IU7FJ6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.17 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>171 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">about-6SAPU5EJ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.17 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>171 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">about-JU4PTSTG.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>143 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">about-JVHLO4GW.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.17 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>171 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">about-YGFFXK3I.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.17 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>171 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">admin-6EZT6NPJ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.09 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>92 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">admin-HNPETF6X.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.09 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>92 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">admin-I33UV5O5.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.09 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>92 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">admin-ISTY2JNQ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.09 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>92 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">admin-YVR3E6JR.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.09 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>92 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-2MU4YWRA.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              7.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>8,181 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-37TQJFAI.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              7.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>8,181 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-3A4SLOWJ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.48 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>487 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-3RJUQW6E.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,041 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-57Y6S6VL.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.69 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>710 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-5VXZQ3AL.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              4.56 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>4,668 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-6YINZSYE.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.38 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,410 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card warn">
+          <div>
+            <div class="card-header">
+              <span class="badge warn">WARN</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-6Z27KT66.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--warning)">
+              3.63 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>3,715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-7JWCZ6TZ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.97 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,015 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-B4YTNHUJ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.40 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,431 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-BJNGBCIT.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.48 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>487 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-BJYS5OF6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.27 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,297 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-BOWJQGFJ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              11.70 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>11,985 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-CBMYPU3G.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.47 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>482 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-D22K7RRY.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.18 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,208 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-D4PWKTLU.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.70 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-FKPQV3O2.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.97 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,015 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-FNB7RNRZ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,041 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-GBLTPWC6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.70 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-HQLFJXBM.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.27 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,297 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-HZMOWX3E.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              7.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>8,181 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-I2OHXGDR.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.70 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-I3RD6RIG.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.07 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>68 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-I6HZLVVZ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.97 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,015 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-IW3XSQ2E.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              12.01 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>12,300 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-JEW6CX3B.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              9.16 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>9,382 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-JH2MQX62.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              3.18 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>3,259 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-JJSWDF6M.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.07 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>68 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-JZFSATIH.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.48 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>487 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-KEAU3GFH.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.40 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,431 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-LENN5HN4.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.38 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,410 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-LGU47X74.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              9.85 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>10,088 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-LRKI6DKG.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.38 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,410 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-LWLHPE7Q.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.07 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>68 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card warn">
+          <div>
+            <div class="card-header">
+              <span class="badge warn">WARN</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-MAIKTTSP.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--warning)">
+              3.63 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>3,715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-MGMXIWBL.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              4.56 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>4,668 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-MSMJFYWV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.39 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,426 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-MY4CMKXC.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.07 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>68 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-NUGCSUIV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.40 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,431 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-P6QEKKQE.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.38 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,410 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-QBNKEXRV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              7.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>8,181 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-QRWX4J3N.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.40 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,431 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-R5KDXMEV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              4.56 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>4,668 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-RAAR3FFE.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.27 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,297 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-RI6J245U.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              4.56 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>4,668 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card warn">
+          <div>
+            <div class="card-header">
+              <span class="badge warn">WARN</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-RIW35T6F.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--warning)">
+              3.63 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>3,715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-RKINZCV2.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              4.56 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>4,668 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-RNJRSZ7W.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,041 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-SC7ICDKI.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              9.58 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>9,808 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-SF4PZEWD.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              7.08 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>7,255 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-SZFWFWRW.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              9.10 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>9,323 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-T5BQQBHM.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,041 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-V3J6CLBS.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.48 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>487 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-VSDZT6EV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.07 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>68 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-VZMJKRV2.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              7.98 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>8,176 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-W7KVIDSO.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.96 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,010 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-WIAYVEE5.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              6.29 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>6,437 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-WQSISAMV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.99 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,041 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-WYLGSK4V.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.27 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,297 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card warn">
+          <div>
+            <div class="card-header">
+              <span class="badge warn">WARN</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-WZNCHC5V.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--warning)">
+              3.63 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>3,715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card warn">
+          <div>
+            <div class="card-header">
+              <span class="badge warn">WARN</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-X2F6Z4O4.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--warning)">
+              3.63 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>3,715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-XKTQGKMM.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.38 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>1,410 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-YPPRIRFL.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              1.97 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,015 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">chunk-Z5PCHPD5.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.70 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>715 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">ContactIsland-4FTXO2BP.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">ContactIsland-EZTWXF6H.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">ContactIsland-OTOAJROM.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">ContactIsland-RWSVN5JB.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">ContactIsland-TY67ICA6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">CounterIsland-ABTJZSVV.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">CounterIsland-AIQVKCF6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">CounterIsland-LR37L2EX.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">CounterIsland-MD6EERXU.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">CounterIsland-U4OCKZ3Z.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>119 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">main.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              2.91 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>2,984 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">pages-4K5DOMIB.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.28 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>283 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">pages-7LIHKK2Q.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.28 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>283 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">pages-BTHYQDOF.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.28 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>283 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">pages-E3CEJHRW.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.28 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>283 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">pages-YUVBQXIF.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.28 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>283 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">PipesDemoIsland-KP3RL5BS.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>121 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">PipesDemoIsland-LVC7UB2Q.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>121 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">PipesDemoIsland-VD2QUWAY.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>121 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">PipesDemoIsland-ZHYJI36X.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.12 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>121 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">posts-2PVEY4A6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.08 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>87 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">posts-46KGJIDJ.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.08 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>87 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">posts-52PM6LYR.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.08 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>87 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">posts-U3VZFR3N.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.08 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>87 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">posts-UQHHKYI6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.08 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>87 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchInput-6ZQF6GPN.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>145 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchInput-KB4UGWCX.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>145 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchInput-KMBIAAXE.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>145 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchInput-M7RQGPG7.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>145 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchInput-U4BQSKLT.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>145 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchResults-CSCLEEG2.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>147 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchResults-MFWA33U4.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>147 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchResults-Q5AV2XCA.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>147 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchResults-SCMM2CP2.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>147 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">SearchResults-VA7NRU44.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.14 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>147 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">TodoIsland-BU3KSGWK.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.11 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>116 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">TodoIsland-E4AC7QL6.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.11 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>116 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">TodoIsland-GIRE6R5F.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.11 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>116 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">TodoIsland-P5YPQPAO.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.11 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>116 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card pass">
+          <div>
+            <div class="card-header">
+              <span class="badge pass">PASS</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.JS</span>
+            </div>
+            <div class="card-title">TodoIsland-RKMKXW2N.js</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--text)">
+              0.11 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>116 B</span>
+            </div>
+          </div>
+        </div>
+      
+        <div class="card fail">
+          <div>
+            <div class="card-header">
+              <span class="badge fail">FAIL</span>
+              <span style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">.CSS</span>
+            </div>
+            <div class="card-title">styles.css</div>
+          </div>
+          <div>
+            <div class="card-size" style="color: var(--error)">
+              6.49 <span style="font-size: 1.1rem; font-weight: 500; color: #6b7280;">KB</span>
+            </div>
+            <div class="card-meta">
+              <span>Hạn mức: 4.0 KB</span>
+              <span>6,641 B</span>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+  </div>
+</body>
+</html>
+      

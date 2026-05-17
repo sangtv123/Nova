@@ -1,5 +1,5 @@
 /**
- * Nova configuration
+ * Nova configuration interface
  */
 export interface NovaConfig {
     root?: string;
@@ -11,6 +11,7 @@ export interface NovaConfig {
     minify?: boolean;
     sourcemap?: boolean;
     plugins?: any[];
+    customPipes?: string[];
     server?: {
         port?: number;
         host?: string;
@@ -24,11 +25,15 @@ export interface NovaConfig {
     };
 }
 /**
- * Load configuration from file
+ * Utility to define config with type safety
  */
-export declare function loadConfig(configPath?: string): NovaConfig;
+export declare function defineConfig(config: NovaConfig): NovaConfig;
 /**
- * Resolve config file
+ * Resolve config file path in workspace
  */
 export declare function resolveConfigFile(): string | null;
+/**
+ * Load configuration from file dynamically
+ */
+export declare function loadConfig(configPath?: string): Promise<NovaConfig>;
 //# sourceMappingURL=config.d.ts.map
