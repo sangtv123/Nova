@@ -1,7 +1,7 @@
 import { registerIsland } from '@nova/islands';
 import { useForm } from '@nova/forms';
 import { onMount, onUnmount, onHydrated } from '@nova/runtime';
-import './ContactIsland.scss';
+import styles from './ContactIsland.scss?inline';
 
 export function ContactIsland() {
   // ── State ──────────────────────────────────────────────────────────────────
@@ -47,6 +47,7 @@ export function ContactIsland() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div class="interactive-island contact-form-custom" data-island="contact">
+      <style>{styles}</style>
       <h3>
         Send us a message
       </h3>

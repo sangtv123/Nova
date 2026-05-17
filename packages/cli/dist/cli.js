@@ -243,14 +243,24 @@ async function dev(args) {
                         // If requested via ES module import, return JS wrapper to satisfy strict MIME type
                         const dest = req.headers['sec-fetch-dest'];
                         if (dest === 'script' || dest === 'empty') {
-                            const js = `
-                if (typeof document !== 'undefined') {
-                  const style = document.createElement('style');
-                  style.setAttribute('data-nova-style', '${path.basename(fullPath)}');
-                  style.textContent = ${JSON.stringify(css)};
-                  document.head.appendChild(style);
-                }
-              `;
+                            const isInline = (req.url || '').includes('?inline');
+                            let js = '';
+                            if (isInline) {
+                                // Export as string for manual injection
+                                js = `export default ${JSON.stringify(css)};`;
+                            }
+                            else {
+                                // Auto-inject globally
+                                js = `
+                  if (typeof document !== 'undefined') {
+                    const style = document.createElement('style');
+                    style.setAttribute('data-nova-style', '${path.basename(fullPath)}');
+                    style.textContent = ${JSON.stringify(css)};
+                    document.head.appendChild(style);
+                  }
+                  export default ${JSON.stringify(css)};
+                `;
+                            }
                             res.writeHead(200, { 'Content-Type': 'application/javascript' });
                             res.end(js);
                         }
@@ -425,8 +435,23 @@ export function createNovaPlugin(pluginManager, ctx) {
         name: 'nova',
         setup(build) {
             // Handle SCSS imports within JS/TSX
-            build.onResolve({ filter: /\.scss$/ }, (args) => {
-                return { path: path.resolve(args.resolveDir, args.path), namespace: 'scss-inline' };
+            build.onResolve({ filter: /\.scss(\?inline)?$/ }, (args) => {
+                const cleanPath = args.path.split('?')[0];
+                const isInline = args.path.includes('?inline');
+                return {
+                    path: path.resolve(args.resolveDir, cleanPath),
+                    namespace: isInline ? 'scss-raw' : 'scss-inline'
+                };
+            });
+            build.onLoad({ filter: /.*/, namespace: 'scss-raw' }, async (args) => {
+                try {
+                    const css = compileScssWithCache(args.path);
+                    return { contents: `export default ${JSON.stringify(css)};`, loader: 'js' };
+                }
+                catch (err) {
+                    console.error('[nova/sass] Raw compilation failed:', err.message);
+                    return { contents: 'export default "";', loader: 'js' };
+                }
             });
             build.onLoad({ filter: /.*/, namespace: 'scss-inline' }, async (args) => {
                 try {
