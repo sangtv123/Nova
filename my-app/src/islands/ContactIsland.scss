@@ -32,9 +32,15 @@
       color: white;
       outline: none;
       font-family: inherit;
+      transition: all 0.2s ease;
 
       &:focus {
         border-color: var(--primary);
+      }
+
+      &.has-error {
+        border-color: var(--danger, #ef4444);
+        background: rgba(239, 68, 68, 0.05);
       }
     }
 

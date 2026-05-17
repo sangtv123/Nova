@@ -463,6 +463,66 @@ export function createElement(
 
   const elDisposals: Function[] = [];
 
+  function* flatChildren(arr: any[]): Generator<any> {
+    for (const item of arr) {
+      if (Array.isArray(item)) yield* flatChildren(item);
+      else yield item;
+    }
+  }
+
+  for (const child of flatChildren(children)) {
+    if (child != null) {
+      const isSignal = child && typeof child === 'object' && 'value' in child && typeof (child as any).getSubscribers === 'function';
+      if (typeof child === 'function' || isSignal) {
+        const marker = document.createTextNode('');
+        el.appendChild(marker);
+        let currentNodes: Node[] = [];
+
+        const dispose = domEffect(() => {
+          let val = isSignal ? (child as any).value : child();
+          if (val && typeof val === 'object' && 'value' in val && typeof (val as any).getSubscribers === 'function') {
+            val = (val as any).value;
+          }
+          if (val === null || val === undefined || val === false) val = '';
+
+          const newNodes: Node[] = [];
+          if (Array.isArray(val)) {
+            for (const item of val) {
+              if (item instanceof Node) newNodes.push(item);
+              else newNodes.push(document.createTextNode(String(item)));
+            }
+          } else if (val instanceof Node) {
+            newNodes.push(val);
+          } else {
+            newNodes.push(document.createTextNode(String(val)));
+          }
+
+          if (newNodes.length === 0) newNodes.push(document.createTextNode(''));
+
+          const parent = marker.parentNode;
+          if (parent) {
+            reconcile(parent, currentNodes, newNodes, marker);
+          }
+          currentNodes = newNodes;
+        });
+        
+        elDisposals.push(dispose);
+      } else if (typeof child === 'string' || typeof child === 'number') {
+        if (isHydrating && hydrateCursor) {
+          hydrateCursor = hydrateCursor.nextSibling;
+        } else {
+          el.appendChild(document.createTextNode(String(child)));
+        }
+      } else if (child instanceof Node) {
+        if (isHydrating && hydrateCursor) {
+          hydrateCursor = hydrateCursor.nextSibling;
+        } else {
+          el.appendChild(child);
+        }
+      }
+    }
+  }
+
   if (attrs) {
     for (const [key, value] of Object.entries(attrs)) {
       if (key === 'class') {
@@ -528,66 +588,6 @@ export function createElement(
 
   if (elDisposals.length > 0) {
     (el as any).__nova_disposals = ((el as any).__nova_disposals || []).concat(elDisposals);
-  }
-
-  function* flatChildren(arr: any[]): Generator<any> {
-    for (const item of arr) {
-      if (Array.isArray(item)) yield* flatChildren(item);
-      else yield item;
-    }
-  }
-
-  for (const child of flatChildren(children)) {
-    if (child != null) {
-      const isSignal = child && typeof child === 'object' && 'value' in child && typeof (child as any).getSubscribers === 'function';
-      if (typeof child === 'function' || isSignal) {
-        const marker = document.createTextNode('');
-        el.appendChild(marker);
-        let currentNodes: Node[] = [];
-
-        const dispose = domEffect(() => {
-          let val = isSignal ? (child as any).value : child();
-          if (val && typeof val === 'object' && 'value' in val && typeof (val as any).getSubscribers === 'function') {
-            val = (val as any).value;
-          }
-          if (val === null || val === undefined || val === false) val = '';
-
-          const newNodes: Node[] = [];
-          if (Array.isArray(val)) {
-            for (const item of val) {
-              if (item instanceof Node) newNodes.push(item);
-              else newNodes.push(document.createTextNode(String(item)));
-            }
-          } else if (val instanceof Node) {
-            newNodes.push(val);
-          } else {
-            newNodes.push(document.createTextNode(String(val)));
-          }
-
-          if (newNodes.length === 0) newNodes.push(document.createTextNode(''));
-
-          const parent = marker.parentNode;
-          if (parent) {
-            reconcile(parent, currentNodes, newNodes, marker);
-          }
-          currentNodes = newNodes;
-        });
-        
-        elDisposals.push(dispose);
-      } else if (typeof child === 'string' || typeof child === 'number') {
-        if (isHydrating && hydrateCursor) {
-          hydrateCursor = hydrateCursor.nextSibling;
-        } else {
-          el.appendChild(document.createTextNode(String(child)));
-        }
-      } else if (child instanceof Node) {
-        if (isHydrating && hydrateCursor) {
-          hydrateCursor = hydrateCursor.nextSibling;
-        } else {
-          el.appendChild(child);
-        }
-      }
-    }
   }
 
   if (isHydrating && el.nextSibling) {

@@ -74,6 +74,7 @@ export function ContactIsland() {
             id="contact-name-input"
             type="text"
             placeholder="Ví dụ: Nguyễn Văn A"
+            class={() => form.controls.name.isTouched.value && form.errors.name.value ? 'has-error' : ''}
             value={form.register('name').value}
             onInput={form.register('name').onInput}
             onBlur={form.register('name').onBlur}
@@ -89,6 +90,7 @@ export function ContactIsland() {
             id="contact-email-input"
             type="email"
             placeholder="example@gmail.com"
+            class={() => form.controls.email.isTouched.value && form.errors.email.value ? 'has-error' : ''}
             value={form.register('email').value}
             onInput={form.register('email').onInput}
             onBlur={form.register('email').onBlur}
@@ -102,14 +104,15 @@ export function ContactIsland() {
           <label for="contact-subject-input">Chủ đề</label>
           <select
             id="contact-subject-input"
+            class={() => form.controls.subject.isTouched.value && form.errors.subject.value ? 'has-error' : ''}
             value={form.register('subject').value}
             onInput={form.register('subject').onInput}
             onBlur={form.register('subject').onBlur}
           >
             <option value="">-- Chọn chủ đề --</option>
-            <option value="Hỗ trợ kỹ thuật">Hỗ trợ kỹ thuật</option>
-            <option value="Hợp tác kinh doanh">Hợp tác kinh doanh</option>
-            <option value="Góp ý sản phẩm">Góp ý sản phẩm</option>
+            <option value="1">Hỗ trợ kỹ thuật</option>
+            <option value="2">Hợp tác kinh doanh</option>
+            <option value="3">Góp ý sản phẩm</option>
           </select>
           {() => form.controls.subject.isTouched.value && form.errors.subject.value && (
             <span class="error">{form.errors.subject.value}</span>
@@ -122,6 +125,7 @@ export function ContactIsland() {
             id="contact-message-input"
             placeholder="Nhập nội dung cần liên hệ..."
             rows="4"
+            class={() => form.controls.message.isTouched.value && form.errors.message.value ? 'has-error' : ''}
             value={form.register('message').value}
             onInput={form.register('message').onInput}
             onBlur={form.register('message').onBlur}

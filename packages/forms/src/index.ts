@@ -272,6 +272,7 @@ export function useForm<T extends Record<string, any>>(
         }
         control.value.value = val;
         control.isDirty.value = true;
+        control.isTouched.value = true;
         if (validateOnInput) {
           control.validate();
         }
