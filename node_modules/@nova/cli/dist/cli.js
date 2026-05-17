@@ -4,14 +4,22 @@ import { WebSocketServer } from 'ws';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { build as esbuildBuild } from 'esbuild';
+import { context as esbuildContext } from 'esbuild';
 import { compile } from '@nova/compiler';
 import { Watcher, HMRHandler } from '@nova/server';
 const scssCache = new Map();
-// Compile cache for TS/TSX files and @nova framework bundles
-// Key: absolute file path, Value: { mtime, code }
-const tsxCompileCache = new Map();
-const frameworkBundleCache = new Map();
+// Persistent esbuild contexts for incremental builds.
+// Key: entry file path. ctx.rebuild() reuses the cached module graph — only changed files are reprocessed.
+const esbuildContexts = new Map();
+async function incrementalBuild(entryPoint, buildOptions) {
+    if (!esbuildContexts.has(entryPoint)) {
+        const ctx = await esbuildContext({ ...buildOptions, write: false });
+        esbuildContexts.set(entryPoint, ctx);
+    }
+    const ctx = esbuildContexts.get(entryPoint);
+    const result = await ctx.rebuild();
+    return result.outputFiles[0].text;
+}
 function compileScssWithCache(filePath) {
     const stats = fs.statSync(filePath);
     const cached = scssCache.get(filePath);
@@ -103,71 +111,47 @@ async function dev(args) {
         const requestUrl = (req.url || '/').split('?')[0];
         const projectDir = process.cwd();
         try {
-            // 1. Handle shared framework modules (cached by mtime)
+            // 1. Handle shared framework modules (incremental esbuild context — fast on F5)
             if (requestUrl.startsWith('/@framework/@nova/')) {
                 const pkgName = requestUrl.split('/').pop() || '';
                 const fullPath = path.resolve(projectDir, `../packages/${pkgName}/src/index.ts`);
                 if (fs.existsSync(fullPath)) {
-                    const mtime = fs.statSync(fullPath).mtimeMs;
-                    const cached = frameworkBundleCache.get(fullPath);
-                    let code;
-                    if (cached && cached.mtime === mtime) {
-                        code = cached.code;
-                    }
-                    else {
-                        const result = await esbuildBuild({
-                            entryPoints: [fullPath],
-                            bundle: true,
-                            format: 'esm',
-                            write: false,
-                            plugins: [novaPlugin],
-                            define: { 'process.env.NODE_ENV': '"development"' },
-                        });
-                        code = result.outputFiles[0].text;
-                        frameworkBundleCache.set(fullPath, { mtime, code });
-                    }
+                    const code = await incrementalBuild(fullPath, {
+                        entryPoints: [fullPath],
+                        bundle: true,
+                        format: 'esm',
+                        plugins: [novaPlugin],
+                        define: { 'process.env.NODE_ENV': '"development"' },
+                    });
                     res.writeHead(200, { 'Content-Type': 'application/javascript' });
                     res.end(code);
                     return;
                 }
             }
-            // 2. Handle TSX/TS files (Compilation & Bundling, cached by mtime)
+            // 2. Handle TSX/TS files (incremental esbuild context — only changed modules recompiled)
             if (requestUrl.match(/\.(tsx?|ts)$/) || requestUrl === '/src/main.tsx') {
                 const fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
                 if (fs.existsSync(fullPath)) {
-                    const mtime = fs.statSync(fullPath).mtimeMs;
-                    const cached = tsxCompileCache.get(fullPath);
-                    let code;
-                    if (cached && cached.mtime === mtime) {
-                        // Cache hit — serve instantly without recompiling
-                        code = cached.code;
-                    }
-                    else {
-                        // Cache miss or file changed — compile and cache
-                        const result = await esbuildBuild({
-                            entryPoints: [fullPath],
-                            bundle: true,
-                            format: 'esm',
-                            write: false,
-                            jsxFactory: 'createElement',
-                            jsxFragment: 'Fragment',
-                            plugins: [novaPlugin],
-                            define: { 'process.env.NODE_ENV': '"development"' },
-                        });
-                        code = result.outputFiles[0].text;
-                        if (requestUrl.endsWith('main.tsx')) {
-                            code += `\nconsole.log("[HMR] Connected");
+                    let code = await incrementalBuild(fullPath, {
+                        entryPoints: [fullPath],
+                        bundle: true,
+                        format: 'esm',
+                        jsxFactory: 'createElement',
+                        jsxFragment: 'Fragment',
+                        plugins: [novaPlugin],
+                        define: { 'process.env.NODE_ENV': '"development"' },
+                    });
+                    if (requestUrl.endsWith('main.tsx') && !code.includes('[HMR] Connected')) {
+                        code += `\nconsole.log('[HMR] Connected');
             const socket = new WebSocket('ws://' + location.host);
             socket.onmessage = (e) => {
               const data = JSON.parse(e.data);
               if (data.type === 'hmr:reload') location.reload();
               if (data.type === 'hmr:update') {
-                console.log("[HMR] Updating module:", data.moduleId);
+                console.log('[HMR] Updating module:', data.moduleId);
                 location.reload();
               }
             };`;
-                        }
-                        tsxCompileCache.set(fullPath, { mtime, code });
                     }
                     res.writeHead(200, { 'Content-Type': 'application/javascript' });
                     res.end(code);
@@ -253,12 +237,24 @@ async function dev(args) {
     watcher.watchDir(process.cwd(), (event, filename) => {
         console.log(`[HMR] File changed: ${filename}`);
         if (filename.endsWith('.tsx') || filename.endsWith('.ts')) {
-            // Invalidate compile cache for the changed file
-            tsxCompileCache.delete(filename);
+            // Dispose the stale esbuild context so it rebuilds fresh on next request.
+            // esbuild's incremental context will pick up the changed file automatically
+            // since we dispose & recreate, ensuring no stale module graph.
+            if (esbuildContexts.has(filename)) {
+                esbuildContexts.get(filename).dispose();
+                esbuildContexts.delete(filename);
+            }
+            // Also invalidate main.tsx context since it bundles all app files
+            for (const [key, ctx] of esbuildContexts) {
+                if (key.endsWith('main.tsx')) {
+                    ctx.dispose();
+                    esbuildContexts.delete(key);
+                    break;
+                }
+            }
             hmrHandler.broadcastUpdate(filename, '');
         }
         else if (filename.endsWith('.scss')) {
-            // Invalidate SCSS cache too
             scssCache.delete(filename);
             hmrHandler.broadcastReload();
         }
