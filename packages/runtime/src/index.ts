@@ -79,9 +79,11 @@ function reconcile(
   marker: Node
 ): void {
   // 1. Remove nodes that are not in the new list
-  const newNodeSet = new Set(newNodes);
+  const useSet = newNodes.length > 8;
+  const newNodeSet = useSet ? new Set(newNodes) : null;
   for (const oldNode of oldNodes) {
-    if (!newNodeSet.has(oldNode) && oldNode.parentNode === parent) {
+    const hasNode = useSet ? newNodeSet!.has(oldNode) : newNodes.includes(oldNode);
+    if (!hasNode && oldNode.parentNode === parent) {
       const el = oldNode as any;
       if (el.nodeType === 1 && typeof el.__nova_exit === 'function') {
         el.__nova_exit(() => {
@@ -472,14 +474,21 @@ export function createElement(
 
   const elDisposals: Function[] = [];
 
-  function* flatChildren(arr: any[]): Generator<any> {
-    for (const item of arr) {
-      if (Array.isArray(item)) yield* flatChildren(item);
-      else yield item;
+  function flattenChildren(arr: any[], target: any[] = []): any[] {
+    for (let i = 0; i < arr.length; i++) {
+      const item = arr[i];
+      if (Array.isArray(item)) {
+        flattenChildren(item, target);
+      } else {
+        target.push(item);
+      }
     }
+    return target;
   }
 
-  for (const child of flatChildren(children)) {
+  const flattened = flattenChildren(children);
+  for (let i = 0; i < flattened.length; i++) {
+    const child = flattened[i];
     if (child != null) {
       const isSignal = child && typeof child === 'object' && 'value' in child && typeof (child as any).getSubscribers === 'function';
       if (typeof child === 'function' || isSignal) {

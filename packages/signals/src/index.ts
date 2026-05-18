@@ -16,10 +16,14 @@ let currentEffect: Effect | null = null;
 let batchDepth = 0;
 let pendingEffects = new Set<Subscriber>();
 
+let nextSignalId = 0;
+let nextComputedId = 0;
+let nextEffectId = 0;
+
 export function signal<T>(initialValue: T, label?: string): Signal<T> {
   let value = initialValue;
   const subs: Set<Subscriber> = new Set();
-  const id = `sig_${Math.random().toString(36).substring(2, 9)}`;
+  const id = `sig_${nextSignalId++}`;
 
   const sig: Signal<T> = {
     id,
@@ -61,8 +65,10 @@ export function signal<T>(initialValue: T, label?: string): Signal<T> {
         // JS Set.forEach will re-visit entries that are deleted and re-added during iteration.
         // Since effects unsubscribe and re-subscribe during their run, 
         // a direct forEach on 'subs' causes an infinite loop.
-        const snapshot = [...subs];
-        snapshot.forEach((sub) => sub.run?.());
+        const snapshot = Array.from(subs);
+        for (let i = 0; i < snapshot.length; i++) {
+          snapshot[i].run?.();
+        }
       }
     },
 
@@ -93,6 +99,16 @@ export function signal<T>(initialValue: T, label?: string): Signal<T> {
     const registry = (window as any).__NOVA_SIGNALS__ || new Set();
     (window as any).__NOVA_SIGNALS__ = registry;
     registry.add(new WeakRef(sig));
+    
+    // Prune dead references occasionally to prevent memory growth
+    if (registry.size > 1000) {
+      for (const ref of registry) {
+        if (!ref.deref()) {
+          registry.delete(ref);
+        }
+      }
+    }
+
     if ((window as any).__NOVA_DEVTOOLS_HOOK__?.onSignalCreated) {
       (window as any).__NOVA_DEVTOOLS_HOOK__.onSignalCreated(sig);
     }
@@ -109,17 +125,21 @@ export function computed<T>(fn: () => T, label?: string): Signal<T> {
   let value: T = undefined as unknown as T;
   let dirty = true;
   const internalSubs: Set<Subscriber> = new Set();
-  const id = `comp_${Math.random().toString(36).substring(2, 9)}`;
+  const id = `comp_${nextComputedId++}`;
 
-  const effectObj: Effect & { id?: string; label?: string; isComputed?: boolean; signal?: any } = {
+  const ownDeps = new Set<Set<Subscriber>>();
+  const effectObj: TrackedEffect & { id?: string; label?: string; isComputed?: boolean; signal?: any } = {
+    _deps: ownDeps,
     id,
     label: label || 'Computed',
     isComputed: true,
     run() {
       dirty = true;
       // Snapshot before iteration to prevent infinite loops if a subscriber re-subscribes
-      const snapshot = [...internalSubs];
-      snapshot.forEach((sub) => sub.run?.());
+      const snapshot = Array.from(internalSubs);
+      for (let i = 0; i < snapshot.length; i++) {
+        snapshot[i].run?.();
+      }
     },
   };
 
@@ -136,6 +156,10 @@ export function computed<T>(fn: () => T, label?: string): Signal<T> {
       }
 
       if (dirty) {
+        // Remove self from all previously-tracked signal subscriber-sets to prevent leaks & stale deps
+        ownDeps.forEach(depSubs => depSubs.delete(effectObj));
+        ownDeps.clear();
+
         const prevEffect = currentEffect;
         currentEffect = effectObj;
         const oldValue = value;
@@ -180,6 +204,16 @@ export function computed<T>(fn: () => T, label?: string): Signal<T> {
     const registry = (window as any).__NOVA_SIGNALS__ || new Set();
     (window as any).__NOVA_SIGNALS__ = registry;
     registry.add(new WeakRef(sig));
+
+    // Prune dead references occasionally to prevent memory growth
+    if (registry.size > 1000) {
+      for (const ref of registry) {
+        if (!ref.deref()) {
+          registry.delete(ref);
+        }
+      }
+    }
+
     if ((window as any).__NOVA_DEVTOOLS_HOOK__?.onSignalCreated) {
       (window as any).__NOVA_DEVTOOLS_HOOK__.onSignalCreated(sig);
     }
@@ -198,7 +232,7 @@ export function effect(fn: () => void | (() => void)): () => void {
   // FIX 2: Track every subscriber-set this effect is registered in
   // so we can unsubscribe before re-running (prevents stale deps & memory leaks)
   const ownDeps = new Set<Set<Subscriber>>();
-  const effectId = `eff_${Math.random().toString(36).substring(2, 9)}`;
+  const effectId = `eff_${nextEffectId++}`;
 
   const effectObj: TrackedEffect & { id?: string; label?: string; isEffect?: boolean } = {
     _deps: ownDeps,
