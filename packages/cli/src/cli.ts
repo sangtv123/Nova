@@ -185,6 +185,15 @@ async function dev(args: string[]) {
         else if (fs.existsSync(fullPath + '/index.ts')) fullPath += '/index.ts';
       }
 
+      // Remap .js → .ts/.tsx (Node ESM convention: imports use .js but source is TypeScript)
+      if (!fs.existsSync(fullPath) && fullPath.endsWith('.js')) {
+        const tsxAlt = fullPath.slice(0, -3) + '.tsx';
+        const tsAlt  = fullPath.slice(0, -3) + '.ts';
+        if (fs.existsSync(tsxAlt)) fullPath = tsxAlt;
+        else if (fs.existsSync(tsAlt)) fullPath = tsAlt;
+      }
+
+
       if (fullPath.match(/\.(tsx?|ts)$/) || requestUrl === '/src/main.tsx') {
         if (fs.existsSync(fullPath)) {
           // Serve from cache if file unchanged
@@ -319,6 +328,20 @@ async function dev(args: string[]) {
         }
       }
 
+
+      // 3.5 Handle JSON files requested as ES Modules (dynamic imports)
+      if (requestUrl.endsWith('.json')) {
+        const fullPath = path.join(projectDir, requestUrl.startsWith('/') ? requestUrl.slice(1) : requestUrl);
+        if (fs.existsSync(fullPath)) {
+          const content = fs.readFileSync(fullPath, 'utf8');
+          const dest = req.headers['sec-fetch-dest'];
+          if (dest === 'script' || dest === 'empty' || (req.headers['accept'] && req.headers['accept'].includes('application/javascript'))) {
+            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.end(`export default ${content};`);
+            return;
+          }
+        }
+      }
 
       // 4. Static Assets & SPA Fallback
       let filePath = path.join(projectDir, requestUrl === '/' ? 'index.html' : requestUrl.slice(1));
@@ -492,7 +515,7 @@ async function generate(generateArgs: string[]) {
 
   if (!type || !name) {
     console.error(`❌ Error: Missing generator type or name.`);
-    console.log(`Usage: nova g <island|store|route> <Name>`);
+    console.log(`Usage: nova g <island|store|route|pipe|component> <Name>`);
     return;
   }
 
@@ -673,9 +696,85 @@ export type ${pascalName}StoreInstance = ${pascalName}State & {
       break;
     }
 
+    case 'pipe': {
+      const pipesDir = path.join(projectDir, 'src/pipes');
+      if (!fs.existsSync(pipesDir)) {
+        fs.mkdirSync(pipesDir, { recursive: true });
+      }
+
+      const pipePath = path.join(pipesDir, `${lowercaseName}.ts`);
+      const pipeCode = `import { definePipe } from '@nova/signals';
+
+export const ${lowercaseName}Pipe = definePipe({
+  name: '${lowercaseName}',
+  transform(val: any, ...args: any[]): any {
+    if (val == null) return '';
+    // Implement your custom transformation logic here
+    return String(val);
+  }
+});
+`;
+
+      fs.writeFileSync(pipePath, pipeCode);
+
+      console.log(`\n🎉 Pipe generated successfully!`);
+      console.log(`  📄 ${pipePath.replace(projectDir, '')}`);
+      console.log(`\n💡 To activate this pipe:`);
+      console.log(`  1. Add '${lowercaseName}' to 'customPipes' array in your 'nova.config.ts'.`);
+      console.log(`  2. Use it in TSX templates:`);
+      console.log(`     <span>{() => mySignal.value | ${lowercaseName}}</span> or <span>{() => mySignal.value | ${lowercaseName}('arg')}</span>`);
+      break;
+    }
+
+    case 'component':
+    case 'c': {
+      const componentDir = path.join(projectDir, 'src/components', pascalName);
+      if (!fs.existsSync(componentDir)) {
+        fs.mkdirSync(componentDir, { recursive: true });
+      }
+
+      const tsxPath = path.join(componentDir, `${pascalName}.tsx`);
+      const scssPath = path.join(componentDir, `${pascalName}.scss`);
+
+      const tsxCode = `import { createElement } from '@nova/runtime';
+import './${pascalName}.scss?inline';
+
+export interface ${pascalName}Props {
+  class?: string;
+  style?: any;
+}
+
+export function ${pascalName}(props: ${pascalName}Props) {
+  return (
+    <div class={\`${lowercaseName}-component \${props.class || ''}\`} style={props.style}>
+      <h4>${pascalName} Component</h4>
+      <p>This is an auto-generated reusable component.</p>
+    </div>
+  );
+}
+`;
+
+      const scssCode = `.${lowercaseName}-component {
+  padding: 16px;
+  border: 1px solid var(--n-border, #e2e8f0);
+  border-radius: 6px;
+  background: var(--n-bg-container, #ffffff);
+}
+`;
+
+      fs.writeFileSync(tsxPath, tsxCode);
+      fs.writeFileSync(scssPath, scssCode);
+
+      console.log(`\n🎉 Component generated successfully!`);
+      console.log(`  📁 Created: src/components/${pascalName}/`);
+      console.log(`  📄 ${tsxPath.replace(projectDir, '')}`);
+      console.log(`  📄 ${scssPath.replace(projectDir, '')}`);
+      break;
+    }
+
     default:
       console.error(`❌ Error: Unknown generator type "${type}".`);
-      console.log(`Supported generators: island, store, route`);
+      console.log(`Supported generators: island, store, route, pipe, component`);
   }
 }
 
@@ -693,9 +792,11 @@ Commands:
   generate, g       Code generation utility helper
 
 Generators:
-  nova g island <Name>   Generate modular hydrated island (TSX, SCSS, Spec)
-  nova g store <Name>    Generate centralized Pinia-inspired Store
-  nova g route <Name>    Generate file-based page route
+  nova g island <Name>      Generate modular hydrated island (TSX, SCSS, Spec)
+  nova g store <Name>       Generate centralized Pinia-inspired Store
+  nova g route <Name>       Generate file-based page route
+  nova g pipe <Name>        Generate globally reusable custom Pipe transformation
+  nova g component <Name>   Generate reusable template component (TSX, SCSS)
   `);
 }
 

@@ -39,11 +39,14 @@ export function Editor(props: EditorProps) {
     wordCount.value = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
   };
 
+  let lastInternalValue = resolveSignal(props.value) ?? props.defaultValue ?? '';
+
   const triggerChange = () => {
+    const editor = getEditorEl();
+    const textarea = getTextareaEl();
+    const val = isHtmlMode.value ? (textarea?.value || '') : (editor?.innerHTML || '');
+    lastInternalValue = val;
     if (props.onChange) {
-      const editor = getEditorEl();
-      const textarea = getTextareaEl();
-      const val = isHtmlMode.value ? (textarea?.value || '') : (editor?.innerHTML || '');
       props.onChange(val);
     }
   };
@@ -90,8 +93,9 @@ export function Editor(props: EditorProps) {
       // Set initial value
       const initialVal = getValue();
       const editor = getEditorEl();
-      if (editor && editor.innerHTML !== initialVal) {
+      if (editor && initialVal !== lastInternalValue && editor.innerHTML !== initialVal) {
         editor.innerHTML = initialVal;
+        lastInternalValue = initialVal;
         updateCounts();
       }
     });

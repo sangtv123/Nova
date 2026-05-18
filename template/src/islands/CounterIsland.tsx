@@ -1,6 +1,6 @@
 import { signal } from '@nova/signals';
 import { registerIsland } from '@nova/islands';
-import { useCounterStore } from '../store.js';
+import { useCounterStore } from '../store';
 
 export function CounterIsland({ initialCount = 0 }: { initialCount?: number }) {
   const localCount = signal(initialCount, 'local-counter');

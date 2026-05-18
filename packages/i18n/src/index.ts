@@ -24,6 +24,35 @@ export function registerLocaleLoader(localeName: string, loader: () => Promise<a
   });
 }
 
+const preloadPromises = new Map<string, Promise<void>>();
+
+/**
+ * Preload translations for a specific locale without switching to it yet.
+ * Useful for triggering on hover before user actually clicks to switch.
+ */
+export function preloadLocale(localeName: string): Promise<void> {
+  if (translations.has(localeName)) {
+    return Promise.resolve();
+  }
+  
+  const loader = loaders.get(localeName);
+  if (!loader) {
+    return Promise.resolve();
+  }
+
+  if (!preloadPromises.has(localeName)) {
+    const promise = loader().then(dict => {
+      translations.set(localeName, dict);
+    }).catch(err => {
+      console.error(`[nova/i18n] Failed to preload translations for locale "${localeName}":`, err);
+      preloadPromises.delete(localeName); // Allow retrying if it failed
+    });
+    preloadPromises.set(localeName, promise);
+  }
+
+  return preloadPromises.get(localeName)!;
+}
+
 /**
  * Switch locale, dynamically fetching translations if needed, with reactive loading state
  */
@@ -42,11 +71,8 @@ export async function setLocale(newLocale: string): Promise<void> {
 
   isLoaded.value = false;
   try {
-    const dict = await loader();
-    translations.set(newLocale, dict);
+    await preloadLocale(newLocale);
     locale.value = newLocale;
-  } catch (err) {
-    console.error(`[nova/i18n] Failed to lazy-load translations for locale "${newLocale}":`, err);
   } finally {
     isLoaded.value = true;
   }
@@ -63,9 +89,9 @@ export function t(key: string, params?: Record<string, string | number>): Signal
     let phrase = dict[key] !== undefined ? dict[key] : key;
 
     if (params) {
-      for (const [k, v] of Object.entries(params)) {
-        phrase = phrase.replace(new RegExp(`{{\\s*${k}\\s*}}`, 'g'), String(v));
-      }
+      phrase = phrase.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (match, p1) => {
+        return params[p1] !== undefined ? String(params[p1]) : match;
+      });
     }
     return phrase;
   }, `i18n.translate.${key}`);

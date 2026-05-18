@@ -1,4 +1,5 @@
-import { signal } from '@nova/signals';
+import { signal, computed } from '@nova/signals';
+import { resolveSignal } from '../core/utils';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -103,19 +104,23 @@ export function Table(props: TableProps) {
     return s;
   }
 
-  // ── Sort helpers ──
-  function sortedData(): any[] {
+  // ── Resolve dataSource reactively ──
+  const getRawData = () => resolveSignal(props.dataSource) ?? [];
+
+  // ── Computed sorted data (cached, only re-evaluates when dependencies change!) ──
+  const sortedData = computed(() => {
+    const data = getRawData();
     const k = sortKey.value;
     const d = sortDir.value;
-    if (!k || !d) return props.dataSource;
-    return [...props.dataSource].sort((a, b) => {
+    if (!k || !d) return data;
+    return [...data].sort((a, b) => {
       const av = a[k], bv = b[k];
       if (av == null) return 1;
       if (bv == null) return -1;
       const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
       return d === 'asc' ? cmp : -cmp;
     });
-  }
+  });
 
   function onSortClick(colKey: string) {
     if (sortKey.value !== colKey) {
@@ -142,7 +147,7 @@ export function Table(props: TableProps) {
   }
 
   function toggleAll() {
-    const data = sortedData();
+    const data = sortedData.value;
     const keys = data.map(rowKey);
     const allSel = keys.length > 0 && keys.every(k => selectedKeys.value.has(k));
     const next = new Set(selectedKeys.value);
@@ -179,7 +184,7 @@ export function Table(props: TableProps) {
     return (
       <tr>
         {props.rowSelection && (() => {
-          const data = sortedData();
+          const data = sortedData.value;
           const keys = data.map(rowKey);
           const allChecked = keys.length > 0 && keys.every(k => selectedKeys.value.has(k));
           return (
@@ -278,7 +283,7 @@ export function Table(props: TableProps) {
           {colgroup()}
           <tbody class="n-table-tbody">
             {() => {
-              const data = sortedData();
+              const data = sortedData.value;
               if (data.length === 0) return emptyRow();
               return data.map((record, i) => dataRow(record, i));
             }}
@@ -312,7 +317,7 @@ export function Table(props: TableProps) {
 
     // Inner: in-flow tall div that drives the real scroll height & horizontal width
     const innerStyle = () => ({
-      height: `${sortedData().length * rowH}px`,
+      height: `${sortedData.value.length * rowH}px`,
       width: props.scroll?.x ? totalW : '100%',
       minWidth: '100%',
       position: 'relative',
@@ -342,7 +347,7 @@ export function Table(props: TableProps) {
               {colgroup()}
               <tbody class="n-table-tbody">
                 {() => {
-                  const data         = sortedData();
+                  const data         = sortedData.value;
                   const start        = Math.max(0, Math.floor(scrollTop.value / rowH) - 2);
                   const visibleCount = Math.ceil(scrollY / rowH) + 4;
                   const end          = Math.min(data.length, start + visibleCount);
