@@ -1,0 +1,29 @@
+{
+  "name": "@nova/store",
+  "version": "0.0.1",
+  "description": "Centralized Pinia-like reactive state management for Nova using Signals",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["store", "state", "reactivity", "signals", "nova"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@nova/signals": "file:../signals"
+  }
+}

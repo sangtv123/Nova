@@ -111,14 +111,16 @@ export function computed<T>(fn: () => T, label?: string): Signal<T> {
   const internalSubs: Set<Subscriber> = new Set();
   const id = `comp_${Math.random().toString(36).substring(2, 9)}`;
 
-  const effectObj: Effect = {
+  const effectObj: Effect & { id?: string; label?: string; isComputed?: boolean; signal?: any } = {
+    id,
+    label: label || 'Computed',
+    isComputed: true,
     run() {
       dirty = true;
       // Snapshot before iteration to prevent infinite loops if a subscriber re-subscribes
       const snapshot = [...internalSubs];
       snapshot.forEach((sub) => sub.run?.());
     },
-
   };
 
   const sig: Signal<T> = {
@@ -172,6 +174,7 @@ export function computed<T>(fn: () => T, label?: string): Signal<T> {
       return computed(() => fns.reduce((val, fn) => fn(val), sig.value));
     },
   };
+  effectObj.signal = sig;
 
   if (typeof window !== 'undefined') {
     const registry = (window as any).__NOVA_SIGNALS__ || new Set();
@@ -195,9 +198,13 @@ export function effect(fn: () => void | (() => void)): () => void {
   // FIX 2: Track every subscriber-set this effect is registered in
   // so we can unsubscribe before re-running (prevents stale deps & memory leaks)
   const ownDeps = new Set<Set<Subscriber>>();
+  const effectId = `eff_${Math.random().toString(36).substring(2, 9)}`;
 
-  const effectObj: TrackedEffect = {
+  const effectObj: TrackedEffect & { id?: string; label?: string; isEffect?: boolean } = {
     _deps: ownDeps,
+    id: effectId,
+    label: 'Effect',
+    isEffect: true,
 
     run() {
       // Remove self from all previously-tracked signal subscriber-sets

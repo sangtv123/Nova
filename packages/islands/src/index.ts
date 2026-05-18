@@ -143,11 +143,21 @@ async function hydrateIsland(el: Element): Promise<void> {
   const islandId = el.getAttribute('data-nova-island');
   if (!islandId) return;
 
-  const hydrationData = buildHydrationData(el);
-  if (!hydrationData) return;
+  // Mark as hydrating
+  el.setAttribute('data-nova-hydrating', 'true');
 
+  const hydrationData = buildHydrationData(el);
+  if (!hydrationData) {
+    el.setAttribute('data-nova-hydrating', 'false');
+    return;
+  }
+
+  const loadStart = performance.now();
   const mod = await loadIsland(islandId);
+  const loadDuration = performance.now() - loadStart;
+
   if (!mod) {
+    el.setAttribute('data-nova-hydrating', 'false');
     console.warn(`[nova/islands] Island not registered: "${islandId}". ` +
       `Call registerIsland('${islandId}', () => import('./YourComponent')) first.`);
     return;
@@ -156,17 +166,26 @@ async function hydrateIsland(el: Element): Promise<void> {
   try {
     const componentFn = mod.hydrate ?? mod.default;
     if (typeof componentFn !== 'function') {
+      el.setAttribute('data-nova-hydrating', 'false');
       console.error(`[nova/islands] Island "${islandId}" has no default export or hydrate function.`);
       return;
     }
 
+    const hydrateStart = performance.now();
+
     // Use the core hydration function to attach interactivity and lifecycle hooks
     hydrate(el, hydrationData, componentFn);
+
+    const hydrateDuration = performance.now() - hydrateStart;
     
-    // Mark as hydrated
+    // Mark as hydrated and save performance metrics
+    el.setAttribute('data-nova-hydrating', 'false');
     el.setAttribute('data-nova-hydrated', 'true');
+    el.setAttribute('data-nova-load-time', loadDuration.toFixed(1));
+    el.setAttribute('data-nova-hydration-time', hydrateDuration.toFixed(1));
     
   } catch (error) {
+    el.setAttribute('data-nova-hydrating', 'false');
     console.error(`[nova/islands] Failed to hydrate island "${islandId}":`, error);
   }
 }
