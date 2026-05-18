@@ -380,11 +380,10 @@ async function dev(args: string[]) {
       hmrHandler.broadcastReload();
     }
   });
-
   server.listen(port, async () => {
     console.log(`🚀 Nova dev server running on http://localhost:${port}`);
     // Pre-warm @nova/* framework bundles in background so first request is instant
-    const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms'];
+    const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms', 'devtools'];
     const warmOpts = { bundle: true as const, format: 'esm' as const, plugins: [novaPlugin], define: { 'process.env.NODE_ENV': '"development"' } };
     const projectDir = process.cwd();
     Promise.all(pkgs.map(pkg => {

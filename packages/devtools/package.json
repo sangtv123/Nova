@@ -24,6 +24,6 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "@nova/signals": "latest"
+    "@nova/signals": "file:../signals"
   }
 }

@@ -12,7 +12,8 @@
     "@nova/signals": "latest",
     "@nova/router": "latest",
     "@nova/islands": "latest",
-    "@nova/runtime": "latest"
+    "@nova/runtime": "latest",
+    "@nova/devtools": "latest"
   },
   "devDependencies": {
     "@nova/cli": "latest",
