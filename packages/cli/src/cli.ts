@@ -251,24 +251,36 @@ async function dev(args: string[]) {
             if (injections.length > 0) source = `// [Nova] Auto-injected pipes\n${injections.join('\n')}\n${source}`;
           }
 
-          source = await pluginManager.runHook('transform', source, ctx);
-          const compiled = await compile(source, { filename: fullPath, isDev: true, customPipes: config.customPipes });
-          let code = compiled.code;
-          code = await pluginManager.runHook('afterCompile', code, ctx);
-          if (fullPath.endsWith('.tsx') && code.includes('resolvePipe') && !/import\s+{[^}]*\bresolvePipe\b/.test(code)) {
-            code = `import { resolvePipe } from '@nova/signals';\n${code}`;
-          }
+          let js = '';
+          try {
+            source = await pluginManager.runHook('transform', source, ctx);
+            const compiled = await compile(source, { filename: fullPath, isDev: true, customPipes: config.customPipes });
+            let code = compiled.code;
+            code = await pluginManager.runHook('afterCompile', code, ctx);
+            if (fullPath.endsWith('.tsx') && code.includes('resolvePipe') && !/import\s+{[^}]*\bresolvePipe\b/.test(code)) {
+              code = `import { resolvePipe } from '@nova/signals';\n${code}`;
+            }
 
-          // Transpile TSX/TS → ESM JS (no bundling — browser handles module graph)
-          const transpiled = await esbuildTransform(code, {
-            loader: 'tsx',
-            format: 'esm',
-            jsxFactory: 'createElement',
-            jsxFragment: 'Fragment',
-            target: 'es2020',
-            sourcefile: fullPath,
-          });
-          let js = transpiled.code;
+            // Transpile TSX/TS → ESM JS (no bundling — browser handles module graph)
+            const transpiled = await esbuildTransform(code, {
+              loader: 'tsx',
+              format: 'esm',
+              jsxFactory: 'createElement',
+              jsxFragment: 'Fragment',
+              target: 'es2020',
+              sourcefile: fullPath,
+            });
+            js = transpiled.code;
+          } catch (compileErr: any) {
+            const relPath = path.relative(projectDir, fullPath).replace(/\\/g, '/');
+            console.error(`\n❌ [Nova Compiler] Compilation failed in ${relPath}:`);
+            console.error(compileErr.message || compileErr);
+            console.error('');
+            
+            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.end(`throw new Error(${JSON.stringify(`[Nova Compiler] Compilation failed in ${relPath}:\n${compileErr.message || compileErr}`)});`);
+            return;
+          }
 
           // Rewrite @nova/* → /@framework/@nova/* so browser ESM can load them
           js = js.replace(/(from\s+['"])@nova\//g, '$1/@framework/@nova/');
@@ -377,8 +389,9 @@ async function dev(args: string[]) {
       res.writeHead(404);
       res.end('Not Found');
     } catch (err: any) {
-      res.writeHead(500);
-      res.end(err.stack);
+      console.error('❌ [Nova Server] Dev server error:', err);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(err.stack || err.message || String(err));
     }
   };
 
@@ -425,7 +438,7 @@ async function dev(args: string[]) {
   server.listen(port, async () => {
     console.log(`🚀 Nova dev server running on http://localhost:${port}`);
     // Pre-warm @nova/* framework bundles in background so first request is instant
-    const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms', 'devtools', 'i18n'];
+    const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms', 'i18n'];
     const warmOpts = { bundle: true as const, format: 'esm' as const, plugins: [novaPlugin], define: { 'process.env.NODE_ENV': '"development"' } };
     const projectDir = process.cwd();
     Promise.all(pkgs.map(pkg => {

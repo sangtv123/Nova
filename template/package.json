@@ -13,7 +13,6 @@
     "@nova/router": "latest",
     "@nova/islands": "latest",
     "@nova/runtime": "latest",
-    "@nova/devtools": "latest",
     "@nova/store": "latest",
     "@nova/motion": "latest",
     "@nova/i18n": "latest"
