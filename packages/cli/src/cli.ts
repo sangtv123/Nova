@@ -499,6 +499,35 @@ async function build(args: string[]) {
     const indexPath = path.join(process.cwd(), 'index.html');
     if (fs.existsSync(indexPath)) {
       let html = fs.readFileSync(indexPath, 'utf8');
+
+      // Look for stylesheet links pointing to /src/...
+      const linkRegex = /<link\s+[^>]*rel="stylesheet"\s+[^>]*href="\/src\/([^"]+)"/g;
+      let match;
+      while ((match = linkRegex.exec(html)) !== null) {
+        const relativeSrcPath = match[1]; // e.g. "nova-ui/index.css" or "styles.css"
+        const srcFile = path.join(process.cwd(), 'src', relativeSrcPath);
+        if (fs.existsSync(srcFile)) {
+          // If the stylesheet is a .scss, compile it; otherwise copy it
+          const isScss = relativeSrcPath.endsWith('.scss');
+          const destRelativePath = relativeSrcPath.replace(/\.scss$/, '.css');
+          const destFile = path.join(process.cwd(), 'dist', destRelativePath);
+          
+          fs.mkdirSync(path.dirname(destFile), { recursive: true });
+          
+          if (isScss) {
+            console.log(`🎨 Compiling linked stylesheet: src/${relativeSrcPath} -> dist/${destRelativePath}`);
+            const css = compileScssWithCache(srcFile);
+            fs.writeFileSync(destFile, css);
+          } else {
+            console.log(`📂 Copying linked stylesheet: src/${relativeSrcPath} -> dist/${destRelativePath}`);
+            fs.copyFileSync(srcFile, destFile);
+          }
+          
+          // Rewrite the href in index.html (strip /src/ and ensure .css extension)
+          html = html.replace(`/src/${relativeSrcPath}`, `/${destRelativePath}`);
+        }
+      }
+
       html = html.replace('/src/main.tsx', '/main.js');
       html = html.replace('/src/styles.scss', '/styles.css');
       

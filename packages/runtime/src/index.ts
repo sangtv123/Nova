@@ -495,6 +495,8 @@ export function createElement(
         const marker = document.createTextNode('');
         el.appendChild(marker);
         let currentNodes: Node[] = [];
+        let textNode: Text | null = null;
+        let isPrimitiveMode = false;
 
         const dispose = domEffect(() => {
           let val = isSignal ? (child as any).value : child();
@@ -503,25 +505,57 @@ export function createElement(
           }
           if (val === null || val === undefined || val === false) val = '';
 
-          const newNodes: Node[] = [];
-          if (Array.isArray(val)) {
-            for (const item of val) {
-              if (item instanceof Node) newNodes.push(item);
-              else newNodes.push(document.createTextNode(String(item)));
+          const isPrimitive = typeof val !== 'object' && !(val instanceof Node);
+
+          if (isPrimitive) {
+            if (!isPrimitiveMode) {
+              // Clean up previous elements if any
+              const parent = marker.parentNode;
+              if (parent) {
+                reconcile(parent, currentNodes, [], marker);
+              }
+              currentNodes = [];
+              textNode = document.createTextNode(String(val));
+              if (parent) {
+                parent.insertBefore(textNode, marker);
+              }
+              isPrimitiveMode = true;
+            } else if (textNode) {
+              // Direct high-performance DOM update
+              const strVal = String(val);
+              if (textNode.nodeValue !== strVal) {
+                textNode.nodeValue = strVal;
+              }
             }
-          } else if (val instanceof Node) {
-            newNodes.push(val);
           } else {
-            newNodes.push(document.createTextNode(String(val)));
-          }
+            if (isPrimitiveMode) {
+              if (textNode && textNode.parentNode) {
+                textNode.parentNode.removeChild(textNode);
+              }
+              textNode = null;
+              isPrimitiveMode = false;
+            }
 
-          if (newNodes.length === 0) newNodes.push(document.createTextNode(''));
+            const newNodes: Node[] = [];
+            if (Array.isArray(val)) {
+              for (const item of val) {
+                if (item instanceof Node) newNodes.push(item);
+                else newNodes.push(document.createTextNode(String(item)));
+              }
+            } else if (val instanceof Node) {
+              newNodes.push(val);
+            } else {
+              newNodes.push(document.createTextNode(String(val)));
+            }
 
-          const parent = marker.parentNode;
-          if (parent) {
-            reconcile(parent, currentNodes, newNodes, marker);
+            if (newNodes.length === 0) newNodes.push(document.createTextNode(''));
+
+            const parent = marker.parentNode;
+            if (parent) {
+              reconcile(parent, currentNodes, newNodes, marker);
+            }
+            currentNodes = newNodes;
           }
-          currentNodes = newNodes;
         });
         
         elDisposals.push(dispose);

@@ -130,6 +130,11 @@ export class Router {
   private moduleCache: Map<string, any> = new Map();
 
   /**
+   * Cache of scroll positions for each page.
+   */
+  private scrollPositions: Map<string, { x: number; y: number }> = new Map();
+
+  /**
    * Register a global hook that runs before any navigation.
    */
   onBeforeNavigate(hook: (pathname: string) => GuardResult): () => void {
@@ -190,7 +195,8 @@ export class Router {
     if (!route || this.moduleCache.has(route.path)) return;
 
     const factorySrc = route.module.toString();
-    const urlMatch = factorySrc.match(/import\(["']([^"']+)["']\)/);
+    // Robust regex matching single quotes, double quotes, backticks, spacing, and comments inside import()
+    const urlMatch = factorySrc.match(/import\(\s*(?:\/\*[\s\S]*?\*\/)?\s*["'`]([^"'`]+)["'`]\s*\)/);
     if (!urlMatch) return;
 
     const link = document.createElement('link');
@@ -231,6 +237,11 @@ export class Router {
     const currentPath = this.useHash 
       ? window.location.hash.replace(/^#/, '') || '/'
       : window.location.pathname;
+
+    // Cache scroll position before leaving the current page
+    if (typeof window !== 'undefined') {
+      this.scrollPositions.set(currentPath, { x: window.scrollX, y: window.scrollY });
+    }
 
     if (!skipPushState && this.currentMatch && currentPath === pathname) {
       return this.currentMatch;
@@ -321,6 +332,17 @@ export class Router {
     }
 
     this.notifyListeners(match);
+
+    // Restore scroll position or scroll to top after the page has rendered
+    if (typeof window !== 'undefined') {
+      if (skipPushState) {
+        const pos = this.scrollPositions.get(pathname) || { x: 0, y: 0 };
+        window.scrollTo(pos.x, pos.y);
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }
+
     return match;
   }
 
@@ -366,8 +388,6 @@ export class Router {
         ? window.location.hash.replace(/^#/, '') || '/'
         : window.location.pathname;
       this.navigate(path, true);
-      // Restore scroll for back/forward navigation
-      window.scrollTo({ top: 0, behavior: 'instant' });
     });
 
     // Initial route
