@@ -121,6 +121,7 @@ export class Router {
   private listeners: Set<(match: RouteMatch | null) => void> = new Set();
   private beforeNavigateHooks: Set<(pathname: string) => GuardResult> = new Set();
   private afterNavigateHooks: Set<(match: RouteMatch) => void> = new Set();
+  public useHash: boolean = false;
 
   /**
    * Cache of already-loaded modules — avoids re-importing the same chunk.
@@ -227,7 +228,11 @@ export class Router {
    * Supports Guards (CanActivate) and Resolvers.
    */
   async navigate(pathname: string, skipPushState: boolean = false): Promise<RouteMatch | null> {
-    if (!skipPushState && this.currentMatch && window.location.pathname === pathname) {
+    const currentPath = this.useHash 
+      ? window.location.hash.replace(/^#/, '') || '/'
+      : window.location.pathname;
+
+    if (!skipPushState && this.currentMatch && currentPath === pathname) {
       return this.currentMatch;
     }
 
@@ -237,7 +242,8 @@ export class Router {
     if (!base) {
       this.currentMatch = null;
       if (!skipPushState) {
-        window.history.pushState({}, '', pathname);
+        const urlToPush = this.useHash ? `#${pathname}` : pathname;
+        window.history.pushState({}, '', urlToPush);
       }
       this.notifyListeners(null);
       return null;
@@ -305,7 +311,8 @@ export class Router {
     this.currentMatch = match;
 
     if (!skipPushState) {
-      window.history.pushState({}, '', pathname);
+      const urlToPush = this.useHash ? `#${pathname}` : pathname;
+      window.history.pushState({}, '', urlToPush);
     }
 
     // 4. Global After Navigate Hooks
@@ -345,20 +352,30 @@ export class Router {
    * - Restores scroll position on navigation
    * - Matches the initial URL
    */
-  init(): void {
+  init(options?: { useHash?: boolean }): void {
+    // Determine hash mode: explicitly set or implicitly from initial URL having '#/'
+    this.useHash = options?.useHash ?? window.location.hash.startsWith('#/');
+
     // Improve scroll restoration — let the router handle it
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
 
     window.addEventListener('popstate', () => {
-      this.navigate(window.location.pathname, true);
+      const path = this.useHash 
+        ? window.location.hash.replace(/^#/, '') || '/'
+        : window.location.pathname;
+      this.navigate(path, true);
       // Restore scroll for back/forward navigation
       window.scrollTo({ top: 0, behavior: 'instant' });
     });
 
     // Initial route
-    this.navigate(window.location.pathname);
+    const initialPath = this.useHash
+      ? window.location.hash.replace(/^#/, '') || '/'
+      : window.location.pathname;
+      
+    this.navigate(initialPath);
   }
 }
 
