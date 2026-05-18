@@ -1,39 +1,34 @@
-interface CheckboxProps {
-  checked?: boolean | (() => boolean);
-  indeterminate?: boolean | (() => boolean);
-  disabled?: boolean | (() => boolean);
-  onChange?: (checked: boolean) => void;
-  children?: any;
-  class?: string;
-  style?: string;
+import { createElement } from '@nova/runtime';
+import { NovaFormElementProps, SignalOrValue } from '../core/types';
+import { classNames, resolveSignal } from '../core/utils';
+
+export interface CheckboxProps extends NovaFormElementProps<boolean> {
+  checked?: SignalOrValue<boolean>;
+  indeterminate?: SignalOrValue<boolean>;
 }
 
 export function Checkbox(props: CheckboxProps) {
-  const getChecked = () => typeof props.checked === 'function' ? props.checked() : !!props.checked;
-  const getIndeterminate = () => typeof props.indeterminate === 'function' ? props.indeterminate() : !!props.indeterminate;
-  const getDisabled = () => typeof props.disabled === 'function' ? props.disabled() : !!props.disabled;
+  const getChecked = () => resolveSignal(props.checked) ?? false;
+  const getIndeterminate = () => resolveSignal(props.indeterminate) ?? false;
+  const getDisabled = () => resolveSignal(props.disabled) ?? false;
 
-  const customClass = props.class ? ` ${props.class}` : '';
+  const handleClick = (e: MouseEvent) => {
+    if (getDisabled()) { e.preventDefault(); return; }
+    if (props.onChange) { props.onChange(!getChecked()); }
+  };
 
-  function handleClick() {
-    if (getDisabled()) return;
-    if (props.onChange) {
-      props.onChange(!getChecked());
-    }
-  }
+  const classes = classNames(
+    'n-checkbox',
+    props.class,
+    () => getChecked() ? 'n-checkbox--checked' : '',
+    () => getIndeterminate() ? 'n-checkbox--indeterminate' : '',
+    () => getDisabled() ? 'n-checkbox--disabled' : ''
+  );
 
   return (
-    <label
-      class={() => {
-        const checkedClass = getChecked() ? ' n-checkbox--checked' : '';
-        const indeterClass = getIndeterminate() ? ' n-checkbox--indeterminate' : '';
-        const disabledClass = getDisabled() ? ' n-checkbox--disabled' : '';
-        return `n-checkbox${checkedClass}${indeterClass}${disabledClass}${customClass}`;
-      }}
-      style={props.style}
-      onClick={handleClick}
-    >
-      <span class="n-checkbox-inner"></span>
+    <label class={classes} style={props.style} onClick={handleClick}>
+      <span class="n-checkbox-inner" aria-hidden="true"></span>
+      <input type="checkbox" checked={getChecked} disabled={getDisabled} style="display:none" />
       {props.children && <span>{props.children}</span>}
     </label>
   );

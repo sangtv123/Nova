@@ -1,36 +1,40 @@
-interface SwitchProps {
-  checked?: boolean | (() => boolean);
-  disabled?: boolean | (() => boolean);
-  size?: 'small' | 'default';
-  onChange?: (checked: boolean) => void;
-  class?: string;
-  style?: string;
+import { createElement } from '@nova/runtime';
+import { NovaFormElementProps, SignalOrValue, SizeType } from '../core/types';
+import { classNames, resolveSignal } from '../core/utils';
+
+export interface SwitchProps extends NovaFormElementProps<boolean> {
+  checked?: SignalOrValue<boolean>;
+  size?: SizeType;
 }
 
 export function Switch(props: SwitchProps) {
-  const getChecked = () => typeof props.checked === 'function' ? props.checked() : !!props.checked;
-  const getDisabled = () => typeof props.disabled === 'function' ? props.disabled() : !!props.disabled;
+  const getChecked = () => resolveSignal(props.checked) ?? false;
+  const getDisabled = () => resolveSignal(props.disabled) ?? false;
 
-  const sizeClass = props.size === 'small' ? ' n-switch--sm' : '';
-  const customClass = props.class ? ` ${props.class}` : '';
-
-  function handleClick() {
+  const handleClick = () => {
     if (getDisabled()) return;
-    if (props.onChange) {
-      props.onChange(!getChecked());
-    }
-  }
+    if (props.onChange) props.onChange(!getChecked());
+  };
+
+  const classes = classNames(
+    'n-switch',
+    props.size === 'small' && 'n-switch--sm',
+    props.class,
+    () => getChecked() ? 'n-switch--checked' : '',
+    () => getDisabled() ? 'n-switch--disabled' : ''
+  );
 
   return (
-    <span
-      class={() => {
-        const checkedClass = getChecked() ? ' n-switch--checked' : '';
-        const disabledClass = getDisabled() ? ' n-switch--disabled' : '';
-        return `n-switch${checkedClass}${sizeClass}${disabledClass}${customClass}`;
-      }}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={getChecked}
+      class={classes}
       style={props.style}
       onClick={handleClick}
+      disabled={getDisabled}
     >
-    </span>
+      <span class="n-switch-inner"></span>
+    </button>
   );
 }

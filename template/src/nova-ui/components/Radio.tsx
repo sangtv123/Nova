@@ -1,85 +1,67 @@
-interface RadioProps {
-  checked?: boolean | (() => boolean);
-  disabled?: boolean | (() => boolean);
-  value?: any;
-  onChange?: (value: any) => void;
-  children?: any;
-  class?: string;
-  style?: string;
+import { createElement } from '@nova/runtime';
+import { NovaFormElementProps, SignalOrValue } from '../core/types';
+import { classNames, resolveSignal } from '../core/utils';
+
+export interface RadioProps extends NovaFormElementProps<any> {
+  checked?: SignalOrValue<boolean>;
 }
 
 export function Radio(props: RadioProps) {
-  const getChecked = () => typeof props.checked === 'function' ? props.checked() : !!props.checked;
-  const getDisabled = () => typeof props.disabled === 'function' ? props.disabled() : !!props.disabled;
+  const getChecked = () => resolveSignal(props.checked) ?? false;
+  const getDisabled = () => resolveSignal(props.disabled) ?? false;
 
-  const customClass = props.class ? ` ${props.class}` : '';
+  const handleClick = (e: MouseEvent) => {
+    if (getDisabled() || getChecked()) { e.preventDefault(); return; }
+    if (props.onChange) props.onChange(props.value);
+  };
 
-  function handleClick() {
-    if (getDisabled() || getChecked()) return;
-    if (props.onChange) {
-      props.onChange(props.value);
-    }
-  }
+  const classes = classNames(
+    'n-radio',
+    props.class,
+    () => getChecked() ? 'n-radio--checked' : '',
+    () => getDisabled() ? 'n-radio--disabled' : ''
+  );
 
   return (
-    <label
-      class={() => {
-        const checkedClass = getChecked() ? ' n-radio--checked' : '';
-        const disabledClass = getDisabled() ? ' n-radio--disabled' : '';
-        return `n-radio${checkedClass}${disabledClass}${customClass}`;
-      }}
-      style={props.style}
-      onClick={handleClick}
-    >
-      <span class="n-radio-inner"></span>
+    <label class={classes} style={props.style} onClick={handleClick}>
+      <span class="n-radio-inner" aria-hidden="true"></span>
+      <input type="radio" checked={getChecked} disabled={getDisabled} style="display:none" value={props.value} />
       {props.children && <span>{props.children}</span>}
     </label>
   );
 }
 
-interface RadioGroupProps {
-  value?: any | (() => any);
-  onChange?: (value: any) => void;
-  children?: any;
-  class?: string;
-  style?: string;
+export interface RadioGroupProps extends NovaFormElementProps<any> {
   type?: 'default' | 'button';
 }
 
 export function RadioGroup(props: RadioGroupProps) {
-  const customClass = props.class ? ` ${props.class}` : '';
   const groupClass = props.type === 'button' ? 'n-radio-button-group' : 'n-radio-group';
-
   return (
-    <div class={`${groupClass}${customClass}`} style={props.style}>
+    <div class={classNames(groupClass, props.class)} style={props.style} role="radiogroup">
       {props.children}
     </div>
   );
 }
 
 export function RadioButton(props: RadioProps) {
-  const getChecked = () => typeof props.checked === 'function' ? props.checked() : !!props.checked;
-  const getDisabled = () => typeof props.disabled === 'function' ? props.disabled() : !!props.disabled;
+  const getChecked = () => resolveSignal(props.checked) ?? false;
+  const getDisabled = () => resolveSignal(props.disabled) ?? false;
 
-  const customClass = props.class ? ` ${props.class}` : '';
-
-  function handleClick() {
+  const handleClick = () => {
     if (getDisabled() || getChecked()) return;
-    if (props.onChange) {
-      props.onChange(props.value);
-    }
-  }
+    if (props.onChange) props.onChange(props.value);
+  };
+
+  const classes = classNames(
+    'n-radio-button',
+    props.class,
+    () => getChecked() ? 'n-radio-button--checked' : '',
+    () => getDisabled() ? 'n-radio-button--disabled' : ''
+  );
 
   return (
-    <div
-      class={() => {
-        const checkedClass = getChecked() ? ' n-radio-button--checked' : '';
-        const disabledClass = getDisabled() ? ' n-radio-button--disabled' : '';
-        return `n-radio-button${checkedClass}${disabledClass}${customClass}`;
-      }}
-      style={props.style}
-      onClick={handleClick}
-    >
+    <div class={classes} style={props.style} onClick={handleClick} role="radio" aria-checked={getChecked}>
       {props.children}
     </div>
   );

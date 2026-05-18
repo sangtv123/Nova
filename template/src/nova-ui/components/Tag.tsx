@@ -1,50 +1,46 @@
 import { signal } from '@nova/signals';
+import { createElement } from '@nova/runtime';
+import { NovaComponentProps, SignalOrValue } from '../core/types';
+import { classNames, resolveSignal } from '../core/utils';
 
-interface TagProps {
+export interface TagProps extends NovaComponentProps {
   type?: 'primary' | 'success' | 'warning' | 'error' | 'processing' | 'default';
   closable?: boolean;
   onClose?: () => void;
   checkable?: boolean;
-  checked?: boolean | (() => boolean);
+  checked?: SignalOrValue<boolean>;
   onChange?: (checked: boolean) => void;
-  class?: string;
-  style?: string;
-  children?: any;
 }
 
 export function Tag(props: TagProps) {
   const visible = signal(true);
-  const typeClass = props.type && props.type !== 'default' ? ` n-tag--${props.type}` : '';
-  const checkableClass = props.checkable ? ' n-tag--checkable' : '';
-  
-  const getChecked = () => typeof props.checked === 'function' ? props.checked() : !!props.checked;
-  
-  const checkedClass = () => (props.checkable && getChecked()) ? ' n-tag--checkable--checked' : '';
-  const customClass = props.class ? ` ${props.class}` : '';
+  const getChecked = () => resolveSignal(props.checked) ?? false;
 
-  function handleClose(e: MouseEvent) {
+  const handleClose = (e: MouseEvent) => {
     e.stopPropagation();
     visible.value = false;
     if (props.onClose) props.onClose();
-  }
+  };
 
-  function handleClick() {
+  const handleClick = () => {
     if (props.checkable && props.onChange) {
-      const currentChecked = getChecked();
-      props.onChange(!currentChecked);
+      props.onChange(!getChecked());
     }
-  }
+  };
+
+  const classes = classNames(
+    'n-tag',
+    props.type && props.type !== 'default' && `n-tag--${props.type}`,
+    props.checkable && 'n-tag--checkable',
+    props.class,
+    () => (props.checkable && getChecked()) ? 'n-tag--checkable--checked' : '',
+    () => !visible.value ? 'n-hidden' : ''
+  );
 
   return (
-    <span
-      class={() => `n-tag${typeClass}${checkableClass}${checkedClass()}${customClass}${visible.value ? '' : ' n-hidden'}`}
-      style={props.style}
-      onClick={handleClick}
-    >
+    <span class={classes} style={props.style} onClick={handleClick}>
       {props.children}
-      {props.closable && (
-        <span class="n-tag-close" onClick={handleClose}>✕</span>
-      )}
+      {props.closable && <span class="n-tag-close" onClick={handleClose}>✕</span>}
     </span>
   );
 }

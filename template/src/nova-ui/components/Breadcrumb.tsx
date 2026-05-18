@@ -45,7 +45,7 @@ export function Breadcrumb(props: BreadcrumbProps) {
 
           if (item.menu) {
             content = (
-              <Dropdown overlay={item.menu} trigger="hover">
+              <Dropdown menu={item.menu} trigger="hover">
                 {content}
               </Dropdown>
             );

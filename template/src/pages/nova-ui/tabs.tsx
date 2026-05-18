@@ -1,10 +1,9 @@
 import { signal } from '@nova/signals';
-import { createElement, Fragment } from '@nova/runtime';
+import { createElement } from '@nova/runtime';
 import { Tabs, TabPane } from '../../nova-ui/components/Tabs';
 import { Button } from '../../nova-ui/components/Button';
 
 export function TabsPage() {
-  const activeKey = signal('1');
   const position = signal<'top' | 'right' | 'bottom' | 'left'>('top');
 
   const dynamicTabs = signal([

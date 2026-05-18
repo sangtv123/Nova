@@ -1,6 +1,7 @@
 import { signal, effect, domEffect, untrack } from '@nova/signals';
-import { createElement, Fragment, onMount } from '@nova/runtime';
-import { Dropdown } from './Dropdown';
+import { createElement, onMount } from '@nova/runtime';
+import { SignalOrValue } from '../core/types';
+import { resolveSignal } from '../core/utils';
 
 export interface TabPaneProps {
   key: string;
@@ -24,12 +25,12 @@ export function TabPane(props: TabPaneProps) {
 }
 
 export interface TabsProps {
-  activeKey?: string | (() => string);
+  activeKey?: SignalOrValue<string>;
   defaultActiveKey?: string;
   onChange?: (key: string) => void;
   onEdit?: (action: 'add' | 'remove', key?: string) => void;
   type?: 'line' | 'card' | 'editable-card';
-  position?: 'top' | 'right' | 'bottom' | 'left';
+  position?: SignalOrValue<'top' | 'right' | 'bottom' | 'left'>;
   animated?: boolean;
   lazy?: boolean;
   destroyInactive?: boolean;
@@ -42,15 +43,15 @@ export interface TabsProps {
 
 export function Tabs(props: TabsProps) {
   const type = props.type || 'line';
-  const position = props.position || 'top';
+  const getPosition = () => resolveSignal(props.position) || 'top';
   const isAnimated = props.animated !== false && type === 'line';
   
   // State
   const internalKey = signal(props.defaultActiveKey || '');
   
   const getActiveKey = () => {
-    if (typeof props.activeKey === 'function') return props.activeKey();
-    if (props.activeKey !== undefined) return props.activeKey;
+    const key = resolveSignal(props.activeKey);
+    if (key !== undefined) return key;
     return internalKey.value;
   };
 
@@ -130,9 +131,10 @@ export function Tabs(props: TabsProps) {
   const updateInkBar = () => {
     if (type !== 'line') return;
     const key = getActiveKey();
+    const pos = getPosition();
     const el = headerRefs.get(key);
     if (el) {
-      if (position === 'left' || position === 'right') {
+      if (pos === 'left' || pos === 'right') {
         inkBarStyle.value = { 
           width: '2px', height: `${el.offsetHeight}px`, 
           transform: `translate(0px, ${el.offsetTop}px)`,
@@ -164,7 +166,7 @@ export function Tabs(props: TabsProps) {
   const renderedPanes = new Set<string>();
 
   return (
-    <div class={() => `n-tabs n-tabs-${position} n-tabs-${type}${props.class ? ` ${props.class}` : ''}`} style={props.style}>
+    <div class={() => `n-tabs n-tabs-${getPosition()} n-tabs-${type}${props.class ? ` ${props.class}` : ''}`} style={props.style}>
       
       {/* ── Header ── */}
       <div class="n-tabs-nav-wrap">

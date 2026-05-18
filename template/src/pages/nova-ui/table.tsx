@@ -203,7 +203,7 @@ export function TablePage() {
               <Table
                 columns={simpleColumns}
                 dataSource={tableData}
-                loading={() => isLoading.value}
+                loading={isLoading.value}
               />
             </div>
           </div>
