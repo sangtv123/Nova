@@ -18,6 +18,7 @@ import { SliderPage }      from './pages/nova-ui/slider';
 import { DatepickerPage }  from './pages/nova-ui/datepicker';
 import { UploadPage }      from './pages/nova-ui/upload';
 import { FormPage }        from './pages/nova-ui/form';
+import { EditorPage }      from './pages/nova-ui/editor';
 
 import { TablePage }       from './pages/nova-ui/table';
 import { BreadcrumbPage }  from './pages/nova-ui/breadcrumb';
@@ -71,6 +72,7 @@ export function App() {
         {() => activeKey.value === 'datepicker' && <DatepickerPage />}
         {() => activeKey.value === 'upload' && <UploadPage />}
         {() => activeKey.value === 'form' && <FormPage />}
+        {() => activeKey.value === 'editor' && <EditorPage />}
         
         {() => activeKey.value === 'breadcrumb' && <BreadcrumbPage />}
         {() => activeKey.value === 'tabs' && <TabsPage />}

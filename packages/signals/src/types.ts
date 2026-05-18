@@ -3,6 +3,8 @@
  * Represents a mutable reactive value
  */
 export interface Signal<T> {
+  id?: string;
+  label?: string;
   value: T;
   peek(): T;
   getSubscribers(): Set<Subscriber>;

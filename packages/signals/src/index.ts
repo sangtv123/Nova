@@ -16,15 +16,15 @@ let currentEffect: Effect | null = null;
 let batchDepth = 0;
 let pendingEffects = new Set<Subscriber>();
 
-/**
- * Create a reactive signal with initial value
- * Tracks all dependent effects and computed values
- */
-export function signal<T>(initialValue: T): Signal<T> {
+export function signal<T>(initialValue: T, label?: string): Signal<T> {
   let value = initialValue;
   const subs: Set<Subscriber> = new Set();
+  const id = `sig_${Math.random().toString(36).substring(2, 9)}`;
 
   const sig: Signal<T> = {
+    id,
+    label: label || 'Signal',
+
     /**
      * Get the current signal value
      * Subscribes current effect if running
@@ -44,7 +44,14 @@ export function signal<T>(initialValue: T): Signal<T> {
      */
     set value(newValue: T) {
       if (value === newValue) return;
+      const oldValue = value;
       value = newValue;
+
+      // Notify devtools
+      if (typeof window !== 'undefined' && (window as any).__NOVA_DEVTOOLS_HOOK__?.onSignalUpdated) {
+        (window as any).__NOVA_DEVTOOLS_HOOK__.onSignalUpdated(sig, oldValue, newValue);
+      }
+
       if (batchDepth > 0) {
         // Batching mode: add to global pending set
         subs.forEach(sub => pendingEffects.add(sub));
@@ -82,6 +89,15 @@ export function signal<T>(initialValue: T): Signal<T> {
     },
   };
 
+  if (typeof window !== 'undefined') {
+    const registry = (window as any).__NOVA_SIGNALS__ || new Set();
+    (window as any).__NOVA_SIGNALS__ = registry;
+    registry.add(new WeakRef(sig));
+    if ((window as any).__NOVA_DEVTOOLS_HOOK__?.onSignalCreated) {
+      (window as any).__NOVA_DEVTOOLS_HOOK__.onSignalCreated(sig);
+    }
+  }
+
   return sig;
 }
 
@@ -89,10 +105,11 @@ export function signal<T>(initialValue: T): Signal<T> {
  * Create a derived value from other signals
  * Automatically recomputes when dependencies change
  */
-export function computed<T>(fn: () => T): Signal<T> {
+export function computed<T>(fn: () => T, label?: string): Signal<T> {
   let value: T = undefined as unknown as T;
   let dirty = true;
   const internalSubs: Set<Subscriber> = new Set();
+  const id = `comp_${Math.random().toString(36).substring(2, 9)}`;
 
   const effectObj: Effect = {
     run() {
@@ -105,6 +122,9 @@ export function computed<T>(fn: () => T): Signal<T> {
   };
 
   const sig: Signal<T> = {
+    id,
+    label: label || 'Computed',
+
     get value(): T {
       if (currentEffect) {
         internalSubs.add(currentEffect);
@@ -116,12 +136,18 @@ export function computed<T>(fn: () => T): Signal<T> {
       if (dirty) {
         const prevEffect = currentEffect;
         currentEffect = effectObj;
+        const oldValue = value;
         try {
           value = fn();
         } finally {
           currentEffect = prevEffect;
         }
         dirty = false;
+
+        // Notify devtools
+        if (typeof window !== 'undefined' && (window as any).__NOVA_DEVTOOLS_HOOK__?.onSignalUpdated) {
+          (window as any).__NOVA_DEVTOOLS_HOOK__.onSignalUpdated(sig, oldValue, value);
+        }
       }
 
       return value;
@@ -146,6 +172,15 @@ export function computed<T>(fn: () => T): Signal<T> {
       return computed(() => fns.reduce((val, fn) => fn(val), sig.value));
     },
   };
+
+  if (typeof window !== 'undefined') {
+    const registry = (window as any).__NOVA_SIGNALS__ || new Set();
+    (window as any).__NOVA_SIGNALS__ = registry;
+    registry.add(new WeakRef(sig));
+    if ((window as any).__NOVA_DEVTOOLS_HOOK__?.onSignalCreated) {
+      (window as any).__NOVA_DEVTOOLS_HOOK__.onSignalCreated(sig);
+    }
+  }
 
   return sig;
 }

@@ -292,3 +292,114 @@
     &--success { color: var(--n-success); }
   }
 }
+
+// ─── Text Editor ─────────────────────────────
+.n-editor {
+  border: 1px solid var(--n-border);
+  border-radius: var(--n-border-r-lg);
+  background: var(--n-bg-container);
+  overflow: hidden;
+  @include flex(column, stretch, flex-start, 0);
+  @include transition(border-color, box-shadow);
+
+  &:hover {
+    border-color: var(--n-primary-hover);
+  }
+
+  &:focus-within {
+    border-color: var(--n-primary);
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.2);
+  }
+
+  &--disabled {
+    background: var(--n-bg-hover);
+    cursor: not-allowed;
+    opacity: 0.6;
+    .n-editor-content {
+      cursor: not-allowed;
+    }
+  }
+
+  &-toolbar {
+    background: var(--n-bg-hover);
+    border-bottom: 1px solid var(--n-border);
+    padding: var(--n-xs);
+    @include flex(row, center, flex-start, var(--n-xs));
+    flex-wrap: wrap;
+  }
+
+  &-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: var(--n-border-r-xs);
+    color: var(--n-text-2);
+    padding: 6px 12px;
+    font-size: var(--n-fs-sm);
+    cursor: pointer;
+    outline: none;
+    @include flex(row, center, center);
+    @include transition(background, color, border-color);
+
+    &:hover {
+      background: var(--n-bg-container);
+      color: var(--n-primary);
+      border-color: var(--n-border);
+    }
+
+    &:active {
+      background: var(--n-primary-bg);
+      color: var(--n-primary);
+    }
+
+    &--code {
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--n-primary);
+      background: var(--n-primary-bg);
+      &:hover {
+        background: var(--n-primary);
+        color: #fff;
+      }
+    }
+  }
+
+  &-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--n-border);
+    margin: 0 var(--n-xs);
+  }
+
+  &-container {
+    background: var(--n-bg-container);
+    position: relative;
+  }
+
+  &-content {
+    min-height: 100%;
+    color: var(--n-text-1);
+    font-family: var(--n-font);
+    font-size: var(--n-fs);
+    line-height: var(--n-lh);
+
+    &[contenteditable]:empty::before {
+      content: attr(placeholder);
+      color: var(--n-text-4);
+      cursor: text;
+    }
+  }
+
+  &-textarea {
+    color: var(--n-text-1);
+    background: var(--n-bg-hover);
+  }
+
+  &-statusbar {
+    background: var(--n-bg-hover);
+    border-top: 1px solid var(--n-border);
+    padding: var(--n-xs) var(--n-md);
+    font-size: var(--n-fs-sm);
+    color: var(--n-text-3);
+    @include flex(row, center, flex-start);
+  }
+}

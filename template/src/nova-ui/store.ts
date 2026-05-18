@@ -44,6 +44,7 @@ export const navItems = [
       { key: 'datepicker',  label: 'DatePicker',  icon: '📅' },
       { key: 'upload',      label: 'Upload',      icon: '📤' },
       { key: 'form',        label: 'Form',        icon: '📋' },
+      { key: 'editor',      label: 'Text Editor', icon: '✍️' },
     ]
   },
   {

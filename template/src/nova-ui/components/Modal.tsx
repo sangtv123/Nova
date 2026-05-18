@@ -37,10 +37,12 @@ export function Modal(props: ModalProps) {
       <div 
         class={modalClasses} 
         style={(() => {
-          const w = props.width;
-          let s = typeof props.style === 'string' ? props.style : '';
-          if (w) s += `;width:${typeof w === 'number' ? w + 'px' : w};max-width:calc(100vw - 32px);`;
-          return s;
+          const styleObj: any = typeof props.style === 'object' ? { ...props.style } : {};
+          if (props.width) {
+            styleObj.width = typeof props.width === 'number' ? `${props.width}px` : props.width;
+            styleObj.maxWidth = 'calc(100vw - 32px)';
+          }
+          return styleObj;
         })()} 
         onClick={(e: MouseEvent) => e.stopPropagation()}
       >
