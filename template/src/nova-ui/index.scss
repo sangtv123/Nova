@@ -1,0 +1,126 @@
+// ============================================
+// Nova UI — Main Entry
+// Import order matters: tokens → reset → layout → components
+// ============================================
+
+@use 'tokens';
+@use 'reset';
+@use 'layout';
+@use 'components-basic';
+@use 'components-entry';
+@use 'components-display';
+@use 'components-feedback';
+
+// ─── Grid System ─────────────────────────────
+@use 'mixins' as *;
+
+.n-row {
+  @include flex(row, flex-start, flex-start, 0);
+  flex-wrap: wrap; margin: 0;
+  &--gutter-sm   { gap: var(--n-sm); }
+  &--gutter-md   { gap: var(--n-md); }
+  &--gutter-lg   { gap: var(--n-lg); }
+  &--gutter-xl   { gap: var(--n-xl); }
+  &--justify-center  { justify-content: center; }
+  &--justify-end     { justify-content: flex-end; }
+  &--justify-between { justify-content: space-between; }
+  &--align-middle    { align-items: center; }
+  &--align-bottom    { align-items: flex-end; }
+}
+
+@for $i from 1 through 24 {
+  .n-col-#{$i} { width: calc(#{$i} / 24 * 100%); flex: 0 0 calc(#{$i} / 24 * 100%); min-width: 0; }
+}
+@each $bp, $w in ('sm': 576px, 'md': 768px, 'lg': 992px, 'xl': 1200px) {
+  @media (min-width: $w) {
+    @for $i from 1 through 24 {
+      .n-col-#{$bp}-#{$i} { width: calc(#{$i} / 24 * 100%); flex: 0 0 calc(#{$i} / 24 * 100%); }
+    }
+  }
+}
+
+// ─── Flex Utilities ──────────────────────────
+.n-flex        { display: flex; }
+.n-flex-col    { display: flex; flex-direction: column; }
+.n-flex-wrap   { flex-wrap: wrap; }
+.n-flex-1      { flex: 1; }
+.n-items-center{ align-items: center; }
+.n-items-start { align-items: flex-start; }
+.n-items-end   { align-items: flex-end; }
+.n-justify-center  { justify-content: center; }
+.n-justify-between { justify-content: space-between; }
+.n-justify-end     { justify-content: flex-end; }
+
+// ─── Spacing Utilities ───────────────────────
+$spaces: (0: 0, 1: var(--n-xs), 2: var(--n-sm), 3: var(--n-md), 4: var(--n-lg), 5: var(--n-xl), 6: var(--n-2xl), 8: var(--n-3xl));
+@each $k, $v in $spaces {
+  .n-gap-#{$k} { gap: $v; }
+  .n-p-#{$k}   { padding: $v; }
+  .n-pt-#{$k}  { padding-top: $v; }
+  .n-pb-#{$k}  { padding-bottom: $v; }
+  .n-pl-#{$k}  { padding-left: $v; }
+  .n-pr-#{$k}  { padding-right: $v; }
+  .n-m-#{$k}   { margin: $v; }
+  .n-mt-#{$k}  { margin-top: $v; }
+  .n-mb-#{$k}  { margin-bottom: $v; }
+  .n-ml-#{$k}  { margin-left: $v; }
+  .n-mr-#{$k}  { margin-right: $v; }
+}
+
+// ─── Text Utilities ──────────────────────────
+.n-text-left    { text-align: left; }
+.n-text-center  { text-align: center; }
+.n-text-right   { text-align: right; }
+.n-font-bold    { font-weight: 700; }
+.n-font-medium  { font-weight: 500; }
+.n-text-primary { color: var(--n-primary) !important; }
+.n-text-success { color: var(--n-success) !important; }
+.n-text-warning { color: var(--n-warning) !important; }
+.n-text-error   { color: var(--n-error) !important; }
+.n-text-muted   { color: var(--n-text-2) !important; }
+.n-text-sm      { font-size: var(--n-fs-sm) !important; }
+.n-text-lg      { font-size: var(--n-fs-lg) !important; }
+
+// ─── Display Utilities ───────────────────────
+.n-hidden   { display: none !important; }
+.n-block    { display: block !important; }
+.n-w-full   { width: 100%; }
+.n-h-full   { height: 100%; }
+.n-overflow-hidden { overflow: hidden; }
+.n-relative { position: relative; }
+.n-cursor-pointer { cursor: pointer; }
+.n-rounded  { border-radius: var(--n-border-r); }
+.n-rounded-full { border-radius: 999px; }
+.n-border   { border: 1px solid var(--n-border); }
+.n-bg-container { background: var(--n-bg-container); }
+
+// ─── Empty State ─────────────────────────────
+.n-empty {
+  @include flex(column, center, center, var(--n-sm));
+  padding: var(--n-4xl) var(--n-2xl); color: var(--n-text-3);
+  &-image { font-size: 60px; margin-bottom: var(--n-sm); }
+  &-description { font-size: var(--n-fs); }
+}
+
+// ─── Result ──────────────────────────────────
+.n-result {
+  @include flex(column, center, center, var(--n-sm));
+  padding: var(--n-4xl) var(--n-2xl); text-align: center;
+  &-icon { font-size: 72px; margin-bottom: var(--n-md); }
+  &-title { font-size: var(--n-fs-3xl); font-weight: 700; color: var(--n-text-1); }
+  &-subtitle { color: var(--n-text-2); margin-top: var(--n-xs); }
+  &-extra { margin-top: var(--n-2xl); @include flex(row, center, center, var(--n-sm)); }
+  &--success .n-result-icon { color: var(--n-success); }
+  &--error   .n-result-icon { color: var(--n-error); }
+  &--warning .n-result-icon { color: var(--n-warning); }
+  &--info    .n-result-icon { color: var(--n-info); }
+}
+
+// ─── Statistic ───────────────────────────────
+.n-statistic {
+  &-title { font-size: var(--n-fs-sm); color: var(--n-text-2); margin-bottom: var(--n-xs); }
+  &-content { @include flex(row, baseline, flex-start, var(--n-xs)); }
+  &-prefix { font-size: var(--n-fs); color: var(--n-text-2); }
+  &-value  { font-size: var(--n-fs-4xl); font-weight: 800; color: var(--n-text-1); line-height: 1; }
+  &-suffix { font-size: var(--n-fs-lg); color: var(--n-text-2); }
+}

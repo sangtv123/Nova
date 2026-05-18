@@ -1,0 +1,158 @@
+// ============================================
+// Nova UI — Design Tokens
+// ============================================
+
+:root {
+  // ── Color Palette ──────────────────────────
+  --n-blue-1: #e6f4ff;
+  --n-blue-2: #bae0ff;
+  --n-blue-3: #91caff;
+  --n-blue-4: #69b1ff;
+  --n-blue-5: #4096ff;
+  --n-blue-6: #1677ff;
+  --n-blue-7: #0958d9;
+  --n-blue-8: #003eb3;
+
+  --n-green-1: #f6ffed;
+  --n-green-6: #52c41a;
+  --n-green-7: #389e0d;
+
+  --n-red-1:   #fff2f0;
+  --n-red-5:   #ff7875;
+  --n-red-6:   #ff4d4f;
+  --n-red-7:   #d9363e;
+
+  --n-orange-6: #fa8c16;
+  --n-gold-6:   #faad14;
+  --n-cyan-6:   #13c2c2;
+  --n-purple-6: #722ed1;
+
+  // ── Semantic ───────────────────────────────
+  --n-primary:         var(--n-blue-6);
+  --n-primary-hover:   var(--n-blue-5);
+  --n-primary-active:  var(--n-blue-7);
+  --n-primary-bg:      var(--n-blue-1);
+  --n-primary-border:  var(--n-blue-3);
+
+  --n-success:         var(--n-green-6);
+  --n-warning:         var(--n-gold-6);
+  --n-error:           var(--n-red-6);
+  --n-info:            var(--n-blue-6);
+
+  --n-success-bg:      var(--n-green-1);
+  --n-warning-bg:      #fffbe6;
+  --n-error-bg:        var(--n-red-1);
+  --n-info-bg:         var(--n-blue-1);
+
+  --n-success-border:  #b7eb8f;
+  --n-warning-border:  #ffe58f;
+  --n-error-border:    #ffb8b8;
+  --n-info-border:     var(--n-blue-3);
+
+  // ── Text ───────────────────────────────────
+  --n-text-1: rgba(0,0,0,.88);
+  --n-text-2: rgba(0,0,0,.65);
+  --n-text-3: rgba(0,0,0,.45);
+  --n-text-4: rgba(0,0,0,.25);
+  --n-text-link: var(--n-primary);
+  --n-text-inv: #fff;
+
+  // ── Border ─────────────────────────────────
+  --n-border:      #d9d9d9;
+  --n-border-r-xs: 2px;
+  --n-border-r-sm: 4px;
+  --n-border-r:    6px;
+  --n-border-r-lg: 8px;
+  --n-border-r-xl: 12px;
+
+  // ── Background ─────────────────────────────
+  --n-bg:          #fff;
+  --n-bg-layout:   #f5f5f5;
+  --n-bg-container:#fff;
+  --n-bg-elevated: #fff;
+  --n-bg-mask:     rgba(0,0,0,.45);
+  --n-bg-hover:    rgba(0,0,0,.04);
+  --n-bg-active:   rgba(0,0,0,.15);
+
+  // ── Shadow ─────────────────────────────────
+  --n-shadow-xs: 0 1px 2px 0 rgba(0,0,0,.03);
+  --n-shadow-sm: 0 1px 6px -1px rgba(0,0,0,.08), 0 2px 4px -1px rgba(0,0,0,.05);
+  --n-shadow:    0 6px 16px 0 rgba(0,0,0,.08), 0 3px 6px -4px rgba(0,0,0,.12), 0 9px 28px 8px rgba(0,0,0,.05);
+  --n-shadow-lg: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.08);
+
+  // ── Spacing ────────────────────────────────
+  --n-xs:  4px;
+  --n-sm:  8px;
+  --n-md:  12px;
+  --n-lg:  16px;
+  --n-xl:  20px;
+  --n-2xl: 24px;
+  --n-3xl: 32px;
+  --n-4xl: 48px;
+
+  // ── Typography ─────────────────────────────
+  --n-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --n-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  --n-fs-xs:  10px;
+  --n-fs-sm:  12px;
+  --n-fs:     14px;
+  --n-fs-lg:  16px;
+  --n-fs-xl:  20px;
+  --n-fs-2xl: 24px;
+  --n-fs-3xl: 30px;
+  --n-fs-4xl: 38px;
+  --n-lh:     1.5714285714;
+
+  // ── Transition ─────────────────────────────
+  --n-ease: cubic-bezier(.4,0,.2,1);
+  --n-dur-fast: 100ms;
+  --n-dur:      200ms;
+  --n-dur-slow: 300ms;
+  --n-trans: all var(--n-dur) var(--n-ease);
+
+  // ── Control Heights ────────────────────────
+  --n-ctrl-xs: 20px;
+  --n-ctrl-sm: 24px;
+  --n-ctrl-md: 32px;
+  --n-ctrl-lg: 40px;
+  --n-ctrl-xl: 48px;
+
+  // ── Z-index ────────────────────────────────
+  --n-z-dropdown:     1050;
+  --n-z-modal:        1000;
+  --n-z-drawer:       1000;
+  --n-z-tooltip:      1070;
+  --n-z-notification: 1100;
+}
+
+// ── Dark Theme ─────────────────────────────────
+[data-theme="dark"] {
+  --n-primary:        #1668dc;
+  --n-primary-hover:  #3c89e8;
+  --n-primary-active: #1554ad;
+  --n-primary-bg:     #111a2c;
+  --n-primary-border: #15325b;
+
+  --n-text-1: rgba(255,255,255,.85);
+  --n-text-2: rgba(255,255,255,.65);
+  --n-text-3: rgba(255,255,255,.45);
+  --n-text-4: rgba(255,255,255,.25);
+
+  --n-border:      #424242;
+
+  --n-bg:          #141414;
+  --n-bg-layout:   #141414;
+  --n-bg-container:#1f1f1f;
+  --n-bg-elevated: #2a2a2a;
+  --n-bg-hover:    rgba(255,255,255,.08);
+  --n-bg-active:   rgba(255,255,255,.15);
+
+  --n-success-bg:  #102c08;
+  --n-warning-bg:  #2b2111;
+  --n-error-bg:    #2c1212;
+  --n-info-bg:     #111a2c;
+  --n-success-border: #274916;
+  --n-warning-border: #594214;
+  --n-error-border:   #58181c;
+  --n-info-border:    #15325b;
+}

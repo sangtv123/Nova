@@ -1,0 +1,306 @@
+// ============================================
+// Nova UI — Components: Feedback + Advanced
+// ============================================
+@use 'mixins' as *;
+
+// ─── Alert ───────────────────────────────────
+.n-alert {
+  @include flex(row, flex-start, flex-start, var(--n-sm));
+  padding: var(--n-sm) var(--n-lg); border-radius: var(--n-border-r-lg);
+  border: 1px solid; font-size: var(--n-fs);
+  &--info    { @include status-color(info); }
+  &--success { @include status-color(success); }
+  &--warning { @include status-color(warning); }
+  &--error   { @include status-color(error); }
+  &-icon { font-size: var(--n-fs-lg); flex-shrink: 0; margin-top: 1px; }
+  &-content { flex: 1; }
+  &-message { font-weight: 600; }
+  &-description { margin-top: 4px; opacity: .85; font-size: var(--n-fs-sm); }
+  &-close { margin-left: auto; cursor: pointer; opacity: .65; flex-shrink: 0;
+    &:hover { opacity: 1; } }
+  &-action { margin-top: var(--n-xs); }
+  &-with-desc { padding: var(--n-md) var(--n-lg); }
+  animation: n-fade-up var(--n-dur) var(--n-ease);
+}
+
+// ─── Modal ───────────────────────────────────
+.n-modal-mask {
+  @include overlay-base;
+  background: var(--n-bg-mask); animation: n-fade-in var(--n-dur) var(--n-ease);
+}
+.n-modal {
+  background: var(--n-bg-container); border-radius: var(--n-border-r-xl);
+  box-shadow: var(--n-shadow-lg); width: 520px; max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px); @include flex(column, stretch, flex-start, 0);
+  animation: n-scale-in var(--n-dur) var(--n-ease);
+  &-header {
+    @include flex(row, center, space-between, var(--n-md));
+    padding: var(--n-lg) var(--n-2xl); border-bottom: 1px solid var(--n-border);
+    font-size: var(--n-fs-xl); font-weight: 600; color: var(--n-text-1); flex-shrink: 0;
+  }
+  &-close {
+    width: 32px; height: 32px; @include flex(row, center, center);
+    border-radius: var(--n-border-r); cursor: pointer; color: var(--n-text-3);
+    @include transition(background, color);
+    &:hover { background: var(--n-bg-hover); color: var(--n-text-1); }
+  }
+  &-body { padding: var(--n-2xl); overflow-y: auto; flex: 1; @include scrollbar; }
+  &-footer {
+    @include flex(row, center, flex-end, var(--n-sm));
+    padding: var(--n-md) var(--n-2xl); border-top: 1px solid var(--n-border); flex-shrink: 0;
+  }
+}
+
+// ─── Drawer ──────────────────────────────────
+.n-drawer-mask {
+  position: fixed; inset: 0; background: var(--n-bg-mask); z-index: var(--n-z-drawer);
+  animation: n-fade-in var(--n-dur) var(--n-ease);
+}
+.n-drawer {
+  position: fixed; z-index: calc(var(--n-z-drawer) + 1);
+  background: var(--n-bg-container); box-shadow: var(--n-shadow-lg);
+  @include flex(column, stretch, flex-start, 0);
+  &--right  { top:0; right:0; bottom:0; width:400px; animation: n-slide-in-right var(--n-dur) var(--n-ease); }
+  &--left   { top:0; left:0; bottom:0; width:400px; animation: n-slide-in-left var(--n-dur) var(--n-ease); }
+  &--bottom { left:0; right:0; bottom:0; animation: n-slide-in-up var(--n-dur) var(--n-ease); }
+  &-header  {
+    @include flex(row, center, space-between, var(--n-md));
+    padding: var(--n-lg) var(--n-2xl); border-bottom: 1px solid var(--n-border);
+    font-size: var(--n-fs-lg); font-weight: 600; flex-shrink: 0;
+  }
+  &-close   { width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--n-border-r);cursor:pointer;color:var(--n-text-3);border:none;background:transparent;font-size:16px;transition:var(--n-trans);&:hover{background:var(--n-bg-hover);color:var(--n-text-1);} }
+  &-body    { padding: var(--n-2xl); overflow-y: auto; flex: 1; @include scrollbar; }
+  &-footer  { padding: var(--n-md) var(--n-2xl); border-top: 1px solid var(--n-border); flex-shrink: 0; }
+}
+
+// ─── Notification / Message ──────────────────
+.n-notification-container {
+  position: fixed; right: var(--n-2xl); top: var(--n-2xl); z-index: var(--n-z-notification);
+  @include flex(column, flex-end, flex-end, var(--n-sm));
+  pointer-events: none; width: 384px;
+}
+.n-notification {
+  pointer-events: all; background: var(--n-bg-container); border: 1px solid var(--n-border);
+  border-radius: var(--n-border-r-lg); box-shadow: var(--n-shadow); padding: var(--n-lg);
+  @include flex(row, flex-start, flex-start, var(--n-md));
+  width: 100%; animation: n-slide-in-right var(--n-dur) var(--n-ease);
+  &-icon { font-size: var(--n-fs-xl); flex-shrink: 0;
+    &--success { color: var(--n-success); }
+    &--error   { color: var(--n-error); }
+    &--warning { color: var(--n-warning); }
+    &--info    { color: var(--n-info); }
+  }
+  &-content { flex: 1; overflow: hidden; }
+  &-title   { font-weight: 600; color: var(--n-text-1); @include ellipsis; }
+  &-desc    { color: var(--n-text-2); font-size: var(--n-fs-sm); margin-top: var(--n-xs); }
+  &-close   { color: var(--n-text-3); cursor: pointer; flex-shrink: 0;
+    &:hover { color: var(--n-text-1); } }
+}
+.n-message-container {
+  position: fixed; top: var(--n-lg); left: 50%; transform: translateX(-50%);
+  z-index: var(--n-z-notification); @include flex(column, center, center, var(--n-sm));
+  pointer-events: none;
+}
+.n-message {
+  pointer-events: all; background: var(--n-bg-container); border-radius: var(--n-border-r-xl);
+  box-shadow: var(--n-shadow); padding: var(--n-sm) var(--n-lg);
+  @include flex(row, center, flex-start, var(--n-sm));
+  font-size: var(--n-fs); animation: n-fade-up var(--n-dur) var(--n-ease);
+  &-icon { font-size: var(--n-fs-lg);
+    &--success { color: var(--n-success); }
+    &--error   { color: var(--n-error); }
+    &--warning { color: var(--n-warning); }
+    &--info    { color: var(--n-info); }
+    &--loading { animation: n-spin .6s linear infinite; }
+  }
+}
+
+// ─── Skeleton ────────────────────────────────
+.n-skeleton {
+  &-element {
+    background: linear-gradient(90deg, var(--n-bg-hover) 25%, var(--n-border) 50%, var(--n-bg-hover) 75%);
+    background-size: 200px 100%;
+    animation: n-shimmer 1.5s infinite linear;
+    border-radius: var(--n-border-r);
+  }
+  &-title { height: 16px; width: 38%; margin-bottom: var(--n-md); }
+  &-paragraph p {
+    height: 14px; margin-bottom: var(--n-sm); border-radius: var(--n-border-r);
+    background: linear-gradient(90deg, var(--n-bg-hover) 25%, var(--n-border) 50%, var(--n-bg-hover) 75%);
+    background-size: 200px 100%; animation: n-shimmer 1.5s infinite linear;
+    &:last-child { width: 61%; }
+  }
+  &-avatar { border-radius: 50%; width: 40px; height: 40px; }
+  &-button { height: var(--n-ctrl-md); width: 80px; }
+  &-image { height: 200px; }
+  &--active .n-skeleton-element { animation: n-shimmer 1.5s infinite linear; }
+  &--round .n-skeleton-element { border-radius: 999px; }
+}
+
+// ─── Spin ────────────────────────────────────
+.n-spin {
+  @include flex(column, center, center, var(--n-sm));
+  &-dot {
+    position: relative; width: 20px; height: 20px;
+    animation: n-spin .7s linear infinite;
+    border: 2px solid var(--n-primary-border); border-top-color: var(--n-primary);
+    border-radius: 50%;
+  }
+  &--sm .n-spin-dot { width: 14px; height: 14px; }
+  &--lg .n-spin-dot { width: 32px; height: 32px; border-width: 3px; }
+  &-text { color: var(--n-primary); font-size: var(--n-fs-sm); }
+  &-container { position: relative;
+    .n-spin-overlay { @include absolute-fill; @include flex(column, center, center, var(--n-sm));
+      background: rgba(255,255,255,.6); z-index: 1; border-radius: inherit;
+    }
+  }
+}
+
+// ─── Progress ────────────────────────────────
+.n-progress {
+  width: 100%;
+  &-outer { @include flex(row, center, flex-start, var(--n-sm)); }
+  &-inner {
+    flex: 1; height: 8px; background: var(--n-bg-hover); border-radius: 999px; overflow: hidden;
+    &--sm { height: 4px; }
+    &--lg { height: 12px; }
+  }
+  &-bg { height: 100%; border-radius: 999px; @include transition(width); background: var(--n-primary);
+    &--success { background: var(--n-success); }
+    &--warning { background: var(--n-warning); }
+    &--error   { background: var(--n-error); }
+    &--striped {
+      background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%);
+      background-size: 1rem 1rem;
+    }
+    &--active { animation: n-shimmer 2s linear infinite; }
+  }
+  &-info { min-width: 2rem; text-align: right; font-size: var(--n-fs-sm); color: var(--n-text-2); }
+  &--circle {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    svg { transform: rotate(-90deg); }
+    &-text { position: absolute; font-size: var(--n-fs-sm); font-weight: 600; color: var(--n-text-1); }
+  }
+}
+
+// ─── Command Palette ─────────────────────────
+.n-command-palette {
+  position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+  width: 560px; max-width: calc(100vw - 32px); z-index: calc(var(--n-z-modal) + 10);
+  background: var(--n-bg-container); border: 1px solid var(--n-border);
+  border-radius: var(--n-border-r-xl); box-shadow: var(--n-shadow-lg);
+  overflow: hidden; animation: n-scale-in var(--n-dur) var(--n-ease);
+  &-search {
+    @include flex(row, center, flex-start, var(--n-sm));
+    padding: var(--n-md) var(--n-lg); border-bottom: 1px solid var(--n-border);
+    .icon { color: var(--n-text-3); font-size: var(--n-fs-lg); flex-shrink: 0; }
+    input { flex: 1; border: none; outline: none; background: transparent;
+      font-size: var(--n-fs-lg); color: var(--n-text-1); font-family: var(--n-font);
+      &::placeholder { color: var(--n-text-4); }
+    }
+    kbd { background: var(--n-bg-hover); border: 1px solid var(--n-border); border-radius: var(--n-border-r-xs);
+      padding: 2px 4px; font-size: var(--n-fs-xs); color: var(--n-text-3); }
+  }
+  &-results { max-height: 360px; overflow-y: auto; @include scrollbar; padding: var(--n-xs) 0; }
+  &-group-heading { padding: var(--n-xs) var(--n-lg); font-size: var(--n-fs-xs); font-weight: 600;
+    color: var(--n-text-3); text-transform: uppercase; letter-spacing: .08em; }
+  &-item {
+    @include flex(row, center, flex-start, var(--n-sm));
+    padding: var(--n-sm) var(--n-lg); cursor: pointer; @include transition(background);
+    &:hover,&--selected { background: var(--n-primary-bg); }
+    &-icon { font-size: var(--n-fs-xl); color: var(--n-text-3); flex-shrink: 0; }
+    &-label { flex: 1; color: var(--n-text-1); font-size: var(--n-fs); }
+    &-shortcut { font-size: var(--n-fs-xs); color: var(--n-text-3);
+      kbd { background: var(--n-bg-hover); border: 1px solid var(--n-border); border-radius: 3px;
+        padding: 1px 4px; margin-left: 2px; }
+    }
+  }
+  &-empty { @include flex(column, center, center, var(--n-xs)); padding: var(--n-3xl) var(--n-lg);
+    color: var(--n-text-3); font-size: var(--n-fs);
+  }
+  &-footer { padding: var(--n-sm) var(--n-lg); border-top: 1px solid var(--n-border);
+    @include flex(row, center, flex-start, var(--n-lg));
+    font-size: var(--n-fs-xs); color: var(--n-text-3);
+    kbd { background: var(--n-bg-hover); border: 1px solid var(--n-border); border-radius: 3px; padding: 1px 4px; }
+  }
+}
+
+// ─── Kanban ──────────────────────────────────
+.n-kanban {
+  @include flex(row, flex-start, flex-start, var(--n-lg));
+  overflow-x: auto; padding-bottom: var(--n-sm); @include scrollbar(8px);
+  &-column {
+    flex-shrink: 0; width: 280px; background: var(--n-bg-hover);
+    border-radius: var(--n-border-r-xl); padding: var(--n-md);
+    @include flex(column, stretch, flex-start, var(--n-sm));
+  }
+  &-column-header {
+    @include flex(row, center, space-between, var(--n-sm));
+    font-weight: 600; color: var(--n-text-1); padding-bottom: var(--n-sm);
+    border-bottom: 1px solid var(--n-border);
+  }
+  &-column-count { background: var(--n-border); color: var(--n-text-2); border-radius: 999px;
+    padding: 0 8px; font-size: var(--n-fs-xs); font-weight: 600; }
+  &-card {
+    background: var(--n-bg-container); border: 1px solid var(--n-border);
+    border-radius: var(--n-border-r-lg); padding: var(--n-md);
+    cursor: grab; @include transition(box-shadow, transform);
+    &:hover { box-shadow: var(--n-shadow-sm); transform: translateY(-1px); }
+    &:active { cursor: grabbing; }
+    &--dragging { opacity: .5; box-shadow: var(--n-shadow-lg); }
+  }
+  &-card-title { font-weight: 500; color: var(--n-text-1); font-size: var(--n-fs); margin-bottom: var(--n-xs); }
+  &-card-desc { color: var(--n-text-2); font-size: var(--n-fs-sm); @include line-clamp(2); }
+  &-card-meta { @include flex(row, center, space-between, var(--n-xs)); margin-top: var(--n-sm); }
+  &-column-footer { padding-top: var(--n-xs);
+    button { width: 100%; padding: var(--n-xs); border: none; background: none;
+      color: var(--n-text-3); cursor: pointer; border-radius: var(--n-border-r); text-align: left; font-size: var(--n-fs-sm);
+      @include transition(background, color);
+      &:hover { background: var(--n-bg-active); color: var(--n-text-1); }
+    }
+  }
+}
+
+// ─── Theme Builder ───────────────────────────
+.n-theme-builder {
+  background: var(--n-bg-container); border: 1px solid var(--n-border); border-radius: var(--n-border-r-xl);
+  overflow: hidden;
+  &-header {
+    @include flex(row, center, space-between, var(--n-md));
+    padding: var(--n-lg) var(--n-2xl); background: var(--n-bg-layout);
+    border-bottom: 1px solid var(--n-border);
+    h3 { margin: 0; }
+  }
+  &-body { @include flex(row, stretch, flex-start, 0); }
+  &-panel { width: 300px; border-right: 1px solid var(--n-border); padding: var(--n-lg); overflow-y: auto; @include scrollbar; }
+  &-preview { flex: 1; padding: var(--n-2xl); overflow-y: auto; }
+  &-section-title { font-weight: 600; color: var(--n-text-1); margin-bottom: var(--n-md); font-size: var(--n-fs-sm); text-transform: uppercase; letter-spacing: .05em; }
+  &-row { @include flex(row, center, space-between, var(--n-sm)); margin-bottom: var(--n-md); }
+  &-label { font-size: var(--n-fs-sm); color: var(--n-text-2); flex: 1; }
+  &-color-input { width: 36px; height: 28px; border: 1px solid var(--n-border); border-radius: var(--n-border-r); cursor: pointer; overflow: hidden; }
+}
+
+// ─── Data Grid ───────────────────────────────
+.n-data-grid {
+  border: 1px solid var(--n-border); border-radius: var(--n-border-r-lg); overflow: hidden;
+  &-toolbar {
+    @include flex(row, center, space-between, var(--n-sm));
+    padding: var(--n-sm) var(--n-lg); background: var(--n-bg-layout);
+    border-bottom: 1px solid var(--n-border);
+  }
+  &-col-resizer { position: absolute; right: 0; top: 0; bottom: 0; width: 4px; cursor: col-resize;
+    &:hover { background: var(--n-primary); }
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th { position: relative; user-select: none; white-space: nowrap; }
+  td,th { padding: var(--n-sm) var(--n-lg); border-bottom: 1px solid var(--n-border);
+    border-right: 1px solid var(--n-border);
+    &:last-child { border-right: none; }
+  }
+  thead { background: var(--n-bg-layout); position: sticky; top: 0; z-index: 2; }
+  tbody tr { @include transition(background);
+    &:hover td { background: var(--n-bg-hover); }
+    &:last-child td { border-bottom: none; }
+    &--selected td { background: var(--n-primary-bg); }
+  }
+}

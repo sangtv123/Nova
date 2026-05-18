@@ -1,0 +1,294 @@
+// ============================================
+// Nova UI — Components: Data Entry
+// ============================================
+@use 'mixins' as *;
+
+// ─── Input / Textarea ────────────────────────
+.n-input-wrapper {
+  position: relative; display: inline-flex; align-items: center; width: 100%;
+  background: var(--n-bg-container); border: 1px solid var(--n-border);
+  border-radius: var(--n-border-r); @include transition(border-color, box-shadow);
+  &:hover { border-color: var(--n-primary-hover); }
+  &:focus-within { border-color: var(--n-primary); box-shadow: 0 0 0 2px rgba(22,119,255,.2); }
+  &--error { border-color: var(--n-error);
+    &:focus-within { box-shadow: 0 0 0 2px rgba(255,77,79,.2); }
+  }
+  &--disabled { background: var(--n-bg-hover); cursor: not-allowed;
+    .n-input { cursor: not-allowed; color: var(--n-text-4); }
+  }
+  &--sm .n-input { height: var(--n-ctrl-sm); }
+  &--lg .n-input { height: var(--n-ctrl-lg); }
+}
+.n-input {
+  flex: 1; height: var(--n-ctrl-md); padding: 0 11px; border: none; outline: none;
+  background: transparent; font-family: var(--n-font); font-size: var(--n-fs);
+  color: var(--n-text-1); min-width: 0;
+  &::placeholder { color: var(--n-text-4); }
+}
+.n-input-prefix,.n-input-suffix {
+  @include flex(row, center, center);
+  padding: 0 var(--n-sm); color: var(--n-text-3); flex-shrink: 0;
+}
+.n-textarea {
+  width: 100%; padding: 4px 11px; border: 1px solid var(--n-border);
+  border-radius: var(--n-border-r); background: var(--n-bg-container);
+  font-family: var(--n-font); font-size: var(--n-fs); color: var(--n-text-1);
+  resize: vertical; outline: none; @include transition(border-color, box-shadow);
+  min-height: 80px; line-height: var(--n-lh);
+  &::placeholder { color: var(--n-text-4); }
+  &:hover { border-color: var(--n-primary-hover); }
+  &:focus { border-color: var(--n-primary); box-shadow: 0 0 0 2px rgba(22,119,255,.2); }
+}
+.n-input-group {
+  @include flex(row, stretch, flex-start, 0);
+  .n-input-wrapper { border-radius: 0; border-right: none;
+    &:first-child { border-radius: var(--n-border-r) 0 0 var(--n-border-r); }
+    &:last-child  { border-radius: 0 var(--n-border-r) var(--n-border-r) 0; border-right: 1px solid var(--n-border); }
+  }
+  &-addon {
+    @include flex(row, center, center);
+    padding: 0 11px; background: var(--n-bg-hover); border: 1px solid var(--n-border);
+    color: var(--n-text-2); white-space: nowrap;
+    &:first-child { border-radius: var(--n-border-r) 0 0 var(--n-border-r); border-right: none; }
+    &:last-child  { border-radius: 0 var(--n-border-r) var(--n-border-r) 0; border-left: none; }
+  }
+}
+
+// ─── Select ──────────────────────────────────
+.n-select {
+  position: relative; display: inline-block; width: 200px;
+  &-selector {
+    @include flex(row, center, space-between, var(--n-xs));
+    @include transition(border-color, box-shadow);
+    height: var(--n-ctrl-md); padding: 0 var(--n-sm) 0 11px;
+    background: var(--n-bg-container); border: 1px solid var(--n-border);
+    border-radius: var(--n-border-r); cursor: pointer;
+    &:hover { border-color: var(--n-primary-hover); }
+    .n-select--open & { border-color: var(--n-primary); box-shadow: 0 0 0 2px rgba(22,119,255,.2); }
+  }
+  &-value { color: var(--n-text-1); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  &-placeholder { color: var(--n-text-4); }
+  &-arrow { color: var(--n-text-3); @include transition(transform); font-size: 10px;
+    .n-select--open & { transform: rotate(180deg); }
+  }
+  &-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: var(--n-z-dropdown);
+    background: var(--n-bg-container); border: 1px solid var(--n-border);
+    border-radius: var(--n-border-r-lg); box-shadow: var(--n-shadow);
+    padding: var(--n-xs) 0; max-height: 256px; overflow-y: auto;
+    animation: n-scale-in var(--n-dur-fast) var(--n-ease);
+    @include scrollbar;
+  }
+  &-option {
+    @include transition(background, color);
+    padding: var(--n-xs) var(--n-lg); cursor: pointer; color: var(--n-text-1); font-size: var(--n-fs);
+    &:hover { background: var(--n-bg-hover); }
+    &--selected { color: var(--n-primary); font-weight: 600; background: var(--n-primary-bg); }
+    &--disabled { color: var(--n-text-4); cursor: not-allowed; }
+  }
+  &-tags { @include flex(row, center, flex-start, var(--n-xs)); flex-wrap: wrap; flex: 1; }
+  &-tag { @include flex(row, center, flex-start, var(--n-xs)); background: var(--n-bg-hover);
+    border: 1px solid var(--n-border); border-radius: var(--n-border-r); padding: 0 var(--n-xs);
+    font-size: var(--n-fs-sm); height: 22px;
+    &-close { font-size: 10px; color: var(--n-text-3); cursor: pointer; &:hover { color: var(--n-text-1); } }
+  }
+  &--block { width: 100%; }
+  &--lg .n-select-selector { height: var(--n-ctrl-lg); }
+  &--sm .n-select-selector { height: var(--n-ctrl-sm); }
+}
+
+// ─── Checkbox ────────────────────────────────
+.n-checkbox {
+  @include flex(row, center, flex-start, var(--n-sm));
+  cursor: pointer; user-select: none;
+  &-inner {
+    width: 16px; height: 16px; border: 1px solid var(--n-border); border-radius: var(--n-border-r-xs);
+    background: var(--n-bg-container); flex-shrink: 0; position: relative;
+    @include transition(background, border-color);
+    &::after { content:''; position: absolute; top: 2px; left: 5px; width: 4px; height: 8px;
+      border: 2px solid #fff; border-top: none; border-left: none;
+      transform: rotate(45deg) scale(0); @include transition(transform); }
+  }
+  &--checked .n-checkbox-inner {
+    background: var(--n-primary); border-color: var(--n-primary);
+    &::after { transform: rotate(45deg) scale(1); }
+  }
+  &--indeterminate .n-checkbox-inner {
+    background: var(--n-primary); border-color: var(--n-primary);
+    &::after { top: 6px; left: 2px; width: 10px; height: 2px; border: none; background: #fff; transform: none; }
+  }
+  &--disabled { cursor: not-allowed; opacity: .4; }
+  input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  &-group { @include flex(row, center, flex-start, var(--n-lg)); flex-wrap: wrap; }
+}
+
+// ─── Radio ───────────────────────────────────
+.n-radio {
+  @include flex(row, center, flex-start, var(--n-sm));
+  cursor: pointer; user-select: none;
+  &-inner {
+    width: 16px; height: 16px; border: 1px solid var(--n-border); border-radius: 50%;
+    background: var(--n-bg-container); flex-shrink: 0; position: relative;
+    @include transition(border-color);
+    &::after { content:''; position:absolute; inset: 3px; border-radius: 50%;
+      background: var(--n-primary); transform: scale(0); @include transition(transform); }
+  }
+  &--checked .n-radio-inner { border-color: var(--n-primary);
+    &::after { transform: scale(1); }
+  }
+  &--disabled { cursor: not-allowed; opacity: .4; }
+  input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  &-group { @include flex(row, center, flex-start, var(--n-lg)); flex-wrap: wrap; }
+  &-button-group { @include flex(row, stretch, flex-start, 0); }
+  &-button {
+    @include transition(color, background, border-color);
+    padding: 0 var(--n-lg); height: var(--n-ctrl-md); @include flex(row, center, center);
+    border: 1px solid var(--n-border); border-left: none; cursor: pointer; font-size: var(--n-fs);
+    &:first-child { border-left: 1px solid var(--n-border); border-radius: var(--n-border-r) 0 0 var(--n-border-r); }
+    &:last-child  { border-radius: 0 var(--n-border-r) var(--n-border-r) 0; }
+    &--checked { color: var(--n-primary); background: var(--n-primary-bg); border-color: var(--n-primary); z-index: 1; }
+    &:hover { color: var(--n-primary); }
+  }
+}
+
+// ─── Switch ──────────────────────────────────
+.n-switch {
+  position: relative; display: inline-flex; align-items: center;
+  width: 44px; height: 22px; border-radius: 999px; cursor: pointer;
+  background: var(--n-border); @include transition(background);
+  &::after {
+    content:''; position:absolute; left: 2px; top: 2px; width: 18px; height: 18px;
+    background: #fff; border-radius: 50%; box-shadow: var(--n-shadow-xs);
+    @include transition(left, transform);
+  }
+  &--checked { background: var(--n-primary);
+    &::after { left: calc(100% - 20px); }
+  }
+  &--loading { opacity: .65;
+    &::after { animation: n-spin .6s linear infinite; }
+  }
+  &--disabled { cursor: not-allowed; opacity: .4; }
+  &--sm { width: 28px; height: 16px;
+    &::after { width: 12px; height: 12px; }
+    &.n-switch--checked::after { left: calc(100% - 14px); }
+  }
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
+}
+
+// ─── Slider ──────────────────────────────────
+.n-slider {
+  padding: 14px 0; cursor: pointer;
+  &-rail { height: 4px; background: var(--n-border); border-radius: 999px; position: relative; }
+  &-track { position: absolute; left: 0; height: 4px; background: var(--n-primary); border-radius: 999px; top: 0; }
+  &-handle {
+    position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--n-primary); transform: translate(-50%,-50%);
+    box-shadow: var(--n-shadow-xs); @include transition(border-color, box-shadow);
+    cursor: grab;
+    &:hover,&:active { box-shadow: 0 0 0 4px rgba(22,119,255,.2); }
+    &:active { cursor: grabbing; }
+  }
+  &-mark { position: absolute; top: 16px; width: 2px; height: 8px; background: var(--n-border); }
+  &-mark-label { position: absolute; top: 28px; transform: translateX(-50%); font-size: var(--n-fs-sm); color: var(--n-text-3); }
+  &--vertical { padding: 0 14px; .n-slider-rail { width: 4px; height: 100%; }
+    .n-slider-track { width: 4px; bottom: 0; top: unset; }
+    .n-slider-handle { left: 50%; top: unset; transform: translate(-50%, 50%); }
+  }
+  &--disabled { opacity: .4; cursor: not-allowed; .n-slider-handle { cursor: not-allowed; } }
+}
+
+// ─── DatePicker / TimePicker ─────────────────
+.n-picker {
+  position: relative; display: inline-block;
+  &-input {
+    @include flex(row, center, space-between, var(--n-sm));
+    @include transition(border-color, box-shadow);
+    height: var(--n-ctrl-md); padding: 0 11px;
+    background: var(--n-bg-container); border: 1px solid var(--n-border);
+    border-radius: var(--n-border-r); cursor: pointer; min-width: 160px;
+    &:hover { border-color: var(--n-primary-hover); }
+    &:focus-within { border-color: var(--n-primary); box-shadow: 0 0 0 2px rgba(22,119,255,.2); }
+  }
+  &-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: var(--n-z-dropdown);
+    background: var(--n-bg-container); border: 1px solid var(--n-border);
+    border-radius: var(--n-border-r-lg); box-shadow: var(--n-shadow); padding: var(--n-sm);
+    animation: n-scale-in var(--n-dur-fast) var(--n-ease);
+  }
+  &-header {
+    @include flex(row, center, space-between, var(--n-sm));
+    padding-bottom: var(--n-sm); border-bottom: 1px solid var(--n-border);
+    font-weight: 600;
+    button { border: none; background: none; cursor: pointer; color: var(--n-text-2); padding: 2px 4px; border-radius: var(--n-border-r-xs);
+      &:hover { background: var(--n-bg-hover); color: var(--n-primary); }
+    }
+  }
+  &-body { padding-top: var(--n-sm); }
+  &-cell-inner {
+    @include flex(row, center, center);
+    width: 28px; height: 28px; border-radius: var(--n-border-r-xs); cursor: pointer;
+    font-size: var(--n-fs-sm); @include transition(background, color);
+    &:hover { background: var(--n-bg-hover); }
+    &--today { color: var(--n-primary); font-weight: 600; border: 1px solid var(--n-primary-border); }
+    &--selected { background: var(--n-primary); color: #fff; border-color: transparent; }
+    &--disabled { color: var(--n-text-4); cursor: not-allowed; }
+    &--in-range { background: var(--n-primary-bg); }
+  }
+  &-week-row { @include flex(row, center, space-between, 0);
+    span { @include flex(row, center, center); width: 28px; font-size: var(--n-fs-sm); color: var(--n-text-3); }
+  }
+}
+
+// ─── Upload ──────────────────────────────────
+.n-upload {
+  &-dragger {
+    @include flex(column, center, center, var(--n-sm));
+    border: 2px dashed var(--n-border); border-radius: var(--n-border-r-lg);
+    padding: var(--n-4xl) var(--n-2xl); background: var(--n-bg-container);
+    cursor: pointer; @include transition(border-color, background);
+    &:hover,&--active { border-color: var(--n-primary); background: var(--n-primary-bg); }
+    .icon { font-size: 48px; color: var(--n-primary); }
+    .text { color: var(--n-text-2); font-size: var(--n-fs-lg); }
+    .hint { color: var(--n-text-3); font-size: var(--n-fs-sm); }
+  }
+  &-list { margin-top: var(--n-sm); }
+  &-list-item {
+    @include flex(row, center, space-between, var(--n-sm));
+    padding: var(--n-xs) var(--n-sm); border-radius: var(--n-border-r);
+    @include transition(background);
+    &:hover { background: var(--n-bg-hover); }
+    &-name { flex: 1; color: var(--n-primary); font-size: var(--n-fs-sm); @include ellipsis; }
+    &-status { width: 16px; height: 16px; }
+    &-remove { color: var(--n-text-3); cursor: pointer; &:hover { color: var(--n-error); } }
+    &--error .n-upload-list-item-name { color: var(--n-error); }
+  }
+  &-list-progress { height: 2px; background: var(--n-border); border-radius: 999px; margin-top: 4px;
+    &-bar { height: 100%; background: var(--n-primary); border-radius: 999px; @include transition(width); }
+  }
+}
+
+// ─── Form ────────────────────────────────────
+.n-form {
+  &-item {
+    @include flex(column, flex-start, flex-start, var(--n-xs));
+    margin-bottom: var(--n-2xl);
+    &--horizontal { @include flex(row, flex-start, flex-start, var(--n-lg));
+      .n-form-item-label { padding-top: var(--n-xs); }
+    }
+    &--error {
+      .n-input-wrapper { border-color: var(--n-error); }
+      .n-textarea { border-color: var(--n-error); }
+    }
+  }
+  &-item-label {
+    font-size: var(--n-fs); color: var(--n-text-1); font-weight: 500;
+    white-space: nowrap; flex-shrink: 0;
+    &--required::before { content: '* '; color: var(--n-error); }
+  }
+  &-item-control { flex: 1; width: 100%; }
+  &-item-explain { font-size: var(--n-fs-sm); color: var(--n-text-3); margin-top: var(--n-xs);
+    &--error { color: var(--n-error); }
+    &--warning { color: var(--n-warning); }
+    &--success { color: var(--n-success); }
+  }
+}

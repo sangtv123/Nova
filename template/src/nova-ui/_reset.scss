@@ -1,0 +1,66 @@
+// ============================================
+// Nova UI — Reset & Base
+// ============================================
+
+*,*::before,*::after { box-sizing: border-box; }
+
+html {
+  font-size: var(--n-fs);
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--n-font);
+  font-size: var(--n-fs);
+  line-height: var(--n-lh);
+  color: var(--n-text-1);
+  background: var(--n-bg-layout);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,h2,h3,h4,h5,h6 {
+  margin: 0 0 .5em;
+  color: var(--n-text-1);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+p { margin: 0 0 1em; }
+
+a {
+  color: var(--n-text-link);
+  text-decoration: none;
+  transition: color var(--n-dur-fast) var(--n-ease);
+  &:hover { opacity: .8; }
+}
+
+ul,ol { margin: 0; padding: 0; list-style: none; }
+
+img { max-width: 100%; display: block; }
+
+button,input,textarea,select {
+  font-family: var(--n-font);
+  font-size: var(--n-fs);
+}
+
+button { cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--n-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--n-primary-bg);
+  color: var(--n-primary);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--n-border);
+  border-radius: 999px;
+  &:hover { background: #bfbfbf; }
+}

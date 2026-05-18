@@ -1,0 +1,190 @@
+// ============================================
+// Nova UI — Documentation Site Layout
+// ============================================
+@use 'mixins' as *;
+
+// ─── App Shell ───────────────────────────────
+.nova-ui-app {
+  @include flex(row, stretch, flex-start, 0);
+  min-height: 100vh;
+  background: var(--n-bg-layout);
+}
+
+// ─── Sidebar Navigation ──────────────────────
+.nova-ui-sidebar {
+  width: 256px; flex-shrink: 0; background: var(--n-bg-container);
+  border-right: 1px solid var(--n-border); height: 100vh;
+  position: sticky; top: 0; overflow-y: auto; @include scrollbar;
+  @include flex(column, stretch, flex-start, 0);
+
+  &-logo {
+    @include flex(row, center, flex-start, var(--n-md));
+    padding: var(--n-lg) var(--n-2xl); border-bottom: 1px solid var(--n-border);
+    flex-shrink: 0;
+    h1 { margin: 0; font-size: var(--n-fs-xl); font-weight: 800;
+      background: linear-gradient(135deg, #1677ff, #722ed1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    span { font-size: var(--n-fs-xs); background: var(--n-primary-bg); color: var(--n-primary);
+      border: 1px solid var(--n-primary-border); border-radius: 999px; padding: 0 8px; font-weight: 600; }
+  }
+
+  &-search {
+    padding: var(--n-sm) var(--n-md); border-bottom: 1px solid var(--n-border); flex-shrink: 0;
+    .n-input-wrapper { width: 100%; background: var(--n-bg-hover); }
+  }
+
+  &-nav { flex: 1; padding: var(--n-sm) 0; }
+
+  &-section { margin-bottom: var(--n-xs); }
+  &-section-title {
+    padding: var(--n-xs) var(--n-2xl); font-size: var(--n-fs-xs); font-weight: 700;
+    color: var(--n-text-3); text-transform: uppercase; letter-spacing: .08em;
+  }
+  &-item {
+    @include flex(row, center, flex-start, var(--n-sm));
+    @include transition(background, color);
+    padding: 6px var(--n-2xl); cursor: pointer; font-size: var(--n-fs);
+    color: var(--n-text-2); border-radius: 0; margin: 1px 0;
+    &:hover { color: var(--n-primary); background: var(--n-bg-hover); }
+    &--active { color: var(--n-primary); background: var(--n-primary-bg); font-weight: 500;
+      border-right: 2px solid var(--n-primary);
+    }
+    .badge { font-size: var(--n-fs-xs); background: var(--n-error); color: #fff;
+      border-radius: 999px; padding: 0 6px; margin-left: auto; }
+  }
+
+  &-footer {
+    padding: var(--n-lg) var(--n-2xl); border-top: 1px solid var(--n-border);
+    flex-shrink: 0;
+    @include flex(row, center, space-between, var(--n-sm));
+    font-size: var(--n-fs-sm); color: var(--n-text-3);
+    button { display:inline-flex;align-items:center;border:1px solid var(--n-border);border-radius:var(--n-border-r);background:var(--n-bg-container);cursor:pointer;padding:4px var(--n-sm);height:auto;font-size:var(--n-fs-xs);color:var(--n-text-1); @include transition(color,background,border-color); &:hover{color:var(--n-primary);border-color:var(--n-primary-hover);} }
+  }
+}
+
+// ─── Main Content Area ───────────────────────
+.nova-ui-main {
+  flex: 1; overflow-x: hidden;
+  @include flex(column, stretch, flex-start, 0);
+}
+
+// ─── Top Bar ─────────────────────────────────
+.nova-ui-topbar {
+  @include flex(row, center, space-between, var(--n-lg));
+  padding: 0 var(--n-3xl); height: 64px; background: var(--n-bg-container);
+  border-bottom: 1px solid var(--n-border); position: sticky; top: 0; z-index: 10;
+  flex-shrink: 0;
+
+  &-breadcrumb { flex: 1; }
+  &-actions { @include flex(row, center, flex-start, var(--n-sm)); }
+
+  .theme-toggle {
+    @include flex(row, center, center);
+    width: 36px; height: 36px; border-radius: var(--n-border-r-lg);
+    border: 1px solid var(--n-border); cursor: pointer; font-size: var(--n-fs-lg);
+    background: transparent; @include transition(background, border-color);
+    &:hover { background: var(--n-bg-hover); border-color: var(--n-primary-hover); }
+  }
+}
+
+// ─── Content Page ────────────────────────────
+.nova-ui-page {
+  padding: var(--n-3xl); max-width: 1200px; margin: 0 auto; width: 100%;
+  animation: n-fade-up var(--n-dur) var(--n-ease);
+
+  &-title {
+    font-size: var(--n-fs-4xl); font-weight: 700; color: var(--n-text-1);
+    margin-bottom: var(--n-xs); line-height: 1.2;
+  }
+  &-desc { font-size: var(--n-fs-lg); color: var(--n-text-2); margin-bottom: var(--n-3xl); }
+}
+
+// ─── Component Demo Block ────────────────────
+.nova-demo-block {
+  border: 1px solid var(--n-border); border-radius: var(--n-border-r-xl);
+  overflow: hidden; margin-bottom: var(--n-2xl);
+
+  &-preview {
+    padding: var(--n-3xl) var(--n-2xl); background: var(--n-bg-container);
+    @include flex(row, center, flex-start, var(--n-md)); flex-wrap: wrap;
+    min-height: 80px;
+  }
+  &-preview--vertical { flex-direction: column; align-items: flex-start; }
+  &-preview--center { justify-content: center; }
+
+  &-meta {
+    @include flex(row, center, space-between, var(--n-sm));
+    padding: var(--n-sm) var(--n-lg); background: var(--n-bg-layout);
+    border-top: 1px solid var(--n-border);
+    &-title { font-size: var(--n-fs-sm); color: var(--n-text-2); font-weight: 500; }
+    &-actions { @include flex(row, center, flex-start, var(--n-xs)); }
+  }
+  &-code {
+    border-top: 1px solid var(--n-border); background: #1e1e2e;
+    pre { margin: 0; padding: var(--n-lg) var(--n-2xl); overflow-x: auto;
+      font-family: var(--n-font-mono); font-size: var(--n-fs-sm); line-height: 1.6;
+      code { color: #cdd6f4; }
+    }
+  }
+}
+
+// ─── API Table ───────────────────────────────
+.nova-api-table {
+  width: 100%; border-collapse: collapse; margin-top: var(--n-2xl);
+  th { background: var(--n-bg-layout); padding: var(--n-sm) var(--n-lg);
+    text-align: left; color: var(--n-text-1); font-weight: 600;
+    border-bottom: 1px solid var(--n-border); white-space: nowrap; }
+  td { padding: var(--n-sm) var(--n-lg); border-bottom: 1px solid var(--n-border);
+    font-size: var(--n-fs-sm); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: var(--n-font-mono); background: var(--n-bg-hover); border-radius: var(--n-border-r-xs); padding: 1px 6px; }
+}
+
+// ─── Section / Heading ───────────────────────
+.nova-section { margin-bottom: var(--n-3xl); }
+.nova-section-title {
+  font-size: var(--n-fs-2xl); font-weight: 700; color: var(--n-text-1); margin-bottom: var(--n-sm);
+  padding-bottom: var(--n-sm); border-bottom: 1px solid var(--n-border);
+}
+.nova-section-sub { font-size: var(--n-fs-lg); font-weight: 600; color: var(--n-text-1); margin-bottom: var(--n-sm); margin-top: var(--n-lg); }
+
+// ─── Dashboard Widgets ───────────────────────
+.n-widget {
+  @include card-base;
+  padding: var(--n-2xl); background: var(--n-bg-container);
+  &-header { @include flex(row, center, space-between, var(--n-sm)); margin-bottom: var(--n-md); }
+  &-title  { font-size: var(--n-fs-sm); color: var(--n-text-2); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+  &-value  { font-size: var(--n-fs-4xl); font-weight: 800; color: var(--n-text-1); line-height: 1; }
+  &-trend  { @include flex(row, center, flex-start, var(--n-xs)); font-size: var(--n-fs-sm); margin-top: var(--n-xs);
+    &--up   { color: var(--n-success); }
+    &--down { color: var(--n-error); }
+  }
+  &-chart  { margin-top: var(--n-md); }
+  &-mini-bars {
+    @include flex(row, flex-end, flex-start, 4px);
+    height: 40px;
+    span { flex: 1; background: var(--n-primary-bg); border-radius: 2px 2px 0 0; @include transition(background);
+      &.active { background: var(--n-primary); }
+    }
+  }
+}
+.n-dashboard-grid {
+  display: grid; gap: var(--n-lg);
+  &--2 { grid-template-columns: repeat(2,1fr); }
+  &--3 { grid-template-columns: repeat(3,1fr); }
+  &--4 { grid-template-columns: repeat(4,1fr); }
+  @include respond-to('md') { &--2,&--3,&--4 { grid-template-columns: 1fr; } }
+}
+
+// ─── Responsive ──────────────────────────────
+@include respond-to('lg') {
+  .nova-ui-sidebar { width: 220px; }
+  .nova-ui-page    { padding: var(--n-2xl); }
+}
+@media (max-width: 768px) {
+  .nova-ui-sidebar { position: fixed; left: -256px; z-index: 100; @include transition(left); box-shadow: var(--n-shadow-lg);
+    &--open { left: 0; }
+  }
+  .nova-ui-page { padding: var(--n-lg); }
+  .nova-ui-topbar { padding: 0 var(--n-lg); }
+}

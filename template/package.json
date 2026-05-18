@@ -1,0 +1,19 @@
+{
+  "name": "nova-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nova dev",
+    "build": "nova build"
+  },
+  "dependencies": {
+    "@nova/signals": "latest",
+    "@nova/router": "latest",
+    "@nova/islands": "latest",
+    "@nova/runtime": "latest"
+  },
+  "devDependencies": {
+    "@nova/cli": "latest",
+    "typescript": "^5.3.0"
+  }
+}
