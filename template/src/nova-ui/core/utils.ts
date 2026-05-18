@@ -9,7 +9,9 @@ import { SignalOrValue } from './types';
  * Resolves a SignalOrValue to its underlying value dynamically.
  */
 export function resolveSignal<T>(val: SignalOrValue<T>): T {
-  return typeof val === 'function' ? (val as () => T)() : val;
+  if (typeof val === 'function') return (val as () => T)();
+  if (val && typeof val === 'object' && 'value' in val) return (val as any).value;
+  return val as T;
 }
 
 /**

@@ -36,12 +36,12 @@ export function Modal(props: ModalProps) {
     <div class={maskClasses} onClick={handleMaskClick} role="dialog" aria-modal="true" aria-labelledby={props.title ? titleId : undefined}>
       <div 
         class={modalClasses} 
-        style={() => {
+        style={(() => {
           const w = props.width;
           let s = typeof props.style === 'string' ? props.style : '';
           if (w) s += `;width:${typeof w === 'number' ? w + 'px' : w};max-width:calc(100vw - 32px);`;
           return s;
-        }} 
+        })()} 
         onClick={(e: MouseEvent) => e.stopPropagation()}
       >
         <div class="n-modal-header">

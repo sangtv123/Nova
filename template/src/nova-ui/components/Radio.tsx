@@ -11,7 +11,8 @@ export function Radio(props: RadioProps) {
   const getDisabled = () => resolveSignal(props.disabled) ?? false;
 
   const handleClick = (e: MouseEvent) => {
-    if (getDisabled() || getChecked()) { e.preventDefault(); return; }
+    e.preventDefault();
+    if (getDisabled() || getChecked()) return;
     if (props.onChange) props.onChange(props.value);
   };
 
@@ -25,7 +26,7 @@ export function Radio(props: RadioProps) {
   return (
     <label class={classes} style={props.style} onClick={handleClick}>
       <span class="n-radio-inner" aria-hidden="true"></span>
-      <input type="radio" checked={getChecked} disabled={getDisabled} style="display:none" value={props.value} />
+      <input type="radio" checked={getChecked} disabled={getDisabled} style={{ display: 'none' }} value={props.value} />
       {props.children && <span>{props.children}</span>}
     </label>
   );

@@ -13,7 +13,8 @@ export function Checkbox(props: CheckboxProps) {
   const getDisabled = () => resolveSignal(props.disabled) ?? false;
 
   const handleClick = (e: MouseEvent) => {
-    if (getDisabled()) { e.preventDefault(); return; }
+    e.preventDefault();
+    if (getDisabled()) return;
     if (props.onChange) { props.onChange(!getChecked()); }
   };
 
@@ -28,7 +29,7 @@ export function Checkbox(props: CheckboxProps) {
   return (
     <label class={classes} style={props.style} onClick={handleClick}>
       <span class="n-checkbox-inner" aria-hidden="true"></span>
-      <input type="checkbox" checked={getChecked} disabled={getDisabled} style="display:none" />
+      <input type="checkbox" checked={getChecked} disabled={getDisabled} style={{ display: 'none' }} />
       {props.children && <span>{props.children}</span>}
     </label>
   );

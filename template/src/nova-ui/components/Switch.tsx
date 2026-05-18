@@ -25,16 +25,15 @@ export function Switch(props: SwitchProps) {
   );
 
   return (
-    <button
-      type="button"
+    <span
       role="switch"
+      tabindex={getDisabled() ? "-1" : "0"}
       aria-checked={getChecked}
       class={classes}
       style={props.style}
       onClick={handleClick}
-      disabled={getDisabled}
     >
       <span class="n-switch-inner"></span>
-    </button>
+    </span>
   );
 }
