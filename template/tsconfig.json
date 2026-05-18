@@ -19,7 +19,14 @@
     "noImplicitReturns": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@nova/signals": ["../packages/signals/src/index.ts"],
+      "@nova/runtime": ["../packages/runtime/src/index.ts"],
+      "@nova/islands": ["../packages/islands/src/index.ts"],
+      "@nova/router": ["../packages/router/src/index.ts"],
+      "@nova/devtools": ["../packages/devtools/src/index.ts"],
+      "@nova/store": ["../packages/store/src/index.ts"],
+      "@nova/motion": ["../packages/motion/src/index.ts"]
     },
     "types": ["node"]
   },

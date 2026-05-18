@@ -51,6 +51,7 @@ import { ThemeBuilderPage }from './pages/nova-ui/theme-builder';
 import { KanbanPage }      from './pages/nova-ui/kanban';
 import { ChartsPage }      from './pages/nova-ui/charts';
 import { DashboardPage }   from './pages/nova-ui/dashboard';
+import { MotionPage }      from './pages/nova-ui/motion';
 
 export function App() {
   return (
@@ -106,6 +107,7 @@ export function App() {
         {() => activeKey.value === 'kanban' && <KanbanPage />}
         {() => activeKey.value === 'charts' && <ChartsPage />}
         {() => activeKey.value === 'dashboard' && <DashboardPage />}
+        {() => activeKey.value === 'motion' && <MotionPage />}
       </div>
     </NovaUIShell>
   );

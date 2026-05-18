@@ -84,6 +84,7 @@ export const navItems = [
       { key: 'kanban',        label: 'Kanban Board',     icon: '📌', badge: 'New' },
       { key: 'charts',        label: 'Charts',           icon: '📉', badge: 'New' },
       { key: 'dashboard',     label: 'Dashboard',        icon: '🖥️', badge: 'New' },
+      { key: 'motion',        label: 'Motion',           icon: '🎬', badge: 'New' },
     ]
   },
 ];

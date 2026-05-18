@@ -82,7 +82,16 @@ function reconcile(
   const newNodeSet = new Set(newNodes);
   for (const oldNode of oldNodes) {
     if (!newNodeSet.has(oldNode) && oldNode.parentNode === parent) {
-      parent.removeChild(oldNode);
+      const el = oldNode as any;
+      if (el.nodeType === 1 && typeof el.__nova_exit === 'function') {
+        el.__nova_exit(() => {
+          if (oldNode.parentNode === parent) {
+            parent.removeChild(oldNode);
+          }
+        });
+      } else {
+        parent.removeChild(oldNode);
+      }
     }
   }
 
@@ -525,7 +534,9 @@ export function createElement(
 
   if (attrs) {
     for (const [key, value] of Object.entries(attrs)) {
-      if (key === 'class') {
+      if (key === 'ref' && typeof value === 'function') {
+        value(el);
+      } else if (key === 'class') {
         if (typeof value === 'function') elDisposals.push(effect(() => el.className = value()));
         else el.className = value;
       } else if (key === 'style') {

@@ -14,7 +14,8 @@
     "@nova/islands": "latest",
     "@nova/runtime": "latest",
     "@nova/devtools": "latest",
-    "@nova/store": "latest"
+    "@nova/store": "latest",
+    "@nova/motion": "latest"
   },
   "devDependencies": {
     "@nova/cli": "latest",
