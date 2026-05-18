@@ -59,3 +59,165 @@
     align-items: center;
   }
 }
+
+// ─── Tabs ────────────────────────────────────────
+.n-tabs {
+  @include flex(column, stretch, flex-start, 0);
+  width: 100%;
+  
+  &-nav-wrap {
+    @include flex(row, center, space-between, var(--n-md));
+    position: relative;
+    border-bottom: 1px solid var(--n-border);
+    margin-bottom: var(--n-md);
+  }
+
+  &-nav-list {
+    @include flex(row, flex-end, flex-start, 0);
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none; // Firefox
+    &::-webkit-scrollbar { display: none; } // Chrome
+    scroll-behavior: smooth;
+  }
+
+  &-tab {
+    position: relative;
+    padding: 12px 0;
+    margin: 0 16px 0 0;
+    cursor: pointer;
+    font-size: var(--n-fs);
+    color: var(--n-text-2);
+    @include flex(row, center, center, 8px);
+    @include transition(color, background);
+    white-space: nowrap;
+
+    &:hover { color: var(--n-primary-hover); }
+    
+    &-active {
+      color: var(--n-primary);
+      font-weight: 500;
+    }
+
+    &-disabled {
+      color: var(--n-text-4);
+      cursor: not-allowed;
+      &:hover { color: var(--n-text-4); }
+    }
+
+    &-remove {
+      font-size: var(--n-fs-xs);
+      color: var(--n-text-3);
+      padding: 2px;
+      border-radius: 50%;
+      @include transition(color, background);
+      &:hover {
+        background: var(--n-bg-hover);
+        color: var(--n-error);
+      }
+    }
+  }
+
+  &-ink-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background: var(--n-primary);
+    @include transition(transform, width, opacity);
+    pointer-events: none;
+  }
+
+  &-extra-content {
+    flex-shrink: 0;
+    padding: 8px 0;
+  }
+
+  &-content-wrap {
+    flex: 1;
+  }
+
+  &-tabpane {
+    outline: none;
+  }
+
+  // ─── Card Type ───
+  &-card {
+    .n-tabs-nav-wrap {
+      border-bottom: 1px solid var(--n-border);
+      background: var(--n-bg-layout);
+      padding: 8px 8px 0;
+      border-radius: var(--n-border-r-lg) var(--n-border-r-lg) 0 0;
+    }
+    .n-tabs-nav-list { gap: 2px; }
+    .n-tabs-tab {
+      margin: 0;
+      padding: 6px 16px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      border-radius: var(--n-border-r-lg) var(--n-border-r-lg) 0 0;
+      
+      &-active {
+        background: var(--n-bg-container);
+        border-color: var(--n-border);
+        color: var(--n-primary);
+        &::after {
+          content: ""; position: absolute; bottom: -1px; left: 0; right: 0;
+          height: 2px; background: var(--n-bg-container);
+        }
+      }
+    }
+  }
+
+  // ─── Editable Card Type ───
+  &-editable-card {
+    @extend .n-tabs-card;
+    .n-tabs-tab-add {
+      padding: 6px 12px;
+      border: 1px solid var(--n-border);
+      border-bottom: 0;
+      background: var(--n-bg-layout);
+      &:hover { color: var(--n-primary); }
+    }
+  }
+
+  // ─── Vertical Layouts ───
+  &-left, &-right {
+    flex-direction: row;
+    .n-tabs-nav-wrap {
+      flex-direction: column;
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    .n-tabs-nav-list {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .n-tabs-tab {
+      margin: 0 0 16px 0;
+      padding: 8px 24px;
+      justify-content: flex-start;
+    }
+    .n-tabs-ink-bar {
+      top: 0; bottom: auto;
+    }
+  }
+
+  &-left {
+    .n-tabs-nav-wrap {
+      border-right: 1px solid var(--n-border);
+      margin-right: var(--n-xl);
+    }
+    .n-tabs-ink-bar { right: -1px; left: auto; }
+  }
+
+  &-right {
+    flex-direction: row-reverse;
+    .n-tabs-nav-wrap {
+      border-left: 1px solid var(--n-border);
+      margin-left: var(--n-xl);
+    }
+    .n-tabs-ink-bar { left: -1px; right: auto; }
+  }
+}

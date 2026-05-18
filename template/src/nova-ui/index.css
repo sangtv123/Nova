@@ -3981,6 +3981,178 @@ button {
   align-items: center;
 }
 
+.n-tabs {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+}
+.n-tabs-nav-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--n-md);
+  position: relative;
+  border-bottom: 1px solid var(--n-border);
+  margin-bottom: var(--n-md);
+}
+.n-tabs-nav-list {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-start;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.n-tabs-nav-list::-webkit-scrollbar {
+  display: none;
+}
+.n-tabs-nav-list {
+  scroll-behavior: smooth;
+}
+.n-tabs-tab {
+  position: relative;
+  padding: 12px 0;
+  margin: 0 16px 0 0;
+  cursor: pointer;
+  font-size: var(--n-fs);
+  color: var(--n-text-2);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+.n-tabs-tab:hover {
+  color: var(--n-primary-hover);
+}
+.n-tabs-tab-active {
+  color: var(--n-primary);
+  font-weight: 500;
+}
+.n-tabs-tab-disabled {
+  color: var(--n-text-4);
+  cursor: not-allowed;
+}
+.n-tabs-tab-disabled:hover {
+  color: var(--n-text-4);
+}
+.n-tabs-tab-remove {
+  font-size: var(--n-fs-xs);
+  color: var(--n-text-3);
+  padding: 2px;
+  border-radius: 50%;
+  transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.n-tabs-tab-remove:hover {
+  background: var(--n-bg-hover);
+  color: var(--n-error);
+}
+.n-tabs-ink-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: var(--n-primary);
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1), width 200ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.n-tabs-extra-content {
+  flex-shrink: 0;
+  padding: 8px 0;
+}
+.n-tabs-content-wrap {
+  flex: 1;
+}
+.n-tabs-tabpane {
+  outline: none;
+}
+.n-tabs-card .n-tabs-nav-wrap, .n-tabs-editable-card .n-tabs-nav-wrap {
+  border-bottom: 1px solid var(--n-border);
+  background: var(--n-bg-layout);
+  padding: 8px 8px 0;
+  border-radius: var(--n-border-r-lg) var(--n-border-r-lg) 0 0;
+}
+.n-tabs-card .n-tabs-nav-list, .n-tabs-editable-card .n-tabs-nav-list {
+  gap: 2px;
+}
+.n-tabs-card .n-tabs-tab, .n-tabs-editable-card .n-tabs-tab {
+  margin: 0;
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--n-border-r-lg) var(--n-border-r-lg) 0 0;
+}
+.n-tabs-card .n-tabs-tab-active, .n-tabs-editable-card .n-tabs-tab-active {
+  background: var(--n-bg-container);
+  border-color: var(--n-border);
+  color: var(--n-primary);
+}
+.n-tabs-card .n-tabs-tab-active::after, .n-tabs-editable-card .n-tabs-tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--n-bg-container);
+}
+.n-tabs-editable-card .n-tabs-tab-add {
+  padding: 6px 12px;
+  border: 1px solid var(--n-border);
+  border-bottom: 0;
+  background: var(--n-bg-layout);
+}
+.n-tabs-editable-card .n-tabs-tab-add:hover {
+  color: var(--n-primary);
+}
+.n-tabs-left, .n-tabs-right {
+  flex-direction: row;
+}
+.n-tabs-left .n-tabs-nav-wrap, .n-tabs-right .n-tabs-nav-wrap {
+  flex-direction: column;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.n-tabs-left .n-tabs-nav-list, .n-tabs-right .n-tabs-nav-list {
+  flex-direction: column;
+  align-items: stretch;
+}
+.n-tabs-left .n-tabs-tab, .n-tabs-right .n-tabs-tab {
+  margin: 0 0 16px 0;
+  padding: 8px 24px;
+  justify-content: flex-start;
+}
+.n-tabs-left .n-tabs-ink-bar, .n-tabs-right .n-tabs-ink-bar {
+  top: 0;
+  bottom: auto;
+}
+.n-tabs-left .n-tabs-nav-wrap {
+  border-right: 1px solid var(--n-border);
+  margin-right: var(--n-xl);
+}
+.n-tabs-left .n-tabs-ink-bar {
+  right: -1px;
+  left: auto;
+}
+.n-tabs-right {
+  flex-direction: row-reverse;
+}
+.n-tabs-right .n-tabs-nav-wrap {
+  border-left: 1px solid var(--n-border);
+  margin-left: var(--n-xl);
+}
+.n-tabs-right .n-tabs-ink-bar {
+  left: -1px;
+  right: auto;
+}
+
 .n-row {
   display: flex;
   flex-direction: row;
