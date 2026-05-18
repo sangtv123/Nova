@@ -1,0 +1,29 @@
+{
+  "name": "@nova/i18n",
+  "version": "0.0.1",
+  "description": "Ultra-lightweight reactive fine-grained i18n package for Nova using Signals",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["i18n", "internationalization", "signals", "reactivity", "nova"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@nova/signals": "file:../signals"
+  }
+}

@@ -540,8 +540,20 @@ export function createElement(
         if (typeof value === 'function') elDisposals.push(effect(() => el.className = value()));
         else el.className = value;
       } else if (key === 'style') {
-        if (typeof value === 'function') elDisposals.push(effect(() => Object.assign(el.style, value())));
-        else if (typeof value === 'object') Object.assign(el.style, value);
+        if (typeof value === 'function') {
+          elDisposals.push(effect(() => {
+            const val = value();
+            if (typeof val === 'string') {
+              el.style.cssText = val;
+            } else if (val && typeof val === 'object') {
+              Object.assign(el.style, val);
+            }
+          }));
+        } else if (value && typeof value === 'object') {
+          Object.assign(el.style, value);
+        } else if (typeof value === 'string') {
+          el.style.cssText = value;
+        }
       } else if (key.startsWith('on')) {
         const event = key.slice(2).toLowerCase();
         const nonDelegated = ['mouseenter', 'mouseleave', 'load', 'error', 'scroll'];

@@ -1,0 +1,17 @@
+{
+  "title": "Bản dịch Phản ứng Siêu nhẹ",
+  "description": "Trang này trình bày cơ chế dịch đa ngôn ngữ siêu nhẹ với độ phân giải siêu mịn (fine-grained) dựa trên Tín hiệu (Signals). Thay đổi ngôn ngữ chỉ cập nhật trực tiếp các text node mà không render lại component!",
+  "cardTitle": "Bảng Điều khiển Ngôn ngữ",
+  "welcome": "Chào mừng bạn đến với Nova Framework",
+  "currentLocale": "Ngôn ngữ hiện tại",
+  "statusLabel": "Trạng thái gói bản dịch",
+  "statusLoaded": "Đã tải & Lưu trữ thành công",
+  "statusLoading": "Đang tải lười (lazy-load) tệp JSON qua mạng...",
+  "selectEn": "Chuyển sang tiếng Anh (English)",
+  "selectVi": "Chuyển sang tiếng Việt",
+  "featureTitle": "Liên kết Chuỗi Tín hiệu (Signal Pipes)",
+  "pipeHint": "Thông điệp dưới đây được dịch, sau đó định dạng động đồng bộ bằng Pipes của Tín hiệu (viết hoa và thêm ký tự cảm thán):",
+  "interactiveTitle": "Nội suy Bản dịch Động",
+  "interpolationLabel": "Nhập tên của bạn để xem nội suy thời gian thực:",
+  "helloUser": "Xin chào {{name}}, chúc bạn có một phiên lập trình song hành tuyệt vời!"
+}

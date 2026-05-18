@@ -85,6 +85,7 @@ export const navItems = [
       { key: 'charts',        label: 'Charts',           icon: '📉', badge: 'New' },
       { key: 'dashboard',     label: 'Dashboard',        icon: '🖥️', badge: 'New' },
       { key: 'motion',        label: 'Motion',           icon: '🎬', badge: 'New' },
+      { key: 'i18n',          label: 'i18n (Reactive)',  icon: '🌍', badge: 'New' },
     ]
   },
 ];

@@ -52,6 +52,7 @@ import { KanbanPage }      from './pages/nova-ui/kanban';
 import { ChartsPage }      from './pages/nova-ui/charts';
 import { DashboardPage }   from './pages/nova-ui/dashboard';
 import { MotionPage }      from './pages/nova-ui/motion';
+import { I18nPage }        from './pages/nova-ui/i18n';
 
 export function App() {
   return (
@@ -108,6 +109,7 @@ export function App() {
         {() => activeKey.value === 'charts' && <ChartsPage />}
         {() => activeKey.value === 'dashboard' && <DashboardPage />}
         {() => activeKey.value === 'motion' && <MotionPage />}
+        {() => activeKey.value === 'i18n' && <I18nPage />}
       </div>
     </NovaUIShell>
   );

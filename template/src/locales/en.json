@@ -1,0 +1,17 @@
+{
+  "title": "Reactive Internationalization",
+  "description": "This page demonstrates ultra-lightweight, fine-grained multi-language translation powered by reactive Signals. Changing language updates only specific text nodes without re-rendering the component!",
+  "cardTitle": "Language Controls",
+  "welcome": "Welcome to Nova Framework",
+  "currentLocale": "Current Language",
+  "statusLabel": "Translation Bundle Status",
+  "statusLoaded": "Fully Loaded & Cached",
+  "statusLoading": "Lazy-loading translation chunk over network...",
+  "selectEn": "Switch to English",
+  "selectVi": "Switch to Vietnamese",
+  "featureTitle": "Signal-Pipe Translation Chaining",
+  "pipeHint": "The message below is translated, then dynamically formatted using synchronous Signal Pipes (capitalized and decorated with exclaim):",
+  "interactiveTitle": "Dynamic Interpolation",
+  "interpolationLabel": "Enter your name for real-time interpolation:",
+  "helloUser": "Hello {{name}}, we hope you have an incredible paired-programming session!"
+}

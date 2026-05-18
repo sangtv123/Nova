@@ -56,6 +56,10 @@ async function main() {
     case 'create':
       await create(args.slice(1));
       break;
+    case 'generate':
+    case 'g':
+      await generate(args.slice(1));
+      break;
     default:
       printHelp();
   }
@@ -64,12 +68,27 @@ async function main() {
 function scanIslands(projectDir: string): Array<{ name: string; importPath: string }> {
   const islandsDir = path.join(projectDir, 'src/islands');
   if (!fs.existsSync(islandsDir)) return [];
-  return fs.readdirSync(islandsDir)
-    .filter(f => f.endsWith('.tsx') || f.endsWith('.ts'))
-    .map(f => ({
-      name: f.replace(/\.(tsx?|ts)$/, '').toLowerCase(),
-      importPath: `./islands/${f.replace(/\.(tsx?|ts)$/, '')}`
-    }));
+  const results: Array<{ name: string; importPath: string }> = [];
+
+  function recurse(dir: string, relativePrefix: string) {
+    const files = fs.readdirSync(dir);
+    for (const f of files) {
+      const fullPath = path.join(dir, f);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        recurse(fullPath, `${relativePrefix}${f}/`);
+      } else if ((f.endsWith('.tsx') || f.endsWith('.ts')) && !f.endsWith('.spec.ts') && !f.endsWith('.spec.tsx') && !f.endsWith('.test.ts') && !f.endsWith('.test.tsx')) {
+        const baseName = f.replace(/\.(tsx?|ts)$/, '');
+        results.push({
+          name: baseName.toLowerCase(),
+          importPath: `./islands/${relativePrefix}${baseName}`
+        });
+      }
+    }
+  }
+
+  recurse(islandsDir, '');
+  return results;
 }
 
 /**
@@ -89,7 +108,7 @@ function scanPages(projectDir: string): Array<{ path: string; importPath: string
 
   const allFiles = getFiles(pagesDir);
   return allFiles
-    .filter(f => (f.endsWith('.tsx') || f.endsWith('.ts')) && !f.includes('layout.'))
+    .filter(f => (f.endsWith('.tsx') || f.endsWith('.ts')) && !f.includes('layout.') && !f.endsWith('.spec.ts') && !f.endsWith('.spec.tsx') && !f.endsWith('.test.ts') && !f.endsWith('.test.tsx'))
     .map(f => {
       const rel = path.relative(pagesDir, f).replace(/\\/g, '/');
       const routePath = `pages/${rel}`;
@@ -383,7 +402,7 @@ async function dev(args: string[]) {
   server.listen(port, async () => {
     console.log(`🚀 Nova dev server running on http://localhost:${port}`);
     // Pre-warm @nova/* framework bundles in background so first request is instant
-    const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms', 'devtools'];
+    const pkgs = ['signals', 'runtime', 'islands', 'router', 'motion', 'store', 'http', 'forms', 'devtools', 'i18n'];
     const warmOpts = { bundle: true as const, format: 'esm' as const, plugins: [novaPlugin], define: { 'process.env.NODE_ENV': '"development"' } };
     const projectDir = process.cwd();
     Promise.all(pkgs.map(pkg => {
@@ -467,8 +486,217 @@ async function create(args: string[]) {
   console.log(`✅ Project created.`);
 }
 
+async function generate(generateArgs: string[]) {
+  const type = generateArgs[0];
+  const name = generateArgs[1];
+
+  if (!type || !name) {
+    console.error(`❌ Error: Missing generator type or name.`);
+    console.log(`Usage: nova g <island|store|route> <Name>`);
+    return;
+  }
+
+  const projectDir = process.cwd();
+  if (!fs.existsSync(path.join(projectDir, 'src'))) {
+    console.error(`❌ Error: Please run this command inside a Nova project root (src/ folder not found).`);
+    return;
+  }
+
+  const pascalName = name.charAt(0).toUpperCase() + name.slice(1);
+  const lowercaseName = name.toLowerCase();
+
+  switch (type.toLowerCase()) {
+    case 'island': {
+      const islandDir = path.join(projectDir, 'src/islands', pascalName);
+      if (!fs.existsSync(islandDir)) {
+        fs.mkdirSync(islandDir, { recursive: true });
+      }
+
+      const tsxPath = path.join(islandDir, `${pascalName}Island.tsx`);
+      const scssPath = path.join(islandDir, `${pascalName}Island.scss`);
+      const specPath = path.join(islandDir, `${pascalName}Island.spec.ts`);
+
+      const tsxCode = `import { signal } from '@nova/signals';
+import { registerIsland } from '@nova/islands';
+import './${pascalName}Island.scss?inline';
+
+export function ${pascalName}Island() {
+  const count = signal(0, '${lowercaseName}-count');
+
+  return (
+    <div class="${lowercaseName}-island" data-island="${pascalName.toLowerCase()}island">
+      <h3>${pascalName} Island</h3>
+      <p>This is an auto-generated high-performance hydrated island.</p>
+      <div style="margin: 15px 0;">
+        <button class="n-btn n-btn--primary" onClick={() => count.value++}>
+          Count: {() => count.value}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Register island for dynamic client-side hydration
+registerIsland('${pascalName.toLowerCase()}island', () => Promise.resolve({ default: ${pascalName}Island }));
+`;
+
+      const scssCode = `.${lowercaseName}-island {
+  padding: 24px;
+  border: 1px dashed var(--n-primary, #10b981);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.04);
+  text-align: center;
+  margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+  h3 {
+    margin: 0 0 10px 0;
+    color: var(--n-primary, #10b981);
+  }
+  p {
+    margin: 0 0 16px 0;
+    color: var(--n-text-2, #64748b);
+    font-size: 13px;
+  }
+}
+`;
+
+      const specCode = `import { describe, test, expect } from 'vitest';
+import { ${pascalName}Island } from './${pascalName}Island';
+
+describe('${pascalName}Island', () => {
+  test('should render and be interactive', () => {
+    expect(${pascalName}Island).toBeDefined();
+  });
+});
+`;
+
+      fs.writeFileSync(tsxPath, tsxCode);
+      fs.writeFileSync(scssPath, scssCode);
+      fs.writeFileSync(specPath, specCode);
+
+      console.log(`\n🎉 Island generated successfully!`);
+      console.log(`  📁 Created: src/islands/${pascalName}/`);
+      console.log(`  📄 ${tsxPath.replace(projectDir, '')}`);
+      console.log(`  📄 ${scssPath.replace(projectDir, '')}`);
+      console.log(`  📄 ${specPath.replace(projectDir, '')}`);
+      break;
+    }
+
+    case 'store': {
+      const storesDir = path.join(projectDir, 'src/stores');
+      if (!fs.existsSync(storesDir)) {
+        fs.mkdirSync(storesDir, { recursive: true });
+      }
+
+      const storePath = path.join(storesDir, `${lowercaseName}Store.ts`);
+      const storeCode = `import { defineStore } from '@nova/store';
+
+export interface ${pascalName}State {
+  isActive: boolean;
+  // Add your reactive properties here
+}
+
+export const use${pascalName}Store = defineStore('${lowercaseName}', {
+  state: (): ${pascalName}State => ({
+    isActive: true,
+    // Add initial state values
+  }),
+  getters: {
+    status: (state: ${pascalName}State) => state.isActive ? 'Active' : 'Inactive'
+  },
+  actions: {
+    increment(this: ${pascalName}State) {
+      // Custom action example
+    },
+    toggleActive(this: ${pascalName}State) {
+      this.isActive = !this.isActive;
+    }
+  },
+  persist: true // Automatically sync with LocalStorage
+});
+
+export type ${pascalName}StoreInstance = ${pascalName}State & {
+  increment(): void;
+  toggleActive(): void;
+};
+`;
+
+      fs.writeFileSync(storePath, storeCode);
+
+      console.log(`\n🎉 Store generated successfully!`);
+      console.log(`  📄 ${storePath.replace(projectDir, '')}`);
+      break;
+    }
+
+    case 'route': {
+      const pagesDir = path.join(projectDir, 'src/pages');
+      
+      // Handle nested routes like "user/settings" or "posts/[id]"
+      const routeFilePath = name.endsWith('.tsx') ? name : `${name}.tsx`;
+      const fullPath = path.join(pagesDir, routeFilePath);
+      const parentDir = path.dirname(fullPath);
+
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+
+      // Extract a clean component name from the filename
+      const baseFileName = path.basename(routeFilePath, '.tsx');
+      const cleanComponentName = baseFileName
+        .replace(/\[|\]/g, '') // strip brackets for [id]
+        .split('-')
+        .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join('');
+
+      const routeCode = `export function ${cleanComponentName}Page() {
+  return (
+    <div class="nova-ui-page ${cleanComponentName.toLowerCase()}-page" style="padding: 24px;">
+      <h1 class="nova-ui-page-title">${cleanComponentName} Page</h1>
+      <p class="nova-ui-page-desc">This page was automatically generated by Nova CLI.</p>
+      
+      <div class="n-card" style="margin-top: 20px;">
+        <div class="n-card-body">
+          <p>Start editing <code>src/pages/${routeFilePath}</code> to customize this page!</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+
+      fs.writeFileSync(fullPath, routeCode);
+
+      console.log(`\n🎉 Route page generated successfully!`);
+      console.log(`  📄 ${fullPath.replace(projectDir, '')}`);
+      console.log(`💡 Note: The dev server will automatically scan this page and add it to the routing table!`);
+      break;
+    }
+
+    default:
+      console.error(`❌ Error: Unknown generator type "${type}".`);
+      console.log(`Supported generators: island, store, route`);
+  }
+}
+
 function printHelp() {
-  console.log(`Nova CLI help...`);
+  console.log(`
+🚀 Nova CLI - Enterprise-class Frontend Framework Tool
+
+Usage:
+  nova <command> [options]
+
+Commands:
+  dev               Start high-performance development server with HMR
+  build             Build production-ready bundle
+  create <name>     Scaffold a new Nova project
+  generate, g       Code generation utility helper
+
+Generators:
+  nova g island <Name>   Generate modular hydrated island (TSX, SCSS, Spec)
+  nova g store <Name>    Generate centralized Pinia-inspired Store
+  nova g route <Name>    Generate file-based page route
+  `);
 }
 
 main().catch(console.error);

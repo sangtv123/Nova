@@ -15,7 +15,8 @@
     "@nova/runtime": "latest",
     "@nova/devtools": "latest",
     "@nova/store": "latest",
-    "@nova/motion": "latest"
+    "@nova/motion": "latest",
+    "@nova/i18n": "latest"
   },
   "devDependencies": {
     "@nova/cli": "latest",
