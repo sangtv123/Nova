@@ -55,7 +55,7 @@ npm run dev
 
 Easily create a new project with our automated CLI generator:
 ```bash
-npm create nova@latest my-app
+nova create my-app
 ```
 
 The scaffolding engine will generate a production-ready application layout, config files, standard favicons, and sample code to kickstart your project.

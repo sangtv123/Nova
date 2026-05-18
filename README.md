@@ -26,7 +26,7 @@ Nova is a cutting-edge web application framework engineered for peak performance
 To scaffold a brand new Nova project pre-configured with standard icons, TypeScript configs, and sample components:
 
 ```bash
-npm create nova@latest my-app
+nova create my-app
 ```
 
 ### 2. Install Dependencies & Start Dev Server
@@ -310,8 +310,7 @@ d:\framework\
 │   ├── forms/        # Form Validation & Two-way Binding Directives
 │   ├── http/         # Reactive Networking with LRU Caching
 │   ├── server/       # Dev Server with WebSocket HMR
-│   ├── cli/          # Tooling CLI (nova dev, nova build)
-│   └── create-nova/  # Project Scaffolding CLI (npm create nova)
+│   ├── cli/          # Tooling CLI (nova dev, nova build, nova create)
 └── my-app/           # User Applications
 ```
 

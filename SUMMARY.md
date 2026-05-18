@@ -31,8 +31,8 @@ Nova Framework is a robust, production-ready frontend framework structured as a 
 ### 8. `@nova/server`
 - **Responsibility:** Vite-like development server. Integrates real-time Hot Module Replacement (HMR) via WebSockets to instantly hot-swap TypeScript and SCSS changes without state loss.
 
-### 9. `@nova/cli` & `@nova/create-nova`
-- **Responsibility:** Comprehensive developer tooling. Scaffolds new projects (`npm create nova`), launches the dev server (`nova dev`), and orchestrates optimized production builds complete with **Bundle Guard** size auditing (`nova build`).
+### 9. `@nova/cli`
+- **Responsibility:** Comprehensive developer tooling. Scaffolds new projects (`nova create`), launches the dev server (`nova dev`), and orchestrates optimized production builds complete with **Bundle Guard** size auditing (`nova build`).
 
 ---
 

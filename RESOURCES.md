@@ -35,7 +35,7 @@ d:\framework\packages\
 ├── forms/       → Two-way Form Binding & Real-time Validation
 ├── http/        → Reactive HTTP Client with LRU In-memory Caching
 ├── server/      → Vite-like Dev Server & WebSocket HMR Engine
-└── cli/         → Tooling CLI (dev, build) & Scaffolding (create-nova)
+└── cli/         → Tooling CLI (dev, build) & Scaffolding (nova create)
 ```
 
 ---

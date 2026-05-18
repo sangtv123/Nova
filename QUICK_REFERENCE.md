@@ -8,7 +8,7 @@ This document provides concise, production-ready code snippets and API usage pat
 
 ```bash
 # Scaffold a new project
-npm create nova@latest my-app
+nova create my-app
 
 # Development workflow
 npm run dev        # Launch dev server with real-time HMR
