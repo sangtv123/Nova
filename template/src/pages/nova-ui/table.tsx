@@ -8,6 +8,22 @@ import { Table, TableColumn } from '../../nova-ui/components/Table';
 const baseColumns: TableColumn[] = [
   { key: 'name',     title: 'Name',      dataIndex: 'name',     width: 180, fixed: 'left', sortable: true },
   { key: 'age',      title: 'Age',       dataIndex: 'age',      width: 80,  align: 'center', sortable: true },
+  { key: 'avatar',   title: 'Avatar',    dataIndex: 'avatar',   width: 80,  align: 'center',
+    render: (url: string, record: any) => (
+      <img
+        src={url}
+        alt={record.name}
+        style={{
+          width: '40px', height: '40px',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          display: 'block',
+          margin: '0 auto',
+        }}
+        loading="lazy"
+      />
+    )
+  },
   { key: 'role',     title: 'Role',      dataIndex: 'role',     width: 130,
     render: (r: string) => <Tag>{r}</Tag> },
   { key: 'address1', title: 'Address 1', dataIndex: 'address1', width: 220 },
@@ -57,6 +73,8 @@ const virtualData = Array.from({ length: 10000 }).map((_, i) => ({
   address1: `City ${i % 100} No. ${i % 10 + 1} Lake Park`,
   address2: `Building ${String.fromCharCode(65 + (i % 26))}`,
   address3: `Floor ${i % 20 + 1}`,
+  // Deterministic avatar — same seed = same image, no network flood
+  avatar: `https://picsum.photos/seed/user${i % 200}/40/40`,
 }));
 
 // ─── Page ──────────────────────────────────────────────────────────────────
@@ -224,9 +242,9 @@ export function TablePage() {
             <Table
               columns={baseColumns}
               dataSource={virtualData}
-              scroll={{ x: 1350, y: 380 }}
+              scroll={{ x: 1300, y: 380 }}
               virtual={true}
-              rowHeight={54}
+              rowHeight={60}
             />
             <div class="n-table-pagination" style="border-top:1px solid var(--n-border);">
               <span style="color:var(--n-text-2);font-size:var(--n-fs-sm);">Total 10,000 items</span>

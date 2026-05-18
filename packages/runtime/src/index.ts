@@ -533,7 +533,7 @@ export function createElement(
         else if (typeof value === 'object') Object.assign(el.style, value);
       } else if (key.startsWith('on')) {
         const event = key.slice(2).toLowerCase();
-        const nonDelegated = ['mouseenter', 'mouseleave', 'load', 'error'];
+        const nonDelegated = ['mouseenter', 'mouseleave', 'load', 'error', 'scroll'];
         if (nonDelegated.includes(event)) {
           el.addEventListener(event, value);
         } else {

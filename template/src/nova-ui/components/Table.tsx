@@ -263,7 +263,7 @@ export function Table(props: TableProps) {
     const bodyStyle = {
       maxHeight: props.scroll?.y ? px(props.scroll.y) : 'none',
       overflowY: props.scroll?.y ? 'auto' : 'visible',
-      overflowX: props.scroll?.x ? 'auto' : 'hidden',
+      overflowX: props.scroll?.x ? 'auto' : 'visible',
       position: 'relative'
     };
     const tblStyle = {
@@ -289,52 +289,71 @@ export function Table(props: TableProps) {
   }
 
   // ── Virtual body ──
+  //
+  // Layout:
+  //   [outer div: overflow:auto, height=scrollY]
+  //     [inner div: in-flow, height=totalRows*rowH]  ← creates the real scroll height
+  //       [stickyWrap: position:sticky, top:0]       ← table always at top of viewport
+  //         [table]
+  //
+  // The inner div is in normal flow so it expands the container's scroll area.
+  // The stickyWrap keeps the table pinned to the visible top while the user scrolls.
   function virtualBody() {
-    const rowH     = props.rowHeight as number;
-    const scrollY  = parseInt(String(props.scroll!.y), 10);
+    const rowH    = props.rowHeight as number;
+    const scrollY = parseInt(String(props.scroll!.y), 10);
 
+    // Outer: provides both scrollbars
     const bodyStyle = {
-      maxHeight: `${scrollY}px`,
+      height: `${scrollY}px`,
       overflowY: 'auto',
-      overflowX: props.scroll?.x ? 'auto' : 'hidden',
-      position: 'relative'
+      overflowX: props.scroll?.x ? 'auto' : 'visible',
+      position: 'relative',
     };
-    const dummyStyle = () => ({
+
+    // Inner: in-flow tall div that drives the real scroll height & horizontal width
+    const innerStyle = () => ({
       height: `${sortedData().length * rowH}px`,
-      width: props.scroll?.x ? totalW : '1px',
-      pointerEvents: 'none'
+      width: props.scroll?.x ? totalW : '100%',
+      minWidth: '100%',
+      position: 'relative',
     });
-    const tblStyle = () => {
-      const start   = Math.max(0, Math.floor(scrollTop.value / rowH) - 2);
-      const offsetY = start * rowH;
-      return {
-        position: 'absolute',
-        top: '0px',
-        left: '0px',
-        transform: `translateY(${offsetY}px)`,
-        tableLayout: 'fixed',
-        marginBottom: '0px',
-        width: totalW,
-      };
+
+    // Sticky wrapper: pins the table to the top of the scroll container
+    const stickyStyle = {
+      position: 'sticky',
+      top: '0px',
+      left: '0px',
+      zIndex: 1,
+    };
+
+    const tblStyle = {
+      tableLayout: 'fixed',
+      marginBottom: '0px',
+      width: totalW,
     };
 
     return (
       <div id={bodyId} class="n-table-body" style={bodyStyle} onScroll={handleScroll}>
-        <div style={dummyStyle} />
-        <table class={`n-table${sizeClass}${bordered} n-table--striped`} style={tblStyle}>
-          {colgroup()}
-          <tbody class="n-table-tbody">
-            {() => {
-              const data         = sortedData();
-              const start        = Math.max(0, Math.floor(scrollTop.value / rowH) - 2);
-              const visibleCount = Math.ceil(scrollY / rowH) + 4;
-              const end          = Math.min(data.length, start + visibleCount);
-              const slice        = data.slice(start, end);
-              if (slice.length === 0) return emptyRow();
-              return slice.map((record, i) => dataRow(record, start + i, rowH));
-            }}
-          </tbody>
-        </table>
+        {/* In-flow spacer — sets the real virtual scroll height */}
+        <div style={innerStyle}>
+          {/* Sticky table — always visible at the top of the scroll viewport */}
+          <div style={stickyStyle}>
+            <table class={`n-table${sizeClass}${bordered} n-table--striped`} style={tblStyle}>
+              {colgroup()}
+              <tbody class="n-table-tbody">
+                {() => {
+                  const data         = sortedData();
+                  const start        = Math.max(0, Math.floor(scrollTop.value / rowH) - 2);
+                  const visibleCount = Math.ceil(scrollY / rowH) + 4;
+                  const end          = Math.min(data.length, start + visibleCount);
+                  const slice        = data.slice(start, end);
+                  if (slice.length === 0) return emptyRow();
+                  return slice.map((record, i) => dataRow(record, start + i, rowH));
+                }}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   }
@@ -347,7 +366,7 @@ export function Table(props: TableProps) {
       borderBottom: '1px solid var(--n-border)',
       background: 'var(--n-bg-layout)',
       scrollbarGutter: 'stable',
-      paddingRight: props.scroll?.y ? '8px' : '0px', // Compensate for scrollbar offset
+      paddingRight: props.scroll?.y ? '8px' : '0px',
     };
     const tblStyle = {
       tableLayout: 'fixed',
