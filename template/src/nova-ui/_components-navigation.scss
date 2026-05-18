@@ -1,0 +1,61 @@
+// ============================================
+// Nova UI — Navigation Components
+// Breadcrumb, Pagination, Steps, etc.
+// ============================================
+@use 'mixins' as *;
+
+// ─── Breadcrumb ──────────────────────────────────
+.n-breadcrumb {
+  @include flex(row, center, flex-start, 0);
+  flex-wrap: wrap;
+  font-size: var(--n-fs-sm);
+  color: var(--n-text-3);
+  line-height: 1.5;
+
+  &-item {
+    @include flex(row, center, flex-start, 0);
+
+    &--last {
+      .n-breadcrumb-link {
+        color: var(--n-text-1);
+        font-weight: 500;
+        cursor: default;
+        &:hover {
+          background: transparent;
+          color: var(--n-text-1);
+        }
+      }
+    }
+  }
+
+  &-link {
+    @include flex(row, center, flex-start, 6px);
+    color: var(--n-text-2);
+    padding: 4px 8px;
+    border-radius: var(--n-border-r);
+    text-decoration: none;
+    @include transition(color, background-color);
+    
+    &--interactive {
+      cursor: pointer;
+      &:hover {
+        background-color: var(--n-bg-hover);
+        color: var(--n-text-1);
+      }
+    }
+  }
+
+  &-icon {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.1em;
+  }
+
+  &-separator {
+    color: var(--n-text-3);
+    margin: 0 4px;
+    user-select: none;
+    display: flex;
+    align-items: center;
+  }
+}

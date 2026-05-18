@@ -12,6 +12,7 @@ import { DataDisplayPage } from './pages/nova-ui/data-display';
 import { FeedbackPage }    from './pages/nova-ui/feedback';
 import { AdvancedPage }    from './pages/nova-ui/advanced';
 import { TablePage }       from './pages/nova-ui/table';
+import { BreadcrumbPage }  from './pages/nova-ui/breadcrumb';
 
 export function App() {
   return (
@@ -26,6 +27,7 @@ export function App() {
         {() => ['grid'].includes(activeKey.value) && <ButtonPage />}
         {() => ['input','select','checkbox','radio','switch','slider','datepicker','upload','form'].includes(activeKey.value) && <DataEntryPage />}
         {() => activeKey.value === 'table' && <TablePage />}
+        {() => activeKey.value === 'breadcrumb' && <BreadcrumbPage />}
         {() => ['card','collapse','carousel','avatar','badge','tag','timeline','tooltip','tree'].includes(activeKey.value) && <DataDisplayPage />}
         {() => ['alert','modal','drawer','notification','message','skeleton','spin','progress'].includes(activeKey.value) && <FeedbackPage />}
         {() => ['data-grid','command','theme-builder','kanban','charts','dashboard'].includes(activeKey.value) && <AdvancedPage />}
