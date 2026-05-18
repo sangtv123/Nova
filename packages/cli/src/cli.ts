@@ -273,9 +273,8 @@ async function dev(args: string[]) {
             js = transpiled.code;
           } catch (compileErr: any) {
             const relPath = path.relative(projectDir, fullPath).replace(/\\/g, '/');
-            console.error(`\n❌ [Nova Compiler] Compilation failed in ${relPath}:`);
-            console.error(compileErr.message || compileErr);
-            console.error('');
+            console.error(`\n\x1b[31m\x1b[1m❌ [Nova Compiler] Compilation failed in ${relPath}:\x1b[0m`);
+            console.error(`\x1b[31m${compileErr.message || compileErr}\x1b[0m\n`);
             
             res.writeHead(200, { 'Content-Type': 'application/javascript' });
             res.end(`throw new Error(${JSON.stringify(`[Nova Compiler] Compilation failed in ${relPath}:\n${compileErr.message || compileErr}`)});`);
@@ -428,6 +427,30 @@ async function dev(args: string[]) {
       }
       console.log(`[HMR] ${path.basename(filename)} changed — cache cleared`);
       hmrHandler.broadcastUpdate(filename, '');
+
+      // Eagerly compile on save to report errors instantly to the terminal
+      fs.readFile(filename, 'utf8', (readErr, source) => {
+        if (readErr) return;
+        if (filename.endsWith('.tsx') && !source.includes('createElement') && !source.includes('Fragment')) {
+          source = `import { createElement, Fragment } from '@nova/runtime';\n${source}`;
+        }
+        compile(source, { filename, isDev: true, customPipes: config.customPipes })
+          .then((compiled) => {
+            return esbuildTransform(compiled.code, {
+              loader: 'tsx',
+              format: 'esm',
+              jsxFactory: 'createElement',
+              jsxFragment: 'Fragment',
+              target: 'es2020',
+              sourcefile: filename,
+            });
+          })
+          .catch((compileErr) => {
+            const relPath = path.relative(process.cwd(), filename).replace(/\\/g, '/');
+            console.error(`\n\x1b[31m\x1b[1m❌ [Nova Compiler] Syntax/Compilation error in ${relPath}:\x1b[0m`);
+            console.error(`\x1b[31m${compileErr.message || compileErr}\x1b[0m\n`);
+          });
+      });
     } else if (filename.endsWith('.scss')) {
       scssCache.delete(filename);
       hmrHandler.broadcastReload();
