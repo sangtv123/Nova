@@ -387,7 +387,7 @@ export function Table(props: TableProps) {
 
   // ── Root ──
   return (
-    <div class={`n-table-wrapper${customClass}`} style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div class={`n-table-wrapper${customClass}`} style={{ display: 'flex', flexDirection: 'column', position: 'relative', width: '100%', maxWidth: '100%', minWidth: 0 }}>
       {props.loading && (
         <div class="n-table-loading-overlay">
           <div class="n-table-loading-spin" />

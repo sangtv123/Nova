@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "nova dev",
-    "build": "nova build"
+    "build": "nova build",
+    "scss:build": "npx sass src/nova-ui/index.scss src/nova-ui/index.css --no-source-map",
+    "scss:watch": "npx sass src/nova-ui/index.scss src/nova-ui/index.css --no-source-map --watch"
   },
   "dependencies": {
     "@nova/signals": "latest",
