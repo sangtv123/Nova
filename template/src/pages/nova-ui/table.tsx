@@ -26,18 +26,17 @@ const baseColumns: TableColumn[] = [
   }
 ];
 
-// Simple columns (no fixed cols)
 const simpleColumns: TableColumn[] = [
-  { key: 'name',   title: 'Name',   dataIndex: 'name',   width: 180, sortable: true },
-  { key: 'age',    title: 'Age',    dataIndex: 'age',    width: 80, align: 'center', sortable: true },
-  { key: 'role',   title: 'Role',   dataIndex: 'role',   width: 130,
+  { key: 'name',   title: 'Name',    dataIndex: 'name',   width: 200, sortable: true },
+  { key: 'age',    title: 'Age',     dataIndex: 'age',    width: 80,  align: 'center', sortable: true },
+  { key: 'role',   title: 'Role',    dataIndex: 'role',   width: 130,
     render: (r: string) => <Tag>{r}</Tag> },
-  { key: 'status', title: 'Status', dataIndex: 'status', width: 120, align: 'center',
+  { key: 'status', title: 'Status',  dataIndex: 'status', width: 120, align: 'center',
     render: (s: string) => <Tag type={s === 'Active' ? 'success' : s === 'Inactive' ? 'error' : 'warning'}>{s}</Tag> },
-  { key: 'address1', title: 'Address', dataIndex: 'address1' },
+  { key: 'address', title: 'Address', dataIndex: 'address1' },
 ];
 
-// ─── Sample data ───────────────────────────────────────────────────────────
+// ─── Data ──────────────────────────────────────────────────────────────────
 
 const tableData = [
   { key: '1', name: 'John Brown',   age: 32, role: 'Admin',  status: 'Active',   address1: 'New York No. 1 Lake Park',  address2: 'Building A', address3: 'Floor 5'  },
@@ -50,7 +49,7 @@ const tableData = [
 ];
 
 const virtualData = Array.from({ length: 10000 }).map((_, i) => ({
-  key: i.toString(),
+  key: String(i),
   name: `User ${i + 1}`,
   age: 20 + (i % 40),
   role: i % 3 === 0 ? 'Admin' : i % 3 === 1 ? 'Editor' : 'Viewer',
@@ -60,40 +59,40 @@ const virtualData = Array.from({ length: 10000 }).map((_, i) => ({
   address3: `Floor ${i % 20 + 1}`,
 }));
 
-// ─── Page component ────────────────────────────────────────────────────────
+// ─── Page ──────────────────────────────────────────────────────────────────
 
 export function TablePage() {
-  const loadingState = signal(false);
+  const isLoading = signal(false);
 
-  function simulateLoading() {
-    loadingState.value = true;
-    setTimeout(() => { loadingState.value = false; }, 2000);
+  function simulateLoad() {
+    isLoading.value = true;
+    setTimeout(() => { isLoading.value = false; }, 2000);
   }
 
   return (
     <div class="nova-ui-page">
       <h1 class="nova-ui-page-title">Table</h1>
       <p class="nova-ui-page-desc">
-        A powerful data grid supporting fixed columns, sorting, row selection, virtual scrolling, and massive datasets.
+        A powerful data grid supporting fixed columns, column sorting, row selection, loading state,
+        empty state, and high-performance virtual scrolling for massive datasets.
       </p>
 
-      {/* ── 1. Basic Table ─────────────────────────────────────────────── */}
+      {/* ── 1. Basic ─────────────────────────────────────────────────── */}
       <div class="nova-section">
         <h2 class="nova-section-title">Basic Table</h2>
         <div class="nova-demo-block">
           <div class="nova-demo-block-preview nova-demo-block-preview--vertical" style="width:100%;padding:0;">
-            <Table
-              columns={simpleColumns}
-              dataSource={tableData}
-            />
+            <Table columns={simpleColumns} dataSource={tableData} />
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">Simple table without scroll. Supports click-to-sort on marked columns.</span>
+            <span class="nova-demo-block-meta-title">
+              Simple table without scroll. Click column header with ▲▼ icon to sort.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 2. Fixed Columns + Scroll ──────────────────────────────────── */}
+      {/* ── 2. Fixed columns + scroll ─────────────────────────────────── */}
       <div class="nova-section">
         <h2 class="nova-section-title">Fixed Columns &amp; Scroll</h2>
         <div class="nova-demo-block">
@@ -105,12 +104,14 @@ export function TablePage() {
             />
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">Fixed header, sticky left/right columns, horizontal + vertical scroll.</span>
+            <span class="nova-demo-block-meta-title">
+              Fixed header, sticky <code>left</code>/<code>right</code> columns with shadow, horizontal + vertical scroll sync.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 3. Row Selection ───────────────────────────────────────────── */}
+      {/* ── 3. Row Selection ──────────────────────────────────────────── */}
       <div class="nova-section">
         <h2 class="nova-section-title">Row Selection</h2>
         <div class="nova-demo-block">
@@ -122,38 +123,42 @@ export function TablePage() {
             />
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">Enable checkbox selection with indeterminate "select all" header.</span>
+            <span class="nova-demo-block-meta-title">
+              Checkbox per row. Header checkbox selects / deselects all.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 4. Sizes ───────────────────────────────────────────────────── */}
+      {/* ── 4. Sizes ─────────────────────────────────────────────────── */}
       <div class="nova-section">
         <h2 class="nova-section-title">Size Variants</h2>
         <div class="nova-demo-block">
-          <div class="nova-demo-block-preview nova-demo-block-preview--vertical" style="width:100%;padding:24px;gap:24px;display:flex;flex-direction:column;">
+          <div class="nova-demo-block-preview nova-demo-block-preview--vertical" style="width:100%;padding:24px;gap:20px;display:flex;flex-direction:column;">
             <div>
-              <p style="margin-bottom:8px;color:var(--n-text-2);font-size:var(--n-fs-sm);font-weight:600;">DEFAULT</p>
+              <p style="margin:0 0 8px;color:var(--n-text-2);font-size:var(--n-fs-sm);font-weight:600;letter-spacing:.06em;">DEFAULT</p>
               <Table columns={simpleColumns} dataSource={tableData.slice(0, 3)} />
             </div>
             <div>
-              <p style="margin-bottom:8px;color:var(--n-text-2);font-size:var(--n-fs-sm);font-weight:600;">MIDDLE</p>
+              <p style="margin:0 0 8px;color:var(--n-text-2);font-size:var(--n-fs-sm);font-weight:600;letter-spacing:.06em;">MIDDLE</p>
               <Table columns={simpleColumns} dataSource={tableData.slice(0, 3)} size="middle" />
             </div>
             <div>
-              <p style="margin-bottom:8px;color:var(--n-text-2);font-size:var(--n-fs-sm);font-weight:600;">SMALL</p>
+              <p style="margin:0 0 8px;color:var(--n-text-2);font-size:var(--n-fs-sm);font-weight:600;letter-spacing:.06em;">SMALL</p>
               <Table columns={simpleColumns} dataSource={tableData.slice(0, 3)} size="small" />
             </div>
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">Three density levels: <code>default</code>, <code>middle</code>, <code>small</code>.</span>
+            <span class="nova-demo-block-meta-title">
+              Three density levels: <code>default</code>, <code>middle</code>, <code>small</code>.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 5. Bordered ────────────────────────────────────────────────── */}
+      {/* ── 5. Bordered ──────────────────────────────────────────────── */}
       <div class="nova-section">
-        <h2 class="nova-section-title">Bordered Table</h2>
+        <h2 class="nova-section-title">Bordered</h2>
         <div class="nova-demo-block">
           <div class="nova-demo-block-preview nova-demo-block-preview--vertical" style="width:100%;padding:0;">
             <Table
@@ -163,32 +168,36 @@ export function TablePage() {
             />
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">All cells get a visible border with <code>bordered</code> prop.</span>
+            <span class="nova-demo-block-meta-title">
+              All cells get a visible border with <code>bordered</code> prop.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 6. Loading ─────────────────────────────────────────────────── */}
+      {/* ── 6. Loading ───────────────────────────────────────────────── */}
       <div class="nova-section">
         <h2 class="nova-section-title">Loading State</h2>
         <div class="nova-demo-block">
           <div class="nova-demo-block-preview nova-demo-block-preview--vertical" style="width:100%;padding:16px;gap:12px;display:flex;flex-direction:column;align-items:flex-start;">
-            <Button onClick={simulateLoading}>Reload (2s)</Button>
+            <Button type="primary" onClick={simulateLoad}>Reload (2 s)</Button>
             <div style="width:100%;">
               <Table
                 columns={simpleColumns}
                 dataSource={tableData}
-                loading={loadingState.value}
+                loading={() => isLoading.value}
               />
             </div>
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">Pass <code>loading</code> prop to show a spinner overlay on the table.</span>
+            <span class="nova-demo-block-meta-title">
+              Pass <code>loading</code> prop (boolean or signal getter) to overlay a spinner.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 7. Empty State ─────────────────────────────────────────────── */}
+      {/* ── 7. Empty ─────────────────────────────────────────────────── */}
       <div class="nova-section">
         <h2 class="nova-section-title">Empty State</h2>
         <div class="nova-demo-block">
@@ -196,18 +205,20 @@ export function TablePage() {
             <Table
               columns={simpleColumns}
               dataSource={[]}
-              emptyText="No users found"
+              emptyText="No matching records found"
             />
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">Empty table renders a friendly placeholder with custom text.</span>
+            <span class="nova-demo-block-meta-title">
+              Empty <code>dataSource</code> shows a friendly placeholder icon with custom text.
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── 8. Virtual Scroll (10 000 rows) ────────────────────────────── */}
+      {/* ── 8. Virtual scroll ────────────────────────────────────────── */}
       <div class="nova-section">
-        <h2 class="nova-section-title">Virtual Scroll — 10,000 rows</h2>
+        <h2 class="nova-section-title">Virtual Scroll — 10,000 Rows</h2>
         <div class="nova-demo-block">
           <div class="nova-demo-block-preview nova-demo-block-preview--vertical" style="width:100%;padding:0;">
             <Table
@@ -231,10 +242,31 @@ export function TablePage() {
             </div>
           </div>
           <div class="nova-demo-block-meta">
-            <span class="nova-demo-block-meta-title">60fps virtual scrolling — only visible rows render. Supports fixed columns and sorting.</span>
+            <span class="nova-demo-block-meta-title">
+              60 fps virtual scrolling — only visible rows render in the DOM. Supports sorting + fixed columns.
+            </span>
           </div>
         </div>
       </div>
+
+      {/* ── API Table ────────────────────────────────────────────────── */}
+      <table class="nova-api-table">
+        <thead>
+          <tr><th>Prop</th><th>Description</th><th>Type</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>columns</code></td><td>Column definitions</td><td><code>TableColumn[]</code></td><td>—</td></tr>
+          <tr><td><code>dataSource</code></td><td>Table data array</td><td><code>any[]</code></td><td>—</td></tr>
+          <tr><td><code>scroll</code></td><td>Scroll config</td><td><code>{'{ x?, y? }'}</code></td><td>—</td></tr>
+          <tr><td><code>virtual</code></td><td>Enable virtual scrolling</td><td><code>boolean</code></td><td><code>false</code></td></tr>
+          <tr><td><code>rowHeight</code></td><td>Fixed row height (px) for virtual mode</td><td><code>number</code></td><td>—</td></tr>
+          <tr><td><code>loading</code></td><td>Show loading overlay</td><td><code>boolean</code></td><td><code>false</code></td></tr>
+          <tr><td><code>rowSelection</code></td><td>Enable row checkboxes</td><td><code>boolean</code></td><td><code>false</code></td></tr>
+          <tr><td><code>size</code></td><td>Row density</td><td><code>'default' | 'middle' | 'small'</code></td><td><code>'default'</code></td></tr>
+          <tr><td><code>bordered</code></td><td>Show cell borders</td><td><code>boolean</code></td><td><code>false</code></td></tr>
+          <tr><td><code>emptyText</code></td><td>Custom empty text</td><td><code>string</code></td><td><code>'No Data'</code></td></tr>
+        </tbody>
+      </table>
     </div>
   );
 }
