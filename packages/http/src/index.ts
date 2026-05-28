@@ -547,4 +547,53 @@ export function createHttpClient(defaults: HttpRequestConfig = {}): NovaHttpClie
   return new NovaHttpClient(defaults);
 }
 
+// ─── Shortcut hooks (no need to pass client or method manually) ───────────────
+
+/**
+ * `useGet` — Reactive GET request bound to the global `http` client.
+ *
+ * @example
+ * const { data, loading, error } = useGet<User[]>('/api/users', {
+ *   cacheKey: 'users',
+ *   cacheTtl: 60_000,
+ * });
+ */
+export function useGet<T = unknown>(url: string, options: UseHttpOptions<T> = {}): UseHttpResult<T> {
+  return useHttp<T>(http, 'GET', url, options);
+}
+
+/**
+ * `usePost` — Reactive POST request bound to the global `http` client.
+ *
+ * @example
+ * const { execute: createUser, loading } = usePost<User>('/api/users', {
+ *   immediate: false,
+ * });
+ * // Later: await createUser({ body: { name: 'Nova' } });
+ */
+export function usePost<T = unknown>(url: string, options: UseHttpOptions<T> = {}): UseHttpResult<T> {
+  return useHttp<T>(http, 'POST', url, { immediate: false, ...options });
+}
+
+/**
+ * `usePut` — Reactive PUT request bound to the global `http` client.
+ */
+export function usePut<T = unknown>(url: string, options: UseHttpOptions<T> = {}): UseHttpResult<T> {
+  return useHttp<T>(http, 'PUT', url, { immediate: false, ...options });
+}
+
+/**
+ * `usePatch` — Reactive PATCH request bound to the global `http` client.
+ */
+export function usePatch<T = unknown>(url: string, options: UseHttpOptions<T> = {}): UseHttpResult<T> {
+  return useHttp<T>(http, 'PATCH', url, { immediate: false, ...options });
+}
+
+/**
+ * `useDelete` — Reactive DELETE request bound to the global `http` client.
+ */
+export function useDelete<T = unknown>(url: string, options: UseHttpOptions<T> = {}): UseHttpResult<T> {
+  return useHttp<T>(http, 'DELETE', url, { immediate: false, ...options });
+}
+
 export type { Signal } from '@nova/signals';

@@ -17,6 +17,11 @@ Nova is a cutting-edge web application framework engineered for peak performance
 - **🛣️ Pull-Based Dynamic Routing:** Advanced routing engine supporting lazy-loaded modules, automatic layout wrapping, robust route guards, and seamless 404 error handling.
 - **🛡️ Full Ecosystem Integration:** Includes production-ready solutions for centralized state management (`@nova/store`), form validation (`@nova/forms`), reactive HTTP networking (`@nova/http`), and Angular-style data transformation pipes (`@nova/signals` pipes).
 - **📦 Bundle Guard & SEO Realtime:** Automated bundle auditing during production builds to enforce strict asset size limits, alongside automatic meta tag optimization for superior SEO.
+- **🔗 `n-model` Two-Way Binding:** Compiler directive that transforms `<input n-model={sig} />` into reactive value getter + input setter — supports text, number, checkbox, radio, and select.
+- **👁️ `n-show` CSS Toggle:** `<div n-show={sig}>` keeps the element in the DOM and reactively flips `display: none` — cheaper than `n-if` for frequent toggling.
+- **💾 `persistedSignal()`:** A drop-in `signal()` replacement that automatically hydrates from `localStorage`/`sessionStorage` and persists every change.
+- **🔄 `asyncComputed()`:** Async-aware derived signal — re-runs on dependency changes, cancels stale fetches, and exposes `data`, `loading`, and `error` signals.
+
 
 ---
 

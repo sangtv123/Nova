@@ -481,3 +481,159 @@ export function memoSignal<T>(initialValue: T): Signal<T> {
   };
 }
 
+// ─── Persisted Signal ──────────────────────────────────────────────────────────
+
+export interface PersistedSignalOptions<T> {
+  /** Which storage to use (default: 'localStorage') */
+  storage?: 'localStorage' | 'sessionStorage';
+  /** Custom serializer (default: JSON.stringify) */
+  serialize?: (v: T) => string;
+  /** Custom deserializer (default: JSON.parse) */
+  deserialize?: (s: string) => T;
+}
+
+/**
+ * `persistedSignal` — a signal that automatically reads its initial value from
+ * Web Storage and writes back every time its value changes.
+ *
+ * @example
+ * const theme = persistedSignal('app-theme', 'dark');
+ * theme.value = 'light'; // localStorage['app-theme'] = '"light"'
+ */
+export function persistedSignal<T>(
+  key: string,
+  initialValue: T,
+  options: PersistedSignalOptions<T> = {}
+): Signal<T> {
+  const getStorage = (): Storage | null => {
+    if (typeof window === 'undefined') return null;
+    return options.storage === 'sessionStorage'
+      ? window.sessionStorage
+      : window.localStorage;
+  };
+
+  // Hydrate from storage on creation
+  let storedValue = initialValue;
+  const storage = getStorage();
+  if (storage) {
+    try {
+      const raw = storage.getItem(key);
+      if (raw !== null) {
+        storedValue = options.deserialize ? options.deserialize(raw) : JSON.parse(raw);
+      }
+    } catch {
+      // Corrupted data — fall back to initialValue silently
+    }
+  }
+
+  const sig = signal<T>(storedValue, `persisted:${key}`);
+
+  // Persist on every change via reactive effect
+  if (typeof window !== 'undefined') {
+    effect(() => {
+      const val = sig.value;
+      const s = getStorage();
+      if (!s) return;
+      try {
+        s.setItem(key, options.serialize ? options.serialize(val) : JSON.stringify(val));
+      } catch {
+        // Ignore quota / security errors
+      }
+    });
+  }
+
+  return sig;
+}
+
+// ─── watchEffect ───────────────────────────────────────────────────────────────
+
+export interface WatchEffectOptions {
+  /**
+   * When to flush DOM-touching effects:
+   * - 'microtask' (default): batched via queueMicrotask — prevents layout thrashing
+   * - 'sync': runs immediately on each signal change
+   */
+  flush?: 'microtask' | 'sync';
+}
+
+/**
+ * `watchEffect` — semantic alias for running reactive side effects.
+ *
+ * Prefer `flush: 'microtask'` (default) for DOM work; use `flush: 'sync'`
+ * only for non-DOM logic where you need immediate execution.
+ *
+ * Returns a cleanup/dispose function.
+ *
+ * @example
+ * const query = signal('');
+ * watchEffect(() => {
+ *   console.log('Searching for:', query.value);
+ * });
+ */
+export function watchEffect(
+  fn: () => void | (() => void),
+  options: WatchEffectOptions = {}
+): () => void {
+  return options.flush === 'sync' ? effect(fn) : domEffect(fn);
+}
+
+// ─── asyncComputed ─────────────────────────────────────────────────────────────
+
+export interface AsyncComputedResult<T> {
+  /** Resolved value (null while loading or on error) */
+  data: Signal<T | null>;
+  /** True while the async function is running */
+  loading: Signal<boolean>;
+  /** Error thrown by the async function (null on success) */
+  error: Signal<Error | null>;
+}
+
+/**
+ * `asyncComputed` — a derived signal backed by an async function.
+ *
+ * Re-executes automatically whenever any signal accessed inside `fn` changes.
+ * Handles in-flight request cancellation via an internal version counter so
+ * that stale responses from previous runs are ignored.
+ *
+ * @example
+ * const userId = signal(1);
+ * const user = asyncComputed(async () => {
+ *   const res = await fetch(`/api/users/${userId.value}`);
+ *   return res.json();
+ * });
+ * // user.data.value, user.loading.value, user.error.value
+ */
+export function asyncComputed<T>(fn: () => Promise<T>): AsyncComputedResult<T> {
+  const data    = signal<T | null>(null);
+  const loading = signal<boolean>(true);
+  const error   = signal<Error | null>(null);
+
+  let version = 0;
+
+  effect(() => {
+    // Running fn() inside the effect registers all signal dependencies.
+    // We capture the promise without awaiting here (effect must be synchronous).
+    const currentVersion = ++version;
+    loading.value = true;
+    error.value   = null;
+
+    // Kick off the async work outside the reactive tracking context
+    const promise = untrack(fn);
+
+    promise.then(
+      (result) => {
+        if (currentVersion !== version) return; // stale — discard
+        data.value    = result;
+        loading.value = false;
+      },
+      (err) => {
+        if (currentVersion !== version) return;
+        error.value   = err instanceof Error ? err : new Error(String(err));
+        loading.value = false;
+      }
+    );
+  });
+
+  return { data, loading, error };
+}
+

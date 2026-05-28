@@ -1,4 +1,4 @@
-import { signal, computed, Signal } from '@nova/signals';
+import { signal, computed, effect, Signal } from '@nova/signals';
 
 // Global registry of active stores
 const activeStores = new Map<string, any>();
@@ -107,17 +107,23 @@ export function defineStore<
       }
     };
 
+    // Action listeners for $onAction hook
+    const actionListeners = new Set<(info: { name: string; args: any[] }) => void>();
+
     // Define actions with interception
     const storeActions: Record<string, (...args: any[]) => any> = {};
     if (options.actions) {
       for (const [key, actionFn] of Object.entries(options.actions)) {
         storeActions[key] = function (...args: any[]) {
+          // Notify $onAction listeners before execution
+          actionListeners.forEach(cb => cb({ name: key, args }));
+
           // Bind `this` to the store proxy so action can access this.myState or this.anotherAction
           const result = actionFn.apply(storeInstance, args);
-          
+
           // Record mutation after synchronous execution
           recordMutation(key, args);
-          
+
           return result;
         };
       }
@@ -161,6 +167,46 @@ export function defineStore<
               }
             }
             recordMutation('$patch', [patch]);
+          };
+        }
+        // $subscribe — watch a single state key or the whole store
+        if (prop === '$subscribe') {
+          return (
+            keyOrCallback: string | ((state: Record<string, any>) => void),
+            callback?: (newVal: any, oldVal: any) => void
+          ) => {
+            if (typeof keyOrCallback === 'function') {
+              // Watch entire store — fires on any state change
+              const wholeCb = keyOrCallback;
+              return effect(() => {
+                const snapshot: Record<string, any> = {};
+                for (const k of Object.keys(storeState)) {
+                  snapshot[k] = storeState[k].value;
+                }
+                wholeCb(snapshot);
+              });
+            }
+            // Watch a single key
+            const key = keyOrCallback;
+            if (!(key in storeState)) {
+              console.warn(`[nova/store] $subscribe: "${key}" is not a state property of store "${id}".`);
+              return () => {};
+            }
+            let prev = storeState[key].peek();
+            return effect(() => {
+              const next = storeState[key].value;
+              if (next !== prev) {
+                callback?.(next, prev);
+                prev = next;
+              }
+            });
+          };
+        }
+        // $onAction — subscribe to all action calls
+        if (prop === '$onAction') {
+          return (cb: (info: { name: string; args: any[] }) => void) => {
+            actionListeners.add(cb);
+            return () => actionListeners.delete(cb);
           };
         }
         return undefined;

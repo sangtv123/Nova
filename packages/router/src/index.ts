@@ -5,6 +5,8 @@ export type ResolveFn = (match: RouteMatch) => any | Promise<any>;
 export interface Route {
   path: string;
   pattern: RegExp;
+  /** Optional unique name for type-safe navigation via router.navigateTo() */
+  name?: string;
   /** Dynamic import factory — the module is fetched only when the route is visited */
   module: () => Promise<any>;
   /** Stack of layout factories, from root to leaf */
@@ -135,6 +137,11 @@ export class Router {
   private scrollPositions: Map<string, { x: number; y: number }> = new Map();
 
   /**
+   * Index of named routes — maps route name → path for type-safe navigation.
+   */
+  private nameIndex: Map<string, string> = new Map();
+
+  /**
    * Register a global hook that runs before any navigation.
    */
   onBeforeNavigate(hook: (pathname: string) => GuardResult): () => void {
@@ -156,32 +163,84 @@ export class Router {
    * Register a lazy route with optional nested layouts, guards, and resolvers.
    */
   registerRoute(
-    filePath: string, 
-    module: (() => Promise<any>) | null, 
+    filePath: string,
+    module: (() => Promise<any>) | null,
     layouts: Array<() => Promise<any>> = [],
-    options: Partial<Pick<Route, 'canActivate' | 'resolve' | 'data'>> = {}
+    options: Partial<Pick<Route, 'canActivate' | 'resolve' | 'data' | 'name'>> = {}
   ): void {
     const { path, pattern } = pathToPattern(filePath);
     const existing = this.routes.get(path);
     if (existing) {
       // Merge with existing route config (e.g. from custom setupRoutes vs auto-injected)
-      this.routes.set(path, {
+      const merged: Route = {
         ...existing,
         module: module || existing.module,
         layouts: layouts.length > 0 ? layouts : existing.layouts,
         canActivate: options.canActivate || existing.canActivate,
         resolve: options.resolve || existing.resolve,
-        data: { ...existing.data, ...options.data }
-      });
+        data: { ...existing.data, ...options.data },
+      };
+      if (options.name) {
+        merged.name = options.name;
+        this.nameIndex.set(options.name, path);
+      }
+      this.routes.set(path, merged);
     } else {
-      this.routes.set(path, { 
-        path, 
-        pattern, 
-        module: module as () => Promise<any>, 
-        layouts, 
-        ...options 
-      });
+      const route: Route = {
+        path,
+        pattern,
+        module: module as () => Promise<any>,
+        layouts,
+        ...options,
+      };
+      this.routes.set(path, route);
+      if (options.name) {
+        this.nameIndex.set(options.name, path);
+      }
     }
+  }
+
+  /**
+   * Navigate to a route by its registered name and optional params.
+   *
+   * @example
+   * router.navigateTo('user-detail', { id: '42' }); // → /users/42
+   */
+  navigateTo(name: string, params: Record<string, string> = {}): Promise<RouteMatch | null> {
+    const path = this.nameIndex.get(name);
+    if (!path) {
+      console.warn(`[nova/router] No route registered with name "${name}".`);
+      return Promise.resolve(null);
+    }
+    // Replace :param placeholders with provided values
+    const resolved = path.replace(/:([\w]+)/g, (_, key) => {
+      if (!(key in params)) {
+        console.warn(`[nova/router] navigateTo("${name}"): missing param "${key}".`);
+        return `:${key}`;
+      }
+      return encodeURIComponent(params[key]);
+    });
+    return this.navigate(resolved);
+  }
+
+  /**
+   * Resolve a named route to its full path string without navigating.
+   * Useful for building href values in templates.
+   */
+  resolve(name: string, params: Record<string, string> = {}): string | null {
+    const path = this.nameIndex.get(name);
+    if (!path) return null;
+    return path.replace(/:([\w]+)/g, (_, key) =>
+      key in params ? encodeURIComponent(params[key]) : `:${key}`
+    );
+  }
+
+  /**
+   * Returns true if the given pathname matches the currently active route.
+   */
+  isActive(pathname: string): boolean {
+    if (!this.currentMatch) return false;
+    return this.currentMatch.route.path === this._findRoute(pathname)?.path;
   }
 
   // ── Lazy loading helpers ────────────────────────────────────────────────
@@ -403,3 +462,93 @@ export class Router {
  * Singleton router instance.
  */
 export const router = new Router();
+
+// ─── useRouter hook ───────────────────────────────────────────────────────────
+
+/**
+ * `useRouter` — returns the singleton router instance.
+ * Convenience alias for importing `router` with a hook-style name.
+ *
+ * @example
+ * const { navigate, navigateTo, isActive } = useRouter();
+ */
+export function useRouter(): Router {
+  return router;
+}
+
+// ─── <Link> component ─────────────────────────────────────────────────────────
+
+export interface LinkProps {
+  /** Target pathname or named route descriptor */
+  to: string | { name: string; params?: Record<string, string> };
+  /** Extra CSS class(es) */
+  class?: string;
+  /** CSS class applied when this link's route is active */
+  activeClass?: string;
+  children?: any;
+  [key: string]: any;
+}
+
+/**
+ * `<Link>` — a thin wrapper around `<a>` that integrates with the Nova router.
+ *
+ * - Resolves named routes automatically.
+ * - Calls `router.navigate()` on click (no full page reload).
+ * - Applies `activeClass` (default `'active'`) when the link's route is current.
+ *
+ * @example
+ * <Link to="/about">About</Link>
+ * <Link to={{ name: 'user-detail', params: { id: '42' } }} activeClass="nav--active">
+ *   View User
+ * </Link>
+ */
+export function Link(props: LinkProps): Element {
+  const { to, class: className, activeClass = 'active', children, ...rest } = props;
+
+  // Resolve href from string or named route
+  let href: string;
+  if (typeof to === 'string') {
+    href = to;
+  } else {
+    href = router.resolve(to.name, to.params ?? '') ?? '#';
+  }
+
+  const isCurrentlyActive = router.isActive(href);
+
+  const classes = [
+    className,
+    isCurrentlyActive ? activeClass : '',
+  ].filter(Boolean).join(' ');
+
+  // Create the anchor element
+  const el = document.createElement('a');
+  el.href = href;
+  if (classes) el.className = classes;
+
+  // Merge any extra props (aria-*, data-*, id, etc.)
+  for (const [key, value] of Object.entries(rest)) {
+    if (key === 'children') continue;
+    if (value != null) el.setAttribute(key, String(value));
+  }
+
+  // Append children
+  const childList = Array.isArray(children) ? children : [children];
+  for (const child of childList) {
+    if (child == null) continue;
+    if (child instanceof Node) {
+      el.appendChild(child);
+    } else {
+      el.appendChild(document.createTextNode(String(child)));
+    }
+  }
+
+  // Client-side navigation — no full reload
+  el.addEventListener('click', (e: MouseEvent) => {
+    // Allow Ctrl/Cmd+Click, middle-click etc. to open in new tab
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    router.navigate(href);
+  });
+
+  return el;
+}

@@ -134,7 +134,7 @@ function isStaticNode(node: ts.Node, sourceFile: ts.SourceFile): boolean {
       if (ts.isJsxAttribute(attr)) {
         const name = attr.name.getText(sourceFile);
         if (name.startsWith('on')) return false;
-        if (name === 'n-if' || name === 'n-for' || name === 'n-router') return false;
+        if (name === 'n-if' || name === 'n-for' || name === 'n-router' || name === 'n-model' || name === 'n-show') return false;
         if (attr.initializer && !ts.isStringLiteral(attr.initializer)) return false;
       } else {
         return false; // Spread attribute
@@ -157,7 +157,9 @@ function isStaticNode(node: ts.Node, sourceFile: ts.SourceFile): boolean {
     
     for (const attr of node.attributes.properties) {
       if (ts.isJsxAttribute(attr)) {
-        if (attr.name.getText(sourceFile).startsWith('on')) return false;
+        const attrName = attr.name.getText(sourceFile);
+        if (attrName.startsWith('on')) return false;
+        if (attrName === 'n-model' || attrName === 'n-show') return false;
         if (attr.initializer && !ts.isStringLiteral(attr.initializer)) return false;
       } else {
         return false;
@@ -311,6 +313,112 @@ export function transformOptimizedJSX(sourceFile: ts.SourceFile, originalCode: s
                 ? factory.updateJsxElement(node, newOpening as ts.JsxOpeningElement, ts.visitNodes(node.children, (child) => visitor(child, true)) as any, node.closingElement)
                 : newOpening;
             }
+          }
+
+          // 1c. Handle n-show (CSS display toggle — keeps element in DOM)
+          const nShowAttr = attributes.find(a => ts.isJsxAttribute(a) && (a as ts.JsxAttribute).name.getText(sourceFile) === 'n-show') as ts.JsxAttribute | undefined;
+          if (nShowAttr) {
+            const showExpression = nShowAttr.initializer && ts.isJsxExpression(nShowAttr.initializer)
+              ? nShowAttr.initializer.expression
+              : null;
+            const filteredAttrs = attributes.filter(a => a !== nShowAttr) as ts.JsxAttributeLike[];
+
+            if (showExpression) {
+              // Create: () => ({ display: expr.value ? '' : 'none' })
+              const displayCond = factory.createConditionalExpression(
+                factory.createPropertyAccessExpression(showExpression as ts.Expression, 'value'),
+                factory.createToken(ts.SyntaxKind.QuestionToken),
+                factory.createStringLiteral(''),
+                factory.createToken(ts.SyntaxKind.ColonToken),
+                factory.createStringLiteral('none')
+              );
+              const styleGetter = factory.createArrowFunction(
+                undefined, undefined, [], undefined,
+                factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+                factory.createParenthesizedExpression(
+                  factory.createObjectLiteralExpression([
+                    factory.createPropertyAssignment('display', displayCond)
+                  ])
+                )
+              );
+              filteredAttrs.push(factory.createJsxAttribute(
+                factory.createIdentifier('style'),
+                factory.createJsxExpression(undefined, styleGetter)
+              ));
+            }
+
+            const newAttrs = factory.createJsxAttributes(filteredAttrs as any);
+            const newOpening = ts.isJsxElement(node)
+              ? factory.updateJsxOpeningElement(node.openingElement, node.openingElement.tagName, node.openingElement.typeArguments, newAttrs)
+              : factory.updateJsxSelfClosingElement(node, node.tagName, node.typeArguments, newAttrs);
+
+            return ts.isJsxElement(node)
+              ? factory.updateJsxElement(node, newOpening as ts.JsxOpeningElement, ts.visitNodes(node.children, (child) => visitor(child, true)) as any, node.closingElement)
+              : newOpening;
+          }
+
+          // 1d. Handle n-model (Two-way data binding)
+          const nModelAttr = attributes.find(a => ts.isJsxAttribute(a) && (a as ts.JsxAttribute).name.getText(sourceFile) === 'n-model') as ts.JsxAttribute | undefined;
+          if (nModelAttr) {
+            const modelExpression = nModelAttr.initializer && ts.isJsxExpression(nModelAttr.initializer)
+              ? nModelAttr.initializer.expression
+              : null;
+            const filteredAttrs = attributes.filter(a => a !== nModelAttr) as ts.JsxAttributeLike[];
+
+            if (modelExpression) {
+              // Detect input type for checkbox / radio / select
+              const typeAttr = filteredAttrs.find(a =>
+                ts.isJsxAttribute(a) && (a as ts.JsxAttribute).name.getText(sourceFile) === 'type'
+              ) as ts.JsxAttribute | undefined;
+              const typeValue = typeAttr?.initializer && ts.isStringLiteral(typeAttr.initializer)
+                ? typeAttr.initializer.text : '';
+
+              const isCheckbox = typeValue === 'checkbox' || typeValue === 'radio';
+              const isSelect   = tagName === 'select';
+              const valueProp  = isCheckbox ? 'checked' : 'value';
+              const eventName  = (isCheckbox || isSelect) ? 'onChange' : 'onInput';
+              const targetProp = isCheckbox ? 'checked' : 'value';
+
+              // () => signal.value
+              const valueGetter = factory.createArrowFunction(
+                undefined, undefined, [], undefined,
+                factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+                factory.createPropertyAccessExpression(modelExpression as ts.Expression, 'value')
+              );
+
+              // (e) => signal.value = e.target.value
+              const setter = factory.createArrowFunction(
+                undefined, undefined,
+                [factory.createParameterDeclaration(undefined, undefined, 'e')],
+                undefined,
+                factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+                factory.createAssignment(
+                  factory.createPropertyAccessExpression(modelExpression as ts.Expression, 'value'),
+                  factory.createPropertyAccessExpression(
+                    factory.createPropertyAccessExpression(factory.createIdentifier('e'), 'target' as any),
+                    targetProp as any
+                  )
+                )
+              );
+
+              filteredAttrs.push(factory.createJsxAttribute(
+                factory.createIdentifier(valueProp),
+                factory.createJsxExpression(undefined, valueGetter)
+              ));
+              filteredAttrs.push(factory.createJsxAttribute(
+                factory.createIdentifier(eventName),
+                factory.createJsxExpression(undefined, setter)
+              ));
+            }
+
+            const newAttrs = factory.createJsxAttributes(filteredAttrs as any);
+            const newOpening = ts.isJsxElement(node)
+              ? factory.updateJsxOpeningElement(node.openingElement, node.openingElement.tagName, node.openingElement.typeArguments, newAttrs)
+              : factory.updateJsxSelfClosingElement(node, node.tagName, node.typeArguments, newAttrs);
+
+            return ts.isJsxElement(node)
+              ? factory.updateJsxElement(node, newOpening as ts.JsxOpeningElement, ts.visitNodes(node.children, (child) => visitor(child, true)) as any, node.closingElement)
+              : newOpening;
           }
 
           // 2. Handle Hoisting for static native elements

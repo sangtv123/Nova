@@ -676,6 +676,14 @@ export function createText(text: string): Text {
 export function render(element: Element | Element[], container: Element | null): void {
   if (!container) return;
 
+  // Cleanup all existing children before clearing the container.
+  // This ensures onUnmount hooks and signal disposals are properly invoked,
+  // preventing memory leaks during HMR reloads or app re-renders.
+  let child = container.firstChild;
+  while (child) {
+    cleanupNode(child);
+    child = child.nextSibling;
+  }
   container.innerHTML = '';
 
   if (Array.isArray(element)) {
